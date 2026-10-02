@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>织云 ERP · 纺织行业管理系统 | 段小静</title>
+<meta name="author" content="段小静">
+<meta name="contact" content="18662613315@163.com">
+<meta name="description" content="织云ERP - 纺织行业全流程管理系统，支持订单、工单、库存、采购、质量、报表全流程配置化管理。设计与开发：段小静 18662613315@163.com">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#0f1a2e;--blue:#2f6fed;--cyan:#0ea5a5;--bg:#f2f5f9;--card:#fff;
+  --line:#e3e8f0;--text:#1b2536;--muted:#7a879b;--green:#16a34a;--amber:#d98800;
+  --red:#dc2626;--purple:#7c3aed;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);font-size:13px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#c9d4e3;border-radius:4px}
+
+.app{display:flex;min-height:100vh}
+.sidebar{width:224px;background:var(--navy);flex-shrink:0;position:fixed;top:0;bottom:0;left:0;
+  display:flex;flex-direction:column;z-index:60;overflow-y:auto}
+.main{margin-left:224px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh}
+
+/* ---------- 品牌 ---------- */
+.brand{display:flex;align-items:center;gap:11px;padding:20px 18px 16px}
+.brand-logo{width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#3b82f6,#0ea5a5);display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(59,130,246,.35)}
+.brand h1{color:#fff;font-size:14.5px;font-weight:600;letter-spacing:.5px}
+.brand p{color:#5b6b85;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;margin-top:2px}
+
+/* ---------- 导航 ---------- */
+.nav-group{padding:0 10px;margin-top:4px}
+.nav-label{color:#4a5a75;font-size:10px;font-weight:600;letter-spacing:1.4px;padding:12px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:9.5px 11px;border:none;
+  background:transparent;color:#93a2bb;font-size:13px;font-family:inherit;cursor:pointer;
+  border-radius:8px;text-align:left;transition:.15s;margin-bottom:2px}
+.nav-item svg{flex-shrink:0;opacity:.85}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#dbe4f0}
+.nav-item.active{background:linear-gradient(90deg,rgba(47,111,237,.9),rgba(47,111,237,.5));
+  color:#fff;box-shadow:0 3px 10px rgba(47,111,237,.3)}
+.nav-item .dot{margin-left:auto;background:#ef4444;color:#fff;font-size:9.5px;padding:1px 6px;
+  border-radius:8px;font-weight:600}
+
+/* ---------- 侧栏底 + 署名 ---------- */
+.sidebar-foot{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.07)}
+.sidebar-foot .u{display:flex;align-items:center;gap:9px}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0ea5a5,#2f6fed);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11.5px;font-weight:600}
+.sidebar-foot .nm{color:#dbe4f0;font-size:12px;font-weight:500}
+.sidebar-foot .rl{color:#5b6b85;font-size:10px}
+.credit{display:flex;align-items:center;gap:7px;margin-top:12px;padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.06);font-size:10.5px;color:#5b6b85;line-height:1.4}
+.credit svg{flex-shrink:0;opacity:.65}
+.credit b{color:#93a2bb;font-weight:500}
+
+/* ---------- 顶栏 ---------- */
+.topbar{background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;display:flex;
+  align-items:center;gap:16px;position:sticky;top:0;z-index:40}
+.topbar h2{font-size:17px;font-weight:600}
+.topbar .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.hamburger{display:none;background:none;border:none;cursor:pointer;color:var(--text);padding:4px}
+.date-pill{background:#f4f7fc;border:1px solid var(--line);border-radius:8px;padding:7px 12px;
+  font-size:12px;color:#54637a;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;
+  box-shadow:0 0 0 3px rgba(34,197,94,.18)}
+
+/* ---------- 全局搜索 ---------- */
+.gs-wrap{position:relative;width:290px}
+.gs-wrap input{width:100%;padding:8px 12px 8px 34px;border:1px solid var(--line);border-radius:9px;
+  font-size:12.5px;font-family:inherit;outline:none;transition:.15s;background:#f8fafd}
+.gs-wrap input:focus{background:#fff;border-color:#93b4f5;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
+.gs-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#9aa8bd;pointer-events:none}
+.gs-panel{position:absolute;top:calc(100% + 8px);left:0;right:0;background:#fff;border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 16px 40px rgba(15,26,46,.16);max-height:380px;overflow-y:auto;
+  display:none;z-index:80;padding:6px}
+.gs-panel.show{display:block}
+.gs-item{padding:9px 11px;border-radius:8px;cursor:pointer;display:flex;gap:10px;align-items:center;transition:.12s}
+.gs-item:hover{background:#f3f7fd}
+.gs-tag{font-size:10px;background:#e7efff;color:#2f6fed;padding:2px 7px;border-radius:5px;
+  font-weight:600;flex-shrink:0;white-space:nowrap}
+.gs-main{font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-sub{font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-empty{padding:26px;text-align:center;color:var(--muted);font-size:12.5px}
+
+/* ---------- 内容 ---------- */
+.content{padding:20px 24px 30px;flex:1}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.card-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:3px;height:14px;border-radius:2px;
+  background:linear-gradient(180deg,#3b82f6,#0ea5a5)}
+.card-sub{font-size:11.5px;color:var(--muted)}
+
+/* ---------- KPI ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;position:relative;
+  overflow:hidden;transition:.2s}
+.kpi:hover{box-shadow:0 6px 20px rgba(15,26,46,.07);transform:translateY(-1px)}
+.kpi::after{content:'';position:absolute;right:-24px;top:-24px;width:78px;height:78px;border-radius:50%;opacity:.07}
+.kpi.c1::after{background:#2f6fed}.kpi.c2::after{background:#0ea5a5}
+.kpi.c3::after{background:#d98800}.kpi.c4::after{background:#7c3aed}
+.kpi-label{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.kpi-value{font-size:23px;font-weight:650;letter-spacing:-.4px;margin:9px 0 7px;font-variant-numeric:tabular-nums}
+.kpi-foot{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.trend{font-weight:600;font-size:11px}
+.trend.up{color:var(--green)}.trend.down{color:var(--red)}
+
+.grid-2{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:16px}
+.grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+
+/* ---------- 柱状图 ---------- */
+.bars{display:flex;gap:10px;height:172px;align-items:flex-end;padding-top:8px}
+.bar-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:7px}
+.bar-track{width:100%;display:flex;justify-content:center;align-items:flex-end;height:100%}
+.bar-fill{width:70%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#5b96f8,#2f6fed);
+  transition:height .5s cubic-bezier(.4,0,.2,1)}
+.bar-fill.hi{background:linear-gradient(180deg,#22d3ee,#0ea5a5)}
+.bar-x{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.bar-v{font-size:10px;color:#54637a;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- 分布条 ---------- */
+.dist-row{margin-bottom:14px}
+.dist-row:last-child{margin-bottom:0}
+.dist-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px;gap:10px}
+.dist-top .nm{color:#3c4a5f;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dist-top .vl{color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0}
+.dist-bar{height:7px;background:#eef3fa;border-radius:4px;overflow:hidden}
+.dist-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* ---------- 预警 ---------- */
+.alert-item{display:flex;gap:11px;padding:11px 0;border-bottom:1px dashed #edf1f7}
+.alert-item:last-child{border-bottom:none;padding-bottom:0}
+.alert-item:first-child{padding-top:0}
+.alert-ico{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700}
+.alert-ico.red{background:#fdeaea;color:#dc2626}
+.alert-ico.amber{background:#fff4e0;color:#c27400}
+.alert-ico.blue{background:#e7efff;color:#2f6fed}
+.alert-ico.green{background:#e6f7ed;color:#16a34a}
+.alert-txt{flex:1;min-width:0}
+.alert-txt .t{font-size:12.5px;font-weight:500;line-height:1.45}
+.alert-txt .d{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ---------- 工具栏 ---------- */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);
+  border-radius:12px;padding:12px 15px;margin-bottom:14px}
+.search-box{position:relative;flex:1;min-width:210px;max-width:360px}
+.search-box .si{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#9aa8bd}
+.search-box input{width:100%;padding:8px 30px 8px 34px;border:1px solid var(--line);border-radius:8px;
+  font-size:12.5px;font-family:inherit;outline:none;transition:.15s}
+.search-box input:focus{border-color:#93b4f5;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
+.search-box .clr{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;background:none;
+  color:#9aa8bd;cursor:pointer;font-size:15px;line-height:1;padding:3px;display:none}
+.search-box .clr.show{display:block}
+.suggest{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 12px 30px rgba(15,26,46,.14);z-index:70;padding:5px;display:none;
+  max-height:250px;overflow-y:auto}
+.suggest.show{display:block}
+.suggest-item{padding:7px 10px;border-radius:7px;cursor:pointer;font-size:12.5px;transition:.12s;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.suggest-item:hover{background:#f3f7fd;color:#2f6fed}
+.suggest-item b{color:#2f6fed}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;font-size:12px;
+  color:#54637a;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+.chip:hover{border-color:#b8cbe8;color:#2f6fed}
+.chip.active{background:#2f6fed;border-color:#2f6fed;color:#fff;font-weight:500;
+  box-shadow:0 2px 8px rgba(47,111,237,.28)}
+.chip b{font-weight:600;opacity:.75;margin-left:2px}
+.btn{padding:8px 15px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:12.5px;
+  color:#3c4a5f;cursor:pointer;font-family:inherit;font-weight:500;transition:.15s;display:inline-flex;
+  align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:#b8cbe8;background:#f8fbff}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#2f6fed);border-color:#2f6fed;color:#fff;
+  box-shadow:0 3px 10px rgba(47,111,237,.3)}
+.btn-primary:hover{background:linear-gradient(135deg,#2f6fed,#2560d8);border-color:#2560d8}
+.btn-sm{padding:6px 11px;font-size:12px}
+
+/* ---------- 表格 ---------- */
+.table-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:680px}
+thead th{background:#f8fafc;padding:11px 14px;text-align:left;font-size:11.5px;font-weight:600;
+  color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;letter-spacing:.3px}
+tbody td{padding:11px 14px;border-bottom:1px solid #eef2f7;font-size:12.5px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:#fafcff}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;letter-spacing:-.2px}
+.strong{font-weight:600;color:#16233b}
+.sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+.empty{text-align:center;color:var(--muted);padding:56px 0!important;font-size:12.5px}
+.color-dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;
+  vertical-align:-1px;border:1px solid rgba(0,0,0,.14)}
+.row-actions{white-space:nowrap;text-align:right;width:1%}
+.icon-btn{width:28px;height:28px;border-radius:7px;border:1px solid transparent;background:transparent;
+  cursor:pointer;color:#8395ad;font-size:13px;transition:.15s;line-height:1}
+.icon-btn:hover{background:#eef4fd;color:#2f6fed;border-color:#d8e6fb}
+.icon-btn.danger:hover{background:#fdeaea;color:#dc2626;border-color:#fbd5d5}
+
+/* ---------- 徽章 ---------- */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.gray{background:#eef2f7;color:#64748b}
+.badge.blue{background:#e7efff;color:#2f6fed}
+.badge.amber{background:#fff4e0;color:#c27400}
+.badge.green{background:#e6f7ed;color:#16a34a}
+.badge.purple{background:#f1ebff;color:#7c3aed}
+.badge.red{background:#fdeaea;color:#dc2626}
+.badge.cyan{background:#e0f7f7;color:#0e8f8f}
+
+/* ---------- 进度条 ---------- */
+.prog{height:6px;background:#e8eef7;border-radius:3px;overflow:hidden;min-width:70px}
+.prog-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#5b96f8,#2f6fed);transition:width .6s}
+.prog-bar.warn{background:linear-gradient(90deg,#fbbf24,#d98800)}
+.prog-bar.done{background:linear-gradient(90deg,#34d399,#16a34a)}
+.prog-txt{font-size:11px;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums}
+
+/* ---------- 弹窗 ---------- */
+.modal-mask{position:fixed;inset:0;background:rgba(15,26,46,.5);backdrop-filter:blur(3px);display:flex;
+  align-items:center;justify-content:center;z-index:100;padding:20px;animation:fade .18s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;
+  animation:pop .22s cubic-bezier(.34,1.4,.64,1);box-shadow:0 24px 60px rgba(15,26,46,.28)}
+.modal-head{padding:17px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;background:#fff;z-index:2}
+.modal-head h3{font-size:15px;font-weight:600}
+.modal-head .x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1;
+  width:28px;height:28px;border-radius:6px;transition:.15s}
+.modal-head .x:hover{background:#f2f5f9;color:var(--text)}
+.modal-body{padding:20px 22px}
+.modal-foot{padding:15px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;
+  position:sticky;bottom:0;background:#fff}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:11.5px;color:#54637a;font-weight:500}
+.field label .req{color:#dc2626;margin-left:2px}
+.field input,.field select,.field textarea{width:100%;padding:8px 11px;border:1px solid var(--line);
+  border-radius:8px;font-size:12.5px;background:#fff;color:var(--text);outline:none;font-family:inherit;transition:.15s}
+.field input:focus,.field select:focus{border-color:#93b4f5;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
+.ro-field{padding:8px 11px;background:#f6f8fc;border:1px dashed var(--line);border-radius:8px;
+  font-size:12.5px;color:#54637a;font-family:ui-monospace,Menlo,monospace}
+
+/* ---------- 设置页 ---------- */
+.tabs{display:flex;gap:4px;background:#eef3fa;padding:4px;border-radius:10px;margin-bottom:16px;
+  width:fit-content;flex-wrap:wrap}
+.tab{padding:8px 18px;border-radius:8px;border:none;background:transparent;font-size:12.5px;font-family:inherit;
+  color:#54637a;cursor:pointer;font-weight:500;transition:.15s}
+.tab:hover{color:#2f6fed}
+.tab.active{background:#fff;color:#2f6fed;box-shadow:0 2px 8px rgba(15,26,46,.08)}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;
+  border-bottom:1px dashed #edf1f7}
+.set-row:last-child{border-bottom:none}
+.set-row .sl{font-size:12.5px;font-weight:500}
+.set-row .sd{font-size:11px;color:var(--muted);margin-top:3px}
+.set-row input,.set-row select{width:200px;padding:8px 11px;border:1px solid var(--line);border-radius:8px;
+  font-size:12.5px;font-family:inherit;outline:none;transition:.15s}
+.set-row input:focus,.set-row select:focus{border-color:#93b4f5;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
+.dict-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:16px}
+.dict-btn{padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;text-align:left;
+  cursor:pointer;font-family:inherit;transition:.15s}
+.dict-btn:hover{border-color:#b8cbe8;background:#f8fbff}
+.dict-btn.active{border-color:#2f6fed;background:#f0f6ff;box-shadow:0 3px 10px rgba(47,111,237,.15)}
+.dict-btn .dn{font-size:12.5px;font-weight:600;color:#1b2536}
+.dict-btn .dc{font-size:11px;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:40px;height:22px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.switch .sl2{position:absolute;inset:0;background:#cfd9e6;border-radius:22px;cursor:pointer;transition:.2s}
+.switch .sl2::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;
+  border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked + .sl2{background:#2f6fed}
+.switch input:checked + .sl2::before{transform:translateX(18px)}
+
+/* ---------- 关于页 ---------- */
+.about-hero{display:flex;align-items:center;gap:14px;padding:4px 0 18px;
+  border-bottom:1px solid var(--line);margin-bottom:4px}
+.about-logo{width:52px;height:52px;border-radius:14px;flex-shrink:0;
+  background:linear-gradient(135deg,#3b82f6,#0ea5a5);display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:22px;box-shadow:0 6px 18px rgba(59,130,246,.3)}
+.about-name{font-size:17px;font-weight:650;color:#16233b}
+.about-desc{font-size:12px;color:var(--muted);margin-top:4px}
+.about-person{font-size:15px;font-weight:600;color:#2f6fed;letter-spacing:.5px}
+.about-link{font-size:13px;font-weight:500;color:#2f6fed;text-decoration:none;
+  font-family:ui-monospace,Menlo,monospace}
+.about-link:hover{text-decoration:underline}
+
+/* ---------- 列设置 ---------- */
+.col-list{display:flex;flex-direction:column;gap:2px;max-height:330px;overflow-y:auto}
+.col-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;cursor:pointer;
+  font-size:12.5px;transition:.12s}
+.col-item:hover{background:#f3f7fd}
+.col-item input{width:15px;height:15px;accent-color:#2f6fed;cursor:pointer}
+
+/* ---------- 页脚署名 ---------- */
+.app-footer{padding:16px 24px 26px;font-size:11px;color:var(--muted);display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;justify-content:center;border-top:1px solid var(--line);background:#fff;
+  margin-top:auto}
+.app-footer a{color:#5b85d6;text-decoration:none}
+.app-footer a:hover{text-decoration:underline}
+.app-footer .sep{color:#c3ccd9}
+.app-footer b{color:#54637a;font-weight:600}
+
+/* ---------- Toast ---------- */
+#toastRoot{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:300;
+  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:#16233b;color:#fff;padding:11px 22px;border-radius:10px;font-size:12.5px;
+  box-shadow:0 10px 30px rgba(15,26,46,.3);animation:tin .28s cubic-bezier(.34,1.3,.64,1);white-space:nowrap}
+@keyframes tin{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.toast.out{animation:tout .25s forwards}
+@keyframes tout{to{opacity:0;transform:translateY(10px)}}
+
+/* ---------- 响应式 ---------- */
+@media(max-width:1180px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2,.grid-2b{grid-template-columns:1fr}
+}
+@media(max-width:980px){.gs-wrap{width:190px}}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease}
+  .sidebar.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.4)}
+  .main{margin-left:0}
+  .hamburger{display:block}
+  .content{padding:16px 14px 24px}
+  .topbar{padding:11px 14px}
+  .kpi-grid{grid-template-columns:1fr;gap:11px}
+  .topbar .sub{display:none}
+  .gs-wrap{width:150px}
+  .form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">织</div>
+      <div><h1>织云 ERP</h1><p>Textile Suite</p></div>
+    </div>
+    <div class="nav-group" id="navGroup"></div>
+    <div class="sidebar-foot">
+      <div class="u">
+        <div class="avatar">陈</div>
+        <div><div class="nm">陈志远</div><div class="rl">生产计划部 · 主管</div></div>
+      </div>
+      <div class="credit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>系统负责人 · <b>段小静</b></span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div>
+        <h2 id="pageTitle">经营看板</h2>
+        <div class="sub" id="pageSub"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="gs-wrap">
+          <span class="gs-ico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+          </span>
+          <input type="text" id="globalInput" placeholder="全局搜索：订单 / 客户 / 物料…"
+            autocomplete="off"
+            oninput="globalSearch(this.value)"
+            onfocus="if(this.value)globalSearch(this.value)">
+          <div class="gs-panel" id="gsPanel"></div>
+        </div>
+        <div class="date-pill"><span class="live-dot"></span><span id="clock"></span></div>
+      </div>
+    </header>
+
+    <div class="content" id="content"></div>
+
+    <footer class="app-footer">
+      <span>织云 ERP · 纺织行业全流程管理系统</span>
+      <span class="sep">·</span>
+      <span>设计与开发 <b>段小静</b></span>
+      <span class="sep">·</span>
+      <a href="mailto:18662613315@163.com">18662613315@163.com</a>
+      <span class="sep">·</span>
+      <span>v3.1.0</span>
+    </footer>
+  </main>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ==================================================================
+   0. 工具
+   ================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtN  = n => Number(n || 0).toLocaleString('zh-CN');
+const CUR   = () => (DB.settings.currency || '¥');
+const fmtM  = n => CUR() + Number(n || 0).toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtM0 = n => CUR() + Number(n || 0).toLocaleString('zh-CN');
+const today = () => new Date().toISOString().slice(0,10);
+
+/* 署名信息（可在此处统一修改） */
+const AUTHOR = {
+  name: '段小静',
+  email: '18662613315@163.com',
+  version: 'v3.1.0',
+  updated: '2024-06'
+};
+
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  $('toastRoot').appendChild(t);
+  setTimeout(()=>{ t.classList.add('out'); setTimeout(()=> t.remove(), 260); }, 2200);
+}
+
+/* ==================================================================
+   1. 默认数据
+   ================================================================== */
+function defaultDB(){
+  return {
+    settings: {
+      company: '织云纺织科技有限公司',
+      currency: '¥',
+      taxRate: 13,
+      lowStockWarn: true,
+      dueWarnDays: 3,
+      pageSize: 50,
+      hiddenCols: {}
+    },
+    dict: {
+      products: [
+        {name:'全棉精梳府绸', spec:'40S×40S / 133×72 / 120g/㎡ / 150cm', unit:'米', price:18.5},
+        {name:'全棉高密府绸', spec:'50S×50S / 144×80 / 110g/㎡ / 150cm', unit:'米', price:21.5},
+        {name:'全棉斜纹布',   spec:'32S×32S / 130×70 / 190g/㎡ / 150cm', unit:'米', price:16.9},
+        {name:'全棉巴厘纱',   spec:'60S×60S / 90×88 / 68g/㎡ / 145cm',   unit:'米', price:12.8},
+        {name:'涤棉混纺斜纹', spec:'T65/C35 20S×16S / 128×60 / 240g/㎡',  unit:'米', price:14.2},
+        {name:'天丝莱赛尔平纹',spec:'60S×60S / 140×90 / 95g/㎡ / 145cm',  unit:'米', price:32.0},
+        {name:'亚麻棉交织',   spec:'11S×11S / 51×47 / 175g/㎡ / 140cm',   unit:'米', price:26.8},
+        {name:'针织汗布',     spec:'32S 精梳 / 180g/㎡ / 165cm 圆机',      unit:'公斤', price:22.4},
+        {name:'锦棉弹力府绸', spec:'70D×32S / 130×70 / 145g/㎡ / 145cm',  unit:'米', price:24.0},
+      ],
+      colors: [
+        {name:'藏青', code:'1802', hex:'#1e3a5f'},
+        {name:'雾霾蓝', code:'3401', hex:'#7a9bb5'},
+        {name:'本白', code:'0101', hex:'#f0ead9'},
+        {name:'卡其', code:'2405', hex:'#b39a72'},
+        {name:'漂白', code:'0001', hex:'#ffffff'},
+        {name:'酒红', code:'2203', hex:'#7b2233'},
+        {name:'灰蓝', code:'3302', hex:'#8a9aa8'},
+        {name:'墨绿', code:'4501', hex:'#2d4a3e'},
+      ],
+      units: [{name:'米'},{name:'公斤'},{name:'码'},{name:'匹'}],
+      categories: [{name:'纱线'},{name:'坯布'},{name:'成品'},{name:'染化料'}],
+      processes: [{name:'整经'},{name:'浆纱'},{name:'织造'},{name:'染色'},{name:'染整'},{name:'定型'},{name:'后整理'},{name:'验布'},{name:'包装'}],
+      orderStatus: [{name:'待确认'},{name:'已确认'},{name:'生产中'},{name:'待发货'},{name:'已完成'},{name:'已取消'}],
+      workStatus: [{name:'待排产'},{name:'进行中'},{name:'待入库'},{name:'已完工'},{name:'暂停'}],
+      purchaseStatus: [{name:'待下单'},{name:'在途'},{name:'部分到货'},{name:'已到货'}],
+      grades: [{name:'一等品'},{name:'二等品'},{name:'等外品'}],
+      custLevels: [{name:'A'},{name:'B'},{name:'C'}],
+      warehouses: [
+        {name:'A-01-01'},{name:'A-01-03'},{name:'A-01-05'},{name:'A-01-07'},
+        {name:'A-02-01'},{name:'A-02-04'},{name:'A-02-06'},{name:'A-03-02'},
+        {name:'B-01-01'},{name:'B-01-02'},{name:'B-01-04'},{name:'B-01-07'},
+        {name:'B-02-02'},{name:'B-02-05'},
+        {name:'C-01-02'},{name:'C-01-05'},{name:'C-02-01'},{name:'C-02-03'},
+        {name:'C-02-05'},{name:'C-03-01'},
+        {name:'D-01-01'},{name:'D-01-02'},{name:'D-02-03'},{name:'D-02-05'},
+      ],
+    },
+
+    customers: [
+      {id:'C001', name:'杭州锦华服饰有限公司', contact:'王建国', phone:'138 6621 4408', region:'浙江 · 杭州', level:'A', receivable:128600},
+      {id:'C002', name:'广州丽人时装股份',   contact:'陈丽',   phone:'139 2244 7781', region:'广东 · 广州', level:'A', receivable:86400},
+      {id:'C003', name:'南通罗莱家纺集团',   contact:'周海涛', phone:'137 5590 2213', region:'江苏 · 南通', level:'B', receivable:42100},
+      {id:'C004', name:'绍兴柯桥外贸布行',   contact:'孙倩',   phone:'136 7722 9081', region:'浙江 · 绍兴', level:'B', receivable:0},
+      {id:'C005', name:'宁波保税区进出口',   contact:'李强',   phone:'135 8890 3344', region:'浙江 · 宁波', level:'C', receivable:23500},
+      {id:'C006', name:'苏州恒力纺织科技',   contact:'张明',   phone:'137 6228 8899', region:'江苏 · 苏州', level:'A', receivable:158200},
+      {id:'C007', name:'青岛即发集团股份',   contact:'赵雪',   phone:'138 6987 3321', region:'山东 · 青岛', level:'B', receivable:56700},
+      {id:'C008', name:'佛山溢达纺织集团',   contact:'刘伟',   phone:'139 2277 5500', region:'广东 · 佛山', level:'A', receivable:92400},
+    ],
+
+    suppliers: [
+      {id:'S001', name:'无锡一棉纺织集团', material:'精梳棉纱 / 高支纱',  contact:'张伟', phone:'139 0510 2233', lead:7,  rate:98.5},
+      {id:'S002', name:'浙江龙盛染料',   material:'活性染料 / 助剂',    contact:'刘敏', phone:'138 0575 6677', lead:5,  rate:96.2},
+      {id:'S003', name:'山东如意毛纺',   material:'羊毛混纺纱',        contact:'赵鹏', phone:'137 0631 8899', lead:12, rate:94.8},
+      {id:'S004', name:'福建百宏聚纤',   material:'涤纶长丝 / 弹力丝',  contact:'黄芳', phone:'136 0595 1122', lead:10, rate:97.1},
+      {id:'S005', name:'江苏阳光集团',   material:'精纺羊毛纱 / 呢绒',  contact:'钱峰', phone:'138 0510 7788', lead:14, rate:95.6},
+      {id:'S006', name:'浙江恒逸石化',   material:'涤纶短纤 / 切片',    contact:'孙丽', phone:'136 0571 9922', lead:8,  rate:97.8},
+    ],
+
+    orders: [
+      {no:'SO2406020', cust:'青岛即发集团股份',   product:'全棉精梳府绸', spec:'40S×40S / 133×72 / 120g/㎡ / 150cm', color:'藏青 1802', qty:16000, unit:'米', price:18.5, orderDate:'2024-06-19', delivery:'2024-07-12', status:'待确认'},
+      {no:'SO2406019', cust:'苏州恒力纺织科技',   product:'天丝莱赛尔平纹', spec:'60S×60S / 140×90 / 95g/㎡ / 145cm', color:'雾霾蓝 3401', qty:10000, unit:'米', price:32.0, orderDate:'2024-06-18', delivery:'2024-07-08', status:'待确认'},
+      {no:'SO2406018', cust:'佛山溢达纺织集团',   product:'全棉高密府绸', spec:'50S×50S / 144×80 / 110g/㎡ / 150cm', color:'本白 0101', qty:9000,  unit:'米', price:21.5, orderDate:'2024-06-17', delivery:'2024-07-05', status:'已确认'},
+      {no:'SO2406017', cust:'杭州锦华服饰有限公司', product:'全棉精梳府绸', spec:'40S×40S / 133×72 / 120g/㎡ / 150cm', color:'酒红 2203', qty:14000, unit:'米', price:18.9, orderDate:'2024-06-16', delivery:'2024-07-02', status:'已确认'},
+      {no:'SO2406016', cust:'广州丽人时装股份',   product:'涤棉混纺斜纹', spec:'T65/C35 20S×16S / 128×60 / 240g/㎡', color:'灰蓝 3302', qty:22000, unit:'米', price:14.6, orderDate:'2024-06-15', delivery:'2024-07-10', status:'生产中'},
+      {no:'SO2406015', cust:'南通罗莱家纺集团',   product:'亚麻棉交织',   spec:'11S×11S / 51×47 / 175g/㎡ / 140cm', color:'卡其 2405', qty:7000,  unit:'米', price:26.8, orderDate:'2024-06-14', delivery:'2024-07-06', status:'生产中'},
+      {no:'SO2406014', cust:'宁波保税区进出口',   product:'针织汗布',     spec:'32S 精梳 / 180g/㎡ / 165cm 圆机', color:'漂白 0001', qty:12000, unit:'公斤', price:22.4, orderDate:'2024-06-13', delivery:'2024-07-02', status:'生产中'},
+      {no:'SO2406013', cust:'绍兴柯桥外贸布行',   product:'全棉巴厘纱',   spec:'60S×60S / 90×88 / 68g/㎡ / 145cm', color:'本白 0101', qty:13000, unit:'米', price:12.8, orderDate:'2024-06-12', delivery:'2024-06-30', status:'待发货'},
+      {no:'SO2406012', cust:'青岛即发集团股份',   product:'锦棉弹力府绸', spec:'70D×32S / 130×70 / 145g/㎡ / 145cm', color:'藏青 1802', qty:6000,  unit:'米', price:24.0, orderDate:'2024-06-11', delivery:'2024-06-28', status:'待发货'},
+      {no:'SO2406011', cust:'广州丽人时装股份',   product:'天丝莱赛尔平纹', spec:'60S×60S / 140×90 / 95g/㎡ / 145cm', color:'漂白 0001', qty:5000,  unit:'米', price:33.5, orderDate:'2024-06-10', delivery:'2024-07-08', status:'生产中'},
+      {no:'SO2406010', cust:'杭州锦华服饰有限公司', product:'全棉斜纹布',   spec:'32S×32S / 130×70 / 190g/㎡ / 150cm', color:'卡其 2405', qty:18000, unit:'米', price:16.9, orderDate:'2024-06-09', delivery:'2024-06-26', status:'已完成'},
+      {no:'SO2406009', cust:'苏州恒力纺织科技',   product:'全棉精梳府绸', spec:'40S×40S / 133×72 / 120g/㎡ / 150cm', color:'藏青 1802', qty:20000, unit:'米', price:18.5, orderDate:'2024-06-08', delivery:'2024-06-24', status:'已完成'},
+      {no:'SO2406008', cust:'佛山溢达纺织集团',   product:'天丝莱赛尔平纹', spec:'60S×60S / 140×90 / 95g/㎡ / 145cm', color:'雾霾蓝 3401', qty:8000,  unit:'米', price:32.0, orderDate:'2024-06-07', delivery:'2024-06-22', status:'已完成'},
+      {no:'SO2406007', cust:'南通罗莱家纺集团',   product:'涤棉混纺斜纹', spec:'T65/C35 20S×16S / 128×60 / 240g/㎡', color:'本白 0101', qty:16000, unit:'米', price:14.2, orderDate:'2024-06-06', delivery:'2024-06-20', status:'已完成'},
+      {no:'SO2406006', cust:'宁波保税区进出口',   product:'全棉高密府绸', spec:'50S×50S / 144×80 / 110g/㎡ / 150cm', color:'酒红 2203', qty:7000,  unit:'米', price:21.5, orderDate:'2024-06-05', delivery:'2024-06-18', status:'已完成'},
+      {no:'SO2406005', cust:'绍兴柯桥外贸布行',   product:'亚麻棉交织',   spec:'11S×11S / 51×47 / 175g/㎡ / 140cm', color:'卡其 2405', qty:6000,  unit:'米', price:26.8, orderDate:'2024-06-04', delivery:'2024-06-16', status:'已完成'},
+      {no:'SO2406004', cust:'青岛即发集团股份',   product:'全棉巴厘纱',   spec:'60S×60S / 90×88 / 68g/㎡ / 145cm', color:'漂白 0001', qty:11000, unit:'米', price:12.8, orderDate:'2024-06-03', delivery:'2024-06-15', status:'已完成'},
+      {no:'SO2406003', cust:'杭州锦华服饰有限公司', product:'针织汗布',     spec:'32S 精梳 / 180g/㎡ / 165cm 圆机', color:'漂白 0001', qty:9500,  unit:'公斤', price:22.4, orderDate:'2024-06-02', delivery:'2024-06-14', status:'已完成'},
+      {no:'SO2406002', cust:'广州丽人时装股份',   product:'锦棉弹力府绸', spec:'70D×32S / 130×70 / 145g/㎡ / 145cm', color:'藏青 1802', qty:5000,  unit:'米', price:24.0, orderDate:'2024-06-01', delivery:'2024-06-19', status:'已取消'},
+      {no:'SO2406001', cust:'苏州恒力纺织科技',   product:'全棉斜纹布',   spec:'32S×32S / 130×70 / 190g/㎡ / 150cm', color:'灰蓝 3302', qty:15000, unit:'米', price:16.9, orderDate:'2024-05-30', delivery:'2024-06-15', status:'已完成'},
+    ],
+
+    workorders: [
+      {no:'WO2406014', so:'SO2406016', product:'涤棉混纺斜纹', process:'染色',   machine:'卷染机 JD-04',   plan:22000, done:9240,  unit:'米',  start:'2024-06-17', due:'2024-07-08', status:'进行中', eff:91.7},
+      {no:'WO2406013', so:'SO2406015', product:'亚麻棉交织',   process:'织造',   machine:'喷气织机 JA-09',  plan:7000,  done:3850,  unit:'米',  start:'2024-06-16', due:'2024-07-02', status:'进行中', eff:93.4},
+      {no:'WO2406012', so:'SO2406014', product:'针织汗布',     process:'染整',   machine:'圆机 + 定型线',   plan:12000, done:7680,  unit:'公斤', start:'2024-06-15', due:'2024-06-30', status:'进行中', eff:93.1},
+      {no:'WO2406011', so:'SO2406011', product:'天丝莱赛尔平纹', process:'染色',   machine:'溢流染色机 R-02', plan:5000,  done:2900,  unit:'米',  start:'2024-06-14', due:'2024-07-05', status:'进行中', eff:94.6},
+      {no:'WO2406010', so:'SO2406019', product:'天丝莱赛尔平纹', process:'织造',   machine:'喷气织机 JA-07',  plan:10000, done:6100,  unit:'米',  start:'2024-06-18', due:'2024-07-06', status:'进行中', eff:97.8},
+      {no:'WO2406009', so:'SO2406018', product:'全棉高密府绸', process:'织造',   machine:'喷气织机 JA-05',  plan:9000,  done:5400,  unit:'米',  start:'2024-06-18', due:'2024-07-03', status:'进行中', eff:96.2},
+      {no:'WO2406008', so:'SO2406013', product:'全棉巴厘纱',   process:'定型',   machine:'定型机 ST-01',   plan:13000, done:13000, unit:'米',  start:'2024-06-14', due:'2024-06-28', status:'待入库', eff:95.4},
+      {no:'WO2406007', so:'SO2406012', product:'锦棉弹力府绸', process:'验布',   machine:'验布机 QS-02',   plan:6000,  done:6000,  unit:'米',  start:'2024-06-14', due:'2024-06-26', status:'待入库', eff:98.2},
+      {no:'WO2406006', so:'SO2406010', product:'全棉斜纹布',   process:'验布',   machine:'验布机 QS-01',   plan:18000, done:18000, unit:'米',  start:'2024-06-10', due:'2024-06-24', status:'已完工', eff:98.8},
+      {no:'WO2406005', so:'SO2406009', product:'全棉精梳府绸', process:'验布',   machine:'验布机 QS-03',   plan:20000, done:20000, unit:'米',  start:'2024-06-09', due:'2024-06-22', status:'已完工', eff:99.0},
+      {no:'WO2406004', so:'SO2406008', product:'天丝莱赛尔平纹', process:'验布',   machine:'验布机 QS-01',   plan:8000,  done:8000,  unit:'米',  start:'2024-06-08', due:'2024-06-20', status:'已完工', eff:98.2},
+      {no:'WO2406003', so:'SO2406017', product:'全棉精梳府绸', process:'织造',   machine:'喷气织机 JA-03',  plan:14000, done:9100,  unit:'米',  start:'2024-06-17', due:'2024-06-30', status:'进行中', eff:96.2},
+      {no:'WO2406002', so:'SO2406020', product:'全棉精梳府绸', process:'整经',   machine:'整经机 ZJ-02',   plan:16000, done:11200, unit:'米',  start:'2024-06-19', due:'2024-07-10', status:'进行中', eff:95.1},
+      {no:'WO2406001', so:'SO2406007', product:'涤棉混纺斜纹', process:'织造',   machine:'喷气织机 JA-11',  plan:16000, done:16000, unit:'米',  start:'2024-06-06', due:'2024-06-18', status:'已完工', eff:97.5},
+    ],
+
+    inventory: [
+      {code:'Y-C21S',  name:'精梳棉纱 21S',            cat:'纱线', batch:'B240501', qty:4200, unit:'公斤', loc:'A-01-01', safe:2500, price:25.6},
+      {code:'Y-C32S',  name:'精梳棉纱 32S',            cat:'纱线', batch:'B240512', qty:2860, unit:'公斤', loc:'A-01-03', safe:1500, price:26.8},
+      {code:'Y-C40S',  name:'精梳棉纱 40S',            cat:'纱线', batch:'B240518', qty:1240, unit:'公斤', loc:'A-01-05', safe:1800, price:29.5},
+      {code:'Y-JC60S', name:'精梳棉纱 60S',            cat:'纱线', batch:'B240520', qty:860,  unit:'公斤', loc:'A-01-07', safe:600,  price:38.2},
+      {code:'Y-TC20',  name:'涤棉混纺纱 T65/C35 20S',  cat:'纱线', batch:'B240520', qty:4200, unit:'公斤', loc:'A-02-01', safe:2000, price:18.2},
+      {code:'Y-L11S',  name:'亚麻纱 11S',              cat:'纱线', batch:'B240508', qty:680,  unit:'公斤', loc:'A-02-06', safe:900,  price:58.0},
+      {code:'Y-TN60',  name:'天丝莱赛尔纱 60S',        cat:'纱线', batch:'B240522', qty:1520, unit:'公斤', loc:'A-03-02', safe:800,  price:62.5},
+      {code:'Y-T150D', name:'涤纶长丝 150D',           cat:'纱线', batch:'B240525', qty:6300, unit:'公斤', loc:'A-02-04', safe:3000, price:11.8},
+
+      {code:'G-P120',  name:'全棉精梳坯布 120g',       cat:'坯布', batch:'G240601', qty:18600, unit:'米',  loc:'B-01-01', safe:8000,  price:9.8},
+      {code:'G-P110',  name:'全棉高密坯布 110g',       cat:'坯布', batch:'G240605', qty:11200, unit:'米',  loc:'B-01-02', safe:6000,  price:11.5},
+      {code:'G-T240',  name:'涤棉斜纹坯布 240g',       cat:'坯布', batch:'G240602', qty:24200, unit:'米',  loc:'B-01-04', safe:10000, price:8.6},
+      {code:'G-TN95',  name:'天丝坯布 95g',            cat:'坯布', batch:'G240603', qty:5200,  unit:'米',  loc:'B-02-02', safe:6000,  price:16.2},
+      {code:'G-L175',  name:'亚麻棉坯布 175g',         cat:'坯布', batch:'G240606', qty:4300,  unit:'米',  loc:'B-02-05', safe:3000,  price:18.5},
+      {code:'G-X190',  name:'全棉斜纹坯布 190g',       cat:'坯布', batch:'G240608', qty:9800,  unit:'米',  loc:'B-01-07', safe:5000,  price:10.2},
+
+      {code:'F-1802',  name:'全棉府绸成品 · 藏青 1802',    cat:'成品', batch:'缸号2406018', qty:7800,  unit:'米',  loc:'C-01-02', safe:0, price:18.5},
+      {code:'F-3401',  name:'天丝平纹成品 · 雾霾蓝 3401',  cat:'成品', batch:'缸号2406021', qty:3200,  unit:'米',  loc:'C-01-05', safe:0, price:32.0},
+      {code:'F-0101',  name:'涤棉斜纹成品 · 本白 0101',    cat:'成品', batch:'缸号2406015', qty:15200, unit:'米',  loc:'C-02-01', safe:0, price:14.2},
+      {code:'F-2203',  name:'全棉高密成品 · 酒红 2203',    cat:'成品', batch:'缸号2406024', qty:4100,  unit:'米',  loc:'C-02-03', safe:0, price:21.5},
+      {code:'F-2405',  name:'亚麻棉成品 · 卡其 2405',      cat:'成品', batch:'缸号2406026', qty:2600,  unit:'米',  loc:'C-02-05', safe:0, price:26.8},
+      {code:'F-0001',  name:'针织汗布成品 · 漂白 0001',    cat:'成品', batch:'缸号2406028', qty:5400,  unit:'公斤', loc:'C-03-01', safe:0, price:22.4},
+
+      {code:'D-RB',    name:'活性染料 · 藏青 RB',       cat:'染化料', batch:'D240605', qty:320, unit:'公斤', loc:'D-01-01', safe:150, price:38.6},
+      {code:'D-RR',    name:'活性染料 · 酒红 RR',       cat:'染化料', batch:'D240607', qty:96,  unit:'公斤', loc:'D-01-02', safe:120, price:42.0},
+      {code:'D-ZJ90',  name:'匀染剂 ZJ-90',            cat:'染化料', batch:'D240610', qty:480, unit:'公斤', loc:'D-02-03', safe:200, price:15.5},
+      {code:'D-GY02',  name:'固色剂 GY-02',            cat:'染化料', batch:'D240612', qty:210, unit:'公斤', loc:'D-02-05', safe:250, price:22.4},
+    ],
+
+    purchase: [
+      {no:'PO2406012', sup:'无锡一棉纺织集团', mat:'精梳棉纱 32S',      qty:5000, unit:'公斤', price:26.5, date:'2024-06-18', eta:'2024-06-25', status:'在途'},
+      {no:'PO2406011', sup:'浙江龙盛染料',     mat:'活性染料 藏青 RB',   qty:500,  unit:'公斤', price:38.0, date:'2024-06-16', eta:'2024-06-21', status:'已到货'},
+      {no:'PO2406010', sup:'福建百宏聚纤',     mat:'涤纶长丝 150D',      qty:8000, unit:'公斤', price:11.8, date:'2024-06-14', eta:'2024-06-24', status:'在途'},
+      {no:'PO2406009', sup:'山东如意毛纺',     mat:'羊毛混纺纱 48S',     qty:1200, unit:'公斤', price:88.0, date:'2024-06-11', eta:'2024-06-23', status:'部分到货'},
+      {no:'PO2406008', sup:'无锡一棉纺织集团', mat:'精梳棉纱 40S',      qty:4000, unit:'公斤', price:29.2, date:'2024-06-08', eta:'2024-06-15', status:'已到货'},
+      {no:'PO2406007', sup:'浙江龙盛染料',     mat:'匀染剂 ZJ-90',       qty:800,  unit:'公斤', price:15.2, date:'2024-06-05', eta:'2024-06-10', status:'已到货'},
+      {no:'PO2406006', sup:'江苏阳光集团',     mat:'精纺羊毛纱 60S',     qty:600,  unit:'公斤', price:126.0,date:'2024-06-16', eta:'2024-06-30', status:'在途'},
+      {no:'PO2406005', sup:'浙江恒逸石化',     mat:'涤纶短纤 1.4D',      qty:6000, unit:'公斤', price:8.6,  date:'2024-06-15', eta:'2024-06-22', status:'在途'},
+      {no:'PO2406004', sup:'浙江龙盛染料',     mat:'固色剂 GY-02',       qty:400,  unit:'公斤', price:22.0, date:'2024-06-12', eta:'2024-06-18', status:'部分到货'},
+      {no:'PO2406003', sup:'无锡一棉纺织集团', mat:'精梳棉纱 60S',      qty:1000, unit:'公斤', price:38.5, date:'2024-06-06', eta:'2024-06-14', status:'已到货'},
+    ],
+
+    quality: [
+      {no:'QC2406024', so:'SO2406010', roll:'R-2406-0142', len:99.4, width:150.6, gsm:190.2, defect:'无',          grade:'一等品', by:'李明',   date:'2024-06-20'},
+      {no:'QC2406023', so:'SO2406010', roll:'R-2406-0141', len:98.8, width:150.3, gsm:189.5, defect:'1 处纬缩',     grade:'二等品', by:'李明',   date:'2024-06-20'},
+      {no:'QC2406022', so:'SO2406009', roll:'R-2406-0138', len:100.0,width:150.1, gsm:120.4, defect:'无',          grade:'一等品', by:'张秀英', date:'2024-06-19'},
+      {no:'QC2406021', so:'SO2406009', roll:'R-2406-0137', len:99.6, width:150.8, gsm:119.8, defect:'无',          grade:'一等品', by:'张秀英', date:'2024-06-19'},
+      {no:'QC2406020', so:'SO2406008', roll:'R-2406-0125', len:98.2, width:145.4, gsm:95.6,  defect:'2 处色差',     grade:'二等品', by:'王强',   date:'2024-06-18'},
+      {no:'QC2406019', so:'SO2406008', roll:'R-2406-0124', len:99.4, width:145.1, gsm:94.8,  defect:'无',          grade:'一等品', by:'王强',   date:'2024-06-18'},
+      {no:'QC2406018', so:'SO2406007', roll:'R-2406-0118', len:100.0,width:250.4, gsm:238.2, defect:'无',          grade:'一等品', by:'张秀英', date:'2024-06-17'},
+      {no:'QC2406017', so:'SO2406007', roll:'R-2406-0117', len:98.6, width:250.1, gsm:240.6, defect:'1 处断经',     grade:'二等品', by:'张秀英', date:'2024-06-17'},
+      {no:'QC2406016', so:'SO2406006', roll:'R-2406-0104', len:99.8, width:150.2, gsm:109.6, defect:'无',          grade:'一等品', by:'李明',   date:'2024-06-16'},
+      {no:'QC2406015', so:'SO2406005', roll:'R-2406-0092', len:97.2, width:140.6, gsm:174.2, defect:'边中色差超限', grade:'等外品', by:'王强',   date:'2024-06-15'},
+      {no:'QC2406014', so:'SO2406004', roll:'R-2406-0086', len:99.0, width:145.8, gsm:67.4,  defect:'3 处色差',     grade:'二等品', by:'李明',   date:'2024-06-14'},
+      {no:'QC2406013', so:'SO2406003', roll:'R-2406-0078', len:99.6, width:165.2, gsm:180.4, defect:'无',          grade:'一等品', by:'张秀英', date:'2024-06-13'},
+    ],
+  };
+}
+
+/* ==================================================================
+   2. 存储
+   ================================================================== */
+const STORE_KEY = 'textile_erp_v3';
+let DB = null;
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && d.settings && d.dict && Array.isArray(d.orders)) return d;
+    }
+  }catch(e){}
+  return defaultDB();
+}
+function saveDB(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+}
+DB = loadDB();
+
+/* ==================================================================
+   3. Schema 表结构
+   ================================================================== */
+const SCHEMAS = {
+  orders: {
+    key:'orders', title:'销售订单', idKey:'no', idPrefix:'SO',
+    filterField:'status', filterDict:'orderStatus',
+    fields:[
+      {k:'no',        l:'订单号',    t:'text',   ro:true, mono:true, w:'106px'},
+      {k:'cust',      l:'客户',      t:'ref',    ref:'customers', refLabel:'name', req:true, w:'176px'},
+      {k:'product',   l:'产品',      t:'ref',    ref:'dict.products', refLabel:'name', req:true, w:'140px', fill:['spec','unit','price']},
+      {k:'spec',      l:'规格',      t:'text',   w:'230px'},
+      {k:'color',     l:'颜色/色号',  t:'color',  w:'126px'},
+      {k:'qty',       l:'数量',      t:'number', req:true, align:'right', w:'96px'},
+      {k:'unit',      l:'单位',      t:'select', opts:'units', w:'70px'},
+      {k:'price',     l:'单价',      t:'number', align:'right', step:'0.01', w:'84px'},
+      {k:'orderDate', l:'下单日期',   t:'date',   w:'104px'},
+      {k:'delivery',  l:'交货日期',   t:'date',   req:true, w:'104px'},
+      {k:'status',    l:'状态',      t:'select', opts:'orderStatus', badge:true, w:'88px'},
+    ],
+    calc:{l:'金额', fn:r => (Number(r.qty)||0)*(Number(r.price)||0), money:true}
+  },
+
+  workorders: {
+    key:'workorders', title:'生产工单', idKey:'no', idPrefix:'WO',
+    filterField:'status', filterDict:'workStatus',
+    fields:[
+      {k:'no',      l:'工单号',  t:'text',   ro:true, mono:true, w:'106px'},
+      {k:'so',      l:'关联订单', t:'ref',   ref:'orders', refLabel:'no', w:'106px'},
+      {k:'product', l:'产品',    t:'ref',    ref:'dict.products', refLabel:'name', req:true, w:'140px', fill:['unit']},
+      {k:'process', l:'当前工序', t:'ref',    ref:'dict.processes', refLabel:'name', req:true, w:'96px'},
+      {k:'machine', l:'机台 / 产线', t:'text', w:'150px'},
+      {k:'plan',    l:'计划量',  t:'number', req:true, align:'right', w:'92px'},
+      {k:'done',    l:'完成量',  t:'number', align:'right', w:'92px'},
+      {k:'unit',    l:'单位',    t:'select', opts:'units', w:'70px'},
+      {k:'start',   l:'开工日',  t:'date',   w:'104px'},
+      {k:'due',     l:'交期',    t:'date',   w:'104px'},
+      {k:'eff',     l:'直通率%', t:'number', align:'right', step:'0.1', w:'88px'},
+      {k:'status',  l:'状态',    t:'select', opts:'workStatus', badge:true, w:'88px'},
+    ],
+    calc:{l:'进度', fn:r => Math.round((Number(r.done)||0)/Math.max(Number(r.plan)||1,1)*100), prog:true}
+  },
+
+  inventory: {
+    key:'inventory', title:'物料库存', idKey:'code', idPrefix:'M',
+    filterField:'cat', filterDict:'categories',
+    fields:[
+      {k:'code',  l:'物料编码', t:'text',   ro:true, mono:true, w:'110px'},
+      {k:'name',  l:'物料名称', t:'text',   req:true, w:'190px'},
+      {k:'cat',   l:'类别',    t:'ref',    ref:'dict.categories', refLabel:'name', req:true, w:'90px'},
+      {k:'batch', l:'批次/缸号', t:'text',  w:'140px'},
+      {k:'loc',   l:'库位',    t:'ref',    ref:'dict.warehouses', refLabel:'name', w:'96px'},
+      {k:'qty',   l:'库存量',   t:'number', req:true, align:'right', w:'96px'},
+      {k:'unit',  l:'单位',    t:'select', opts:'units', w:'70px'},
+      {k:'safe',  l:'安全库存', t:'number', align:'right', w:'92px'},
+      {k:'price', l:'单价',    t:'number', align:'right', step:'0.01', w:'88px'},
+    ],
+    calc:{l:'库存金额', fn:r => (Number(r.qty)||0)*(Number(r.price)||0), money:true}
+  },
+
+  purchase: {
+    key:'purchase', title:'采购管理', idKey:'no', idPrefix:'PO',
+    filterField:'status', filterDict:'purchaseStatus',
+    fields:[
+      {k:'no',     l:'采购单号', t:'text',  ro:true, mono:true, w:'106px'},
+      {k:'sup',    l:'供应商',   t:'ref',   ref:'suppliers', refLabel:'name', req:true, w:'176px'},
+      {k:'mat',    l:'采购物料', t:'text',  req:true, w:'190px'},
+      {k:'qty',    l:'数量',    t:'number', req:true, align:'right', w:'92px'},
+      {k:'unit',   l:'单位',    t:'select', opts:'units', w:'70px'},
+      {k:'price',  l:'单价',    t:'number', align:'right', step:'0.01', w:'88px'},
+      {k:'date',   l:'下单日期', t:'date',  w:'104px'},
+      {k:'eta',    l:'预计到货', t:'date',  w:'104px'},
+      {k:'status', l:'状态',    t:'select', opts:'purchaseStatus', badge:true, w:'92px'},
+    ],
+    calc:{l:'金额', fn:r => (Number(r.qty)||0)*(Number(r.price)||0), money:true}
+  },
+
+  quality: {
+    key:'quality', title:'质量管理', idKey:'no', idPrefix:'QC',
+    filterField:'grade', filterDict:'grades',
+    fields:[
+      {k:'no',    l:'检验单号', t:'text',  ro:true, mono:true, w:'106px'},
+      {k:'so',    l:'关联订单', t:'ref',   ref:'orders', refLabel:'no', w:'106px'},
+      {k:'roll',  l:'匹号',    t:'text',  mono:true, w:'120px'},
+      {k:'len',   l:'匹长(m)', t:'number', align:'right', step:'0.1', w:'86px'},
+      {k:'width', l:'门幅(cm)',t:'number', align:'right', step:'0.1', w:'90px'},
+      {k:'gsm',   l:'克重(g/㎡)',t:'number',align:'right', step:'0.1', w:'96px'},
+      {k:'defect',l:'疵点描述', t:'text',  w:'150px'},
+      {k:'grade', l:'等级',    t:'select', opts:'grades', badge:true, w:'86px'},
+      {k:'by',    l:'检验员',   t:'text',  w:'84px'},
+      {k:'date',  l:'检验日期', t:'date',  w:'104px'},
+    ]
+  },
+
+  customers: {
+    key:'customers', title:'客户档案', idKey:'id', idPrefix:'C',
+    filterField:'level', filterDict:'custLevels',
+    fields:[
+      {k:'id',         l:'客户编码', t:'text', ro:true, mono:true, w:'92px'},
+      {k:'name',       l:'客户名称', t:'text', req:true, w:'210px'},
+      {k:'contact',    l:'联系人',   t:'text', w:'92px'},
+      {k:'phone',      l:'联系电话', t:'text', mono:true, w:'140px'},
+      {k:'region',     l:'所在地区', t:'text', w:'130px'},
+      {k:'level',      l:'信用等级', t:'select', opts:'custLevels', badge:true, w:'92px'},
+      {k:'receivable', l:'应收账款', t:'number', align:'right', step:'0.01', w:'110px'},
+    ],
+    calc:{l:'订单数', fn:r => DB.orders.filter(o => o.cust === r.name).length, plain:true}
+  },
+
+  suppliers: {
+    key:'suppliers', title:'供应商档案', idKey:'id', idPrefix:'S',
+    fields:[
+      {k:'id',       l:'供应商编码', t:'text', ro:true, mono:true, w:'100px'},
+      {k:'name',     l:'供应商名称', t:'text', req:true, w:'200px'},
+      {k:'material', l:'主营物料',   t:'text', w:'190px'},
+      {k:'contact',  l:'联系人',    t:'text', w:'92px'},
+      {k:'phone',    l:'联系电话',   t:'text', mono:true, w:'140px'},
+      {k:'lead',     l:'交货周期(天)',t:'number', align:'right', w:'110px'},
+      {k:'rate',     l:'准时率(%)', t:'number', align:'right', step:'0.1', w:'100px'},
+    ]
+  },
+};
+
+/* ==================================================================
+   4. 字典 / 引用
+   ================================================================== */
+function getDict(name){
+  const d = DB.dict[name];
+  if(!Array.isArray(d)) return [];
+  return d.map(x => typeof x === 'string' ? {name:x} : x);
+}
+function dictNames(name){ return getDict(name).map(x => x.name); }
+function refList(ref){
+  if(ref.startsWith('dict.')) return getDict(ref.slice(5));
+  return DB[ref] || [];
+}
+function refLabelOf(f, item){
+  if(f.refLabel === 'name+code') return item.name + ' ' + item.code;
+  return item[f.refLabel || 'name'];
+}
+function refValues(f){ return refList(f.ref).map(it => refLabelOf(f, it)); }
+function colorHex(v){
+  if(!v) return '#cbd5e1';
+  const hit = getDict('colors').find(c => (c.name + ' ' + c.code) === v || c.name === v);
+  return hit && hit.hex ? hit.hex : '#cbd5e1';
+}
+function autoFillFromRef(tableKey, fieldKey, value){
+  const S = SCHEMAS[tableKey];
+  const f = S.fields.find(x => x.k === fieldKey);
+  if(!f || !f.fill || !value) return;
+  const list = refList(f.ref);
+  const hit = list.find(it => refLabelOf(f, it) === value);
+  if(!hit) return;
+  f.fill.forEach(target => {
+    const el = $('ff_' + target);
+    if(el && (!el.value || el.value === '' || el.dataset.autofilled === '1')){
+      if(hit[target] != null){
+        el.value = hit[target];
+        el.dataset.autofilled = '1';
+        el.style.transition = 'background .3s';
+        el.style.background = '#e8f2ff';
+        setTimeout(()=> el.style.background = '', 700);
+      }
+    }
+  });
+}
+
+/* ==================================================================
+   5. 页面元信息 & 导航
+   ================================================================== */
+const PAGES = {
+  dashboard:{ title:'经营看板', sub:'' },
+  orders:    { title:'销售订单', sub:'' },
+  workorders:{ title:'生产工单', sub:'' },
+  inventory: { title:'物料库存', sub:'' },
+  purchase:  { title:'采购管理', sub:'' },
+  quality:   { title:'质量管理', sub:'' },
+  customers: { title:'客户档案', sub:'' },
+  suppliers: { title:'供应商档案', sub:'' },
+  report:    { title:'报表分析', sub:'' },
+  settings:  { title:'系统设置', sub:'所有参数、字典、字段均可配置' },
+};
+
+const ICONS = {
+  dashboard:'<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
+  orders:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+  workorders:'<path d="M3 21V10l5.5 3.5V10L14 13.5V10l7 4.5V21z"/><path d="M3 21h18"/><path d="M7 6.5V4h3v2.5"/>',
+  inventory:'<path d="M3 7.2 12 3l9 4.2-9 4.2z"/><path d="M3 7.2v9.6L12 21l9-4.2V7.2"/><path d="M12 11.4V21"/>',
+  purchase:'<circle cx="9.5" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.8l2.3 11.6h11L21.5 7H6.2"/>',
+  quality:'<circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.6 2.6L16 9.6"/>',
+  customers:'<circle cx="12" cy="8" r="3.8"/><path d="M4.2 20.5c0-3.8 3.5-5.8 7.8-5.8s7.8 2 7.8 5.8"/>',
+  suppliers:'<path d="M3 21V8l6-3 6 3v13"/><path d="M15 21V11l6 3v7"/><path d="M3 21h18"/>',
+  report:'<path d="M3 20.5h18"/><rect x="4.8" y="11" width="3.2" height="7"/><rect x="10.4" y="6.5" width="3.2" height="11.5"/><rect x="16" y="13.5" width="3.2" height="4.5"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
+};
+
+const NAV = [
+  { group:'业务流程', items:[
+    {key:'dashboard',  label:'经营看板', icon:ICONS.dashboard},
+    {key:'orders',     label:'销售订单', icon:ICONS.orders},
+    {key:'workorders', label:'生产工单', icon:ICONS.workorders},
+    {key:'inventory',  label:'物料库存', icon:ICONS.inventory},
+    {key:'purchase',   label:'采购管理', icon:ICONS.purchase},
+    {key:'quality',    label:'质量管理', icon:ICONS.quality},
+  ]},
+  { group:'基础档案', items:[
+    {key:'customers',  label:'客户档案', icon:ICONS.customers},
+    {key:'suppliers',  label:'供应商档案', icon:ICONS.suppliers},
+  ]},
+  { group:'系统', items:[
+    {key:'report',     label:'报表分析', icon:ICONS.report},
+    {key:'settings',   label:'系统设置', icon:ICONS.settings},
+  ]},
+];
+
+const svgWrap = p => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+function initNav(){
+  let html = '';
+  NAV.forEach(g => {
+    html += `<div class="nav-label">${g.group}</div>`;
+    g.items.forEach(n => {
+      const dot = navDot(n.key);
+      html += `<button class="nav-item" data-page="${n.key}" onclick="go('${n.key}')">
+        ${svgWrap(n.icon)}<span>${n.label}</span>${dot ? `<span class="dot">${dot}</span>` : ''}
+      </button>`;
+    });
+  });
+  $('navGroup').innerHTML = html;
+}
+function navDot(key){
+  if(key === 'inventory' && DB.settings.lowStockWarn){
+    const n = DB.inventory.filter(i => Number(i.safe) > 0 && Number(i.qty) < Number(i.safe)).length;
+    return n || '';
+  }
+  if(key === 'orders'){
+    const n = DB.orders.filter(o => o.status === '待确认').length;
+    return n || '';
+  }
+  return '';
+}
+
+/* ==================================================================
+   6. 列表引擎
+   ================================================================== */
+const listState = {};
+function getState(key){
+  if(!listState[key]) listState[key] = { kw:'', filter:'全部' };
+  return listState[key];
+}
+function visibleFields(key){
+  const S = SCHEMAS[key];
+  const hidden = (DB.settings.hiddenCols && DB.settings.hiddenCols[key]) || [];
+  return S.fields.filter(f => hidden.indexOf(f.k) === -1);
+}
+function filteredRows(key){
+  const S = SCHEMAS[key], st = getState(key);
+  let rows = (DB[S.key] || []).slice();
+  if(S.filterField && st.filter && st.filter !== '全部'){
+    rows = rows.filter(r => String(r[S.filterField]) === st.filter);
+  }
+  const kw = (st.kw || '').trim().toLowerCase();
+  if(kw){
+    rows = rows.filter(r =>
+      S.fields.some(f => {
+        const v = r[f.k];
+        return v != null && String(v).toLowerCase().includes(kw);
+      })
+    );
+  }
+  return rows;
+}
+function cellHtml(f, r){
+  const v = r[f.k];
+  if(f.t === 'select' && f.badge){
+    return `<span class="badge ${badgeClass(v)}">${esc(v || '—')}</span>`;
+  }
+  if(f.t === 'color'){
+    if(!v) return '—';
+    return `<span class="color-dot" style="background:${colorHex(v)}"></span>${esc(v)}`;
+  }
+  if(f.t === 'number'){
+    const s = f.step === '0.1' ? Number(v||0).toFixed(1)
+            : f.step === '0.01' ? Number(v||0).toFixed(2)
+            : fmtN(v);
+    return esc(s);
+  }
+  if(v == null || v === '') return '<span style="color:#c3ccd9">—</span>';
+  return esc(v);
+}
+const BADGE_MAP = {
+  '待确认':'gray','已确认':'blue','生产中':'amber','待发货':'purple','已完成':'green','已取消':'red',
+  '待排产':'gray','进行中':'amber','待入库':'purple','已完工':'green','暂停':'red',
+  '待下单':'gray','在途':'amber','部分到货':'purple','已到货':'green',
+  '一等品':'green','二等品':'amber','等外品':'red',
+  'A':'green','B':'blue','C':'gray',
+  '纱线':'blue','坯布':'amber','成品':'green','染化料':'purple',
+};
+function badgeClass(v){ return BADGE_MAP[v] || 'gray'; }
+
+function renderTableHead(key){
+  const S = SCHEMAS[key];
+  const cols = visibleFields(key);
+  let h = cols.map(f => `<th style="${f.w ? 'width:'+f.w : ''}">${f.l}</th>`).join('');
+  if(S.calc) h += `<th style="text-align:right">${S.calc.l}</th>`;
+  h += `<th class="row-actions">操作</th>`;
+  return h;
+}
+function renderTableBody(key){
+  const S = SCHEMAS[key];
+  const cols = visibleFields(key);
+  const rows = filteredRows(key);
+  if(!rows.length){
+    return `<tr><td colspan="${cols.length + (S.calc?1:0) + 1}" class="empty">
+      没有匹配的记录 · 点击右上角「新增」添加第一条</td></tr>`;
+  }
+  return rows.map(r => {
+    const id = r[S.idKey];
+    let tds = cols.map(f => {
+      let extra = '';
+      if(f.t === 'number') extra = 'num';
+      if(f.mono) extra += ' mono';
+      return `<td class="${extra.trim()}">${cellHtml(f, r)}</td>`;
+    }).join('');
+
+    let calcTd = '';
+    if(S.calc){
+      if(S.calc.prog){
+        const pct = Math.min(S.calc.fn(r), 100);
+        const cls = pct >= 100 ? 'done' : (pct < 60 ? 'warn' : '');
+        calcTd = `<td style="min-width:118px">
+          <div class="prog"><div class="prog-bar ${cls}" style="width:${pct}%"></div></div>
+          <div class="prog-txt">${pct}%</div></td>`;
+      } else if(S.calc.money){
+        calcTd = `<td class="num strong">${fmtM0(S.calc.fn(r))}</td>`;
+      } else {
+        calcTd = `<td class="num">${fmtN(S.calc.fn(r))}</td>`;
+      }
+    }
+
+    return `<tr>${tds}${calcTd}
+      <td class="row-actions">
+        <button class="icon-btn" title="编辑" onclick="openForm('${key}','${esc(id)}')">✎</button>
+        <button class="icon-btn danger" title="删除" onclick="delRow('${key}','${esc(id)}')">✕</button>
+      </td></tr>`;
+  }).join('');
+}
+function refreshTable(key){
+  const th = $('th_' + key), tb = $('tb_' + key), cnt = $('cnt_' + key);
+  if(th) th.innerHTML = renderTableHead(key);
+  if(tb) tb.innerHTML = renderTableBody(key);
+  if(cnt){
+    const n = filteredRows(key).length;
+    cnt.textContent = `显示 ${n} / ${(DB[SCHEMAS[key].key]||[]).length} 条`;
+  }
+  if($('chips_' + key)) $('chips_' + key).innerHTML = renderChips(key);
+}
+function renderChips(key){
+  const S = SCHEMAS[key];
+  if(!S.filterField) return '';
+  const st = getState(key);
+  const opts = ['全部'].concat(dictNames(S.filterDict));
+  return opts.map(o => {
+    const total = DB[S.key].length;
+    const n = o === '全部' ? total : DB[S.key].filter(r => String(r[S.filterField]) === o).length;
+    return `<button class="chip ${st.filter === o ? 'active' : ''}"
+      onclick="setFilter('${key}','${esc(o)}')">${esc(o)} <b>${n}</b></button>`;
+  }).join('');
+}
+function setFilter(key, v){
+  getState(key).filter = v;
+  refreshTable(key);
+}
+function onSearchInput(key, val){
+  const st = getState(key);
+  st.kw = val;
+  const clr = $('clr_' + key);
+  if(clr) clr.classList.toggle('show', !!val);
+  refreshTable(key);
+  showSuggest(key, val);
+}
+function clearSearch(key){
+  const el = $('kw_' + key);
+  if(el) el.value = '';
+  onSearchInput(key, '');
+  el && el.focus();
+}
+function showSuggest(key, val){
+  const box = $('sg_' + key);
+  if(!box) return;
+  const kw = (val || '').trim().toLowerCase();
+  if(kw.length < 1){ box.classList.remove('show'); return; }
+  const S = SCHEMAS[key];
+  const pool = new Set();
+  (DB[S.key] || []).forEach(r => {
+    S.fields.forEach(f => {
+      const v = r[f.k];
+      if(v != null && String(v).toLowerCase().includes(kw) && String(v).length < 40){
+        pool.add(String(v));
+      }
+    });
+  });
+  const arr = Array.from(pool).slice(0, 8);
+  if(!arr.length){ box.classList.remove('show'); return; }
+  box.innerHTML = arr.map(v => {
+    const i = v.toLowerCase().indexOf(kw);
+    const hl = esc(v.slice(0, i)) + '<b>' + esc(v.slice(i, i + kw.length)) + '</b>' + esc(v.slice(i + kw.length));
+    return `<div class="suggest-item" onclick="pickSuggest('${key}',${JSON.stringify(v).replace(/"/g,'&quot;')})">${hl}</div>`;
+  }).join('');
+  box.classList.add('show');
+}
+function pickSuggest(key, v){
+  const el = $('kw_' + key);
+  if(el) el.value = v;
+  const box = $('sg_' + key);
+  if(box) box.classList.remove('show');
+  onSearchInput(key, v);
+}
+document.addEventListener('click', e => {
+  document.querySelectorAll('.suggest').forEach(s => {
+    if(!s.parentElement.contains(e.target)) s.classList.remove('show');
+  });
+  const gp = $('gsPanel');
+  if(gp && !gp.contains(e.target) && e.target.id !== 'globalInput') gp.classList.remove('show');
+});
+
+function renderListPage(key){
+  const S = SCHEMAS[key];
+  const st = getState(key);
+  return `
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></span>
+      <input type="text" id="kw_${key}" placeholder="搜索${S.title}…（支持任意字段模糊匹配）"
+        value="${esc(st.kw)}" autocomplete="off"
+        oninput="onSearchInput('${key}', this.value)"
+        onfocus="if(this.value)showSuggest('${key}', this.value)">
+      <button class="clr ${st.kw ? 'show' : ''}" id="clr_${key}" onclick="clearSearch('${key}')">✕</button>
+      <div class="suggest" id="sg_${key}"></div>
+    </div>
+    ${S.filterField ? `<div class="chips" id="chips_${key}">${renderChips(key)}</div>` : ''}
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <span style="font-size:11.5px;color:var(--muted)" id="cnt_${key}"></span>
+      <button class="btn btn-sm" onclick="openColSettings('${key}')">列设置</button>
+      <button class="btn btn-sm" onclick="exportTable('${key}')">导出</button>
+      <button class="btn btn-primary btn-sm" onclick="openForm('${key}')">＋ 新增</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table>
+        <thead><tr id="th_${key}">${renderTableHead(key)}</tr></thead>
+        <tbody id="tb_${key}">${renderTableBody(key)}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+/* ==================================================================
+   7. 表单
+   ================================================================== */
+let formState = { key:null, editingId:null };
+
+function openForm(key, id){
+  const S = SCHEMAS[key];
+  const editing = id != null && id !== '';
+  const record = editing ? (DB[S.key] || []).find(r => String(r[S.idKey]) === String(id)) : null;
+  if(editing && !record){ toast('未找到该记录'); return; }
+
+  formState = { key, editingId: editing ? String(id) : null };
+
+  const fieldsHtml = S.fields.map(f => renderField(f, record)).join('');
+
+  const html = `
+  <div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>${editing ? '编辑' : '新增'}${S.title}</h3>
+        <button class="x" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">${fieldsHtml}</div>
+      </div>
+      <div class="modal-foot">
+        ${editing ? `<button class="btn btn-sm" style="margin-right:auto;color:#dc2626"
+            onclick="delRow('${key}','${esc(id)}',true)">删除此记录</button>` : ''}
+        <button class="btn" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveForm()">${editing ? '保存修改' : '确认新增'}</button>
+      </div>
+    </div>
+  </div>`;
+  $('modalRoot').innerHTML = html;
+}
+
+function renderField(f, record){
+  const val = record ? (record[f.k] != null ? record[f.k] : '') : defaultValFor(f);
+  const full = (f.t === 'text' && !f.w) || f.w === '230px' ? ' full' : '';
+
+  if(f.ro){
+    const show = record ? val : '<span style="color:#a9b4c4">保存后自动生成</span>';
+    return `<div class="field${full}">
+      <label>${f.l}</label>
+      <div class="ro-field">${show === '' ? '<span style="color:#a9b4c4">—</span>' : show}</div>
+    </div>`;
+  }
+
+  let ctrl = '';
+  if(f.t === 'select'){
+    const opts = dictNames(f.opts);
+    ctrl = `<select id="ff_${f.k}">${opts.map(o =>
+      `<option value="${esc(o)}" ${String(val) === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+  }
+  else if(f.t === 'ref' || f.t === 'color'){
+    const vals = f.t === 'color'
+      ? getDict('colors').map(c => c.name + ' ' + c.code)
+      : refValues(f);
+    const dlId = 'dl_' + f.k;
+    const handler = f.fill
+      ? `oninput="autoFillFromRef('${formState.key}','${f.k}', this.value)"`
+      : '';
+    ctrl = `<input type="text" id="ff_${f.k}" list="${dlId}" value="${esc(val)}"
+        placeholder="可输入或从下拉选择" autocomplete="off" ${handler}>
+      <datalist id="${dlId}">${vals.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+  }
+  else if(f.t === 'number'){
+    ctrl = `<input type="number" id="ff_${f.k}" value="${val === '' ? '' : val}"
+        step="${f.step || '1'}" ${f.step === '0.01' ? 'min="0"' : ''}>`;
+  }
+  else if(f.t === 'date'){
+    ctrl = `<input type="date" id="ff_${f.k}" value="${esc(val)}">`;
+  }
+  else {
+    ctrl = `<input type="text" id="ff_${f.k}" value="${esc(val)}" autocomplete="off">`;
+  }
+
+  return `<div class="field${full}">
+    <label>${f.l}${f.req ? '<span class="req">*</span>' : ''}</label>
+    ${ctrl}
+  </div>`;
+}
+
+function defaultValFor(f){
+  if(f.t === 'date') return today();
+  if(f.t === 'number') return '';
+  if(f.t === 'select'){
+    const opts = dictNames(f.opts);
+    return opts.length ? opts[0] : '';
+  }
+  return '';
+}
+function closeModal(){ $('modalRoot').innerHTML = ''; formState = { key:null, editingId:null }; }
+
+function saveForm(){
+  const key = formState.key;
+  if(!key) return;
+  const S = SCHEMAS[key];
+  const list = DB[S.key];
+  const editingId = formState.editingId;
+
+  const obj = {};
+  let err = null;
+
+  S.fields.forEach(f => {
+    if(f.ro) return;
+    const el = $('ff_' + f.k);
+    if(!el) return;
+    let v = el.value;
+    if(f.t === 'number'){
+      v = v === '' ? 0 : Number(v);
+      if(isNaN(v)) v = 0;
+    }
+    if(f.req && (v === '' || v == null)){
+      if(!err) err = `「${f.l}」为必填项`;
+    }
+    obj[f.k] = v;
+  });
+
+  if(err){ toast(err); return; }
+
+  if(editingId){
+    const i = list.findIndex(r => String(r[S.idKey]) === editingId);
+    if(i > -1) list[i] = Object.assign({}, list[i], obj);
+    toast('已保存修改');
+  } else {
+    obj[S.idKey] = genId(key);
+    list.unshift(obj);
+    toast(`新增成功 · ${obj[S.idKey]}`);
+  }
+
+  saveDB();
+  closeModal();
+  render();
+  initNav();
+}
+
+function genId(key){
+  const S = SCHEMAS[key];
+  const list = DB[S.key] || [];
+  const d = new Date();
+  const ym = String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0');
+  const prefix = S.idPrefix + ym;
+  let max = 0;
+  list.forEach(r => {
+    const v = String(r[S.idKey] || '');
+    if(v.indexOf(prefix) === 0){
+      const n = parseInt(v.slice(prefix.length), 10);
+      if(!isNaN(n) && n > max) max = n;
+    }
+  });
+  return prefix + String(max + 1).padStart(3, '0');
+}
+
+function delRow(key, id, fromModal){
+  const S = SCHEMAS[key];
+  const rec = (DB[S.key] || []).find(r => String(r[S.idKey]) === String(id));
+  if(!rec){ toast('记录不存在'); return; }
+  if(!confirm(`确定删除「${id}」吗？此操作不可撤销。`)) return;
+  DB[S.key] = DB[S.key].filter(r => String(r[S.idKey]) !== String(id));
+  saveDB();
+  if(fromModal) closeModal();
+  render();
+  initNav();
+  toast('已删除 ' + id);
+}
+
+function openColSettings(key){
+  const S = SCHEMAS[key];
+  const hidden = (DB.settings.hiddenCols && DB.settings.hiddenCols[key]) || [];
+  const html = `
+  <div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:420px">
+      <div class="modal-head">
+        <h3>${S.title} · 列显示设置</h3>
+        <button class="x" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="col-list">
+          ${S.fields.map(f => `
+            <label class="col-item">
+              <input type="checkbox" data-colkey="${f.k}" ${hidden.indexOf(f.k) === -1 ? 'checked' : ''}>
+              <span>${f.l}</span>
+            </label>`).join('')}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="applyColSettings('${key}')">应用</button>
+      </div>
+    </div>
+  </div>`;
+  $('modalRoot').innerHTML = html;
+}
+function applyColSettings(key){
+  const boxes = document.querySelectorAll('[data-colkey]');
+  const hidden = [];
+  boxes.forEach(b => { if(!b.checked) hidden.push(b.dataset.colkey); });
+  if(!DB.settings.hiddenCols) DB.settings.hiddenCols = {};
+  DB.settings.hiddenCols[key] = hidden;
+  saveDB();
+  closeModal();
+  refreshTable(key);
+  toast('列设置已保存');
+}
+
+function exportTable(key){
+  const S = SCHEMAS[key];
+  const rows = filteredRows(key);
+  if(!rows.length){ toast('没有可导出的数据'); return; }
+  const cols = visibleFields(key);
+  const header = cols.map(f => f.l).join(',');
+  const body = rows.map(r =>
+    cols.map(f => {
+      const v = r[f.k] == null ? '' : String(r[f.k]);
+      return '"' + v.replace(/"/g, '""') + '"';
+    }).join(',')
+  ).join('\n');
+  const csv = '\uFEFF' + header + '\n' + body;
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `织云ERP_${AUTHOR.name}_${S.title}_${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`已导出 ${rows.length} 条记录`);
+}
+
+/* ==================================================================
+   8. 全局搜索
+   ================================================================== */
+function globalSearch(kw){
+  const panel = $('gsPanel');
+  kw = (kw || '').trim();
+  if(kw.length < 1){ panel.classList.remove('show'); return; }
+  const lower = kw.toLowerCase();
+  const results = [];
+
+  Object.keys(SCHEMAS).forEach(key => {
+    const S = SCHEMAS[key];
+    (DB[S.key] || []).forEach(r => {
+      const hit = S.fields.some(f => {
+        const v = r[f.k];
+        return v != null && String(v).toLowerCase().includes(lower);
+      });
+      if(hit){
+        const main = String(r[S.fields[1] ? S.fields[1].k : S.idKey] || r[S.idKey]);
+        const subParts = S.fields.slice(2, 5).map(f => r[f.k]).filter(Boolean).map(String);
+        results.push({
+          key, title: S.title,
+          id: r[S.idKey],
+          main: main,
+          sub: subParts.join(' · ')
+        });
+      }
+    });
+  });
+
+  const list = results.slice(0, 14);
+  if(!list.length){
+    panel.innerHTML = `<div class="gs-empty">未找到与「${esc(kw)}」相关的内容</div>`;
+  } else {
+    panel.innerHTML = list.map(x => `
+      <div class="gs-item" onclick="jumpTo('${x.key}','${esc(x.id)}')">
+        <span class="gs-tag">${x.title}</span>
+        <div style="min-width:0;flex:1">
+          <div class="gs-main">${esc(x.main)}</div>
+          ${x.sub ? `<div class="gs-sub">${esc(x.sub)}</div>` : ''}
+        </div>
+        <span style="font-size:11px;color:#9aa8bd;font-family:monospace;flex-shrink:0">${esc(x.id)}</span>
+      </div>`).join('');
+  }
+  panel.classList.add('show');
+}
+function jumpTo(key, id){
+  $('gsPanel').classList.remove('show');
+  $('globalInput').value = '';
+  go(key);
+  setTimeout(()=> openForm(key, id), 120);
+}
+
+/* ==================================================================
+   9. 经营看板
+   ================================================================== */
+function renderDashboard(){
+  const totalAmount = DB.orders.filter(o => o.status !== '已取消')
+    .reduce((s,o) => s + (Number(o.qty)||0)*(Number(o.price)||0), 0);
+  const inProd = DB.workorders.filter(w => w.status === '进行中').length;
+  const stockValue = DB.inventory.reduce((s,i) => s + (Number(i.qty)||0)*(Number(i.price)||0), 0);
+  const doneOrders = DB.orders.filter(o => o.status === '已完成').length;
+  const validOrders = DB.orders.filter(o => o.status !== '已取消').length;
+  const onTime = validOrders ? (doneOrders / validOrders * 100).toFixed(1) : '0.0';
+  const qcTotal = DB.quality.length;
+  const qcFirst = DB.quality.filter(q => q.grade === '一等品').length;
+  const firstRate = qcTotal ? (qcFirst / qcTotal * 100).toFixed(1) : '0.0';
+
+  const lowStock = DB.inventory.filter(i => DB.settings.lowStockWarn && Number(i.safe) > 0 && Number(i.qty) < Number(i.safe));
+  const pendingOrders = DB.orders.filter(o => o.status === '待确认');
+  const warnDays = Number(DB.settings.dueWarnDays) || 3;
+  const dueSoon = DB.workorders.filter(w => {
+    if(w.status === '已完工' || !w.due) return false;
+    const diff = (new Date(w.due) - new Date('2024-06-20')) / 86400000;
+    return diff >= 0 && diff <= warnDays;
+  });
+
+  const procCount = {};
+  DB.workorders.forEach(w => { procCount[w.process] = (procCount[w.process]||0)+1; });
+  const procTotal = DB.workorders.length || 1;
+  const palette = ['#2f6fed','#0ea5a5','#7c3aed','#d98800','#16a34a','#dc2626','#0891b2','#9333ea'];
+  const procHtml = Object.entries(procCount)
+    .sort((a,b) => b[1]-a[1])
+    .map(([nm, n], i) => {
+      const pct = Math.round(n / procTotal * 100);
+      return `<div class="dist-row">
+        <div class="dist-top"><span class="nm">${esc(nm)}</span><span class="vl">${n} 张 · ${pct}%</span></div>
+        <div class="dist-bar"><div class="dist-fill" style="width:${pct}%;background:${palette[i%palette.length]}"></div></div>
+      </div>`;
+    }).join('') || '<div class="empty" style="padding:26px 0!important">暂无工单数据</div>';
+
+  const trend = [
+    {label:'06-14', v:8200}, {label:'06-15', v:9400}, {label:'06-16', v:7800},
+    {label:'06-17', v:10600},{label:'06-18', v:11200},{label:'06-19', v:9800},
+    {label:'06-20', v:12400},
+  ];
+  const maxTrend = Math.max(...trend.map(t => t.v));
+  const barsHtml = trend.map((t, i) => {
+    const h = Math.round(t.v / maxTrend * 132);
+    const hi = i === trend.length - 1;
+    return `<div class="bar-col">
+      <div class="bar-v">${(t.v/1000).toFixed(1)}k</div>
+      <div class="bar-track"><div class="bar-fill ${hi?'hi':''}" style="height:${h}px"></div></div>
+      <div class="bar-x">${t.label}</div>
+    </div>`;
+  }).join('');
+
+  const alerts = [];
+  pendingOrders.slice(0,2).forEach(o => alerts.push({
+    c:'blue', i:'!', t:`订单 ${o.no} 待确认`,
+    d:`${o.cust} · ${o.product} · ${fmtN(o.qty)} ${o.unit}`
+  }));
+  dueSoon.slice(0,2).forEach(w => alerts.push({
+    c:'amber', i:'!', t:`工单 ${w.no} 交期临近`,
+    d:`交期 ${w.due} · ${w.product} · 完成 ${fmtN(w.done)}/${fmtN(w.plan)} ${w.unit}`
+  }));
+  lowStock.slice(0,3).forEach(i => alerts.push({
+    c:'red', i:'!', t:`${i.name} 低于安全库存`,
+    d:`当前 ${fmtN(i.qty)} ${i.unit} · 安全线 ${fmtN(i.safe)} ${i.unit} · 库位 ${i.loc}`
+  }));
+  if(!alerts.length) alerts.push({c:'green', i:'✓', t:'暂无预警事项', d:'所有指标运行正常'});
+
+  const alertsHtml = alerts.map(a => `
+    <div class="alert-item">
+      <div class="alert-ico ${a.c}">${a.i}</div>
+      <div class="alert-txt"><div class="t">${esc(a.t)}</div><div class="d">${esc(a.d)}</div></div>
+    </div>`).join('');
+
+  const activeWOs = DB.workorders.filter(w => w.status === '进行中').slice(0, 5);
+  const woHtml = activeWOs.length ? activeWOs.map(w => {
+    const pct = Math.min(Math.round((Number(w.done)||0)/Math.max(Number(w.plan)||1,1)*100), 100);
+    const grad = pct < 60 ? 'linear-gradient(90deg,#fbbf24,#d98800)' : 'linear-gradient(90deg,#5b96f8,#2f6fed)';
+    return `<div class="dist-row">
+      <div class="dist-top"><span class="nm">${esc(w.no)} · ${esc(w.product)}</span><span class="vl">${pct}%</span></div>
+      <div class="dist-bar"><div class="dist-fill" style="width:${pct}%;background:${grad}"></div></div>
+      <div class="prog-txt" style="margin-top:6px">交期 ${w.due} · ${esc(w.process)} · ${fmtN(w.done)}/${fmtN(w.plan)} ${w.unit}</div>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:26px 0!important">暂无在产工单</div>';
+
+  return `
+  <div class="kpi-grid">
+    <div class="kpi c1">
+      <div class="kpi-label">订单总金额</div>
+      <div class="kpi-value">${fmtM0(totalAmount)}</div>
+      <div class="kpi-foot">共 ${validOrders} 张有效订单 · 含税 ${DB.settings.taxRate}%</div>
+    </div>
+    <div class="kpi c2">
+      <div class="kpi-label">在产工单</div>
+      <div class="kpi-value">${inProd} <span style="font-size:13px;font-weight:400;color:var(--muted)">张</span></div>
+      <div class="kpi-foot">${dueSoon.length} 张临近交期</div>
+    </div>
+    <div class="kpi c3">
+      <div class="kpi-label">库存总金额</div>
+      <div class="kpi-value">${fmtM0(stockValue)}</div>
+      <div class="kpi-foot">${lowStock.length} 项低于安全线</div>
+    </div>
+    <div class="kpi c4">
+      <div class="kpi-label">一等品率</div>
+      <div class="kpi-value">${firstRate}<span style="font-size:15px">%</span></div>
+      <div class="kpi-foot">本期验布 ${qcTotal} 匹 · 准时率 ${onTime}%</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">近 7 日坯布产量</div>
+        <div class="card-sub">单位：米</div>
+      </div>
+      <div class="bars">${barsHtml}</div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">在制工序分布</div>
+        <div class="card-sub">按工单数量</div>
+      </div>
+      ${procHtml}
+    </div>
+  </div>
+
+  <div class="grid-2b">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">预警与待办</div>
+        <div class="card-sub">${alerts.length} 项</div>
+      </div>
+      ${alertsHtml}
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">重点工单进度</div>
+        <div class="card-sub">在产工单 Top 5</div>
+      </div>
+      ${woHtml}
+    </div>
+  </div>`;
+}
+
+/* ==================================================================
+   10. 报表
+   ================================================================== */
+function renderReport(){
+  const custMap = {};
+  DB.orders.filter(o => o.status !== '已取消').forEach(o => {
+    const v = (Number(o.qty)||0) * (Number(o.price)||0);
+    custMap[o.cust] = (custMap[o.cust] || 0) + v;
+  });
+  const custRank = Object.entries(custMap).sort((a,b) => b[1]-a[1]);
+  const maxCust = custRank.length ? custRank[0][1] : 1;
+  const custHtml = custRank.length ? custRank.map(([name, amt], i) => `
+    <div class="dist-row">
+      <div class="dist-top">
+        <span class="nm">${i+1}. ${esc(name)}</span>
+        <span class="vl">${fmtM0(amt)}</span>
+      </div>
+      <div class="dist-bar"><div class="dist-fill" style="width:${amt/maxCust*100}%;background:linear-gradient(90deg,#5b96f8,#2f6fed)"></div></div>
+    </div>`).join('') : '<div class="empty" style="padding:26px 0!important">暂无数据</div>';
+
+  const prodMap = {};
+  DB.orders.filter(o => o.status !== '已取消').forEach(o => {
+    const v = (Number(o.qty)||0) * (Number(o.price)||0);
+    prodMap[o.product] = (prodMap[o.product] || 0) + v;
+  });
+  const prodTotal = Object.values(prodMap).reduce((s,v) => s+v, 0) || 1;
+  const prodRank = Object.entries(prodMap).sort((a,b) => b[1]-a[1]);
+  const prodHtml = prodRank.length ? prodRank.map(([name, amt]) => `
+    <tr>
+      <td>${esc(name)}</td>
+      <td class="num strong">${fmtM0(amt)}</td>
+      <td class="num">${(amt/prodTotal*100).toFixed(1)}%</td>
+    </tr>`).join('') : '<tr><td colspan="3" class="empty">暂无数据</td></tr>';
+
+  const monthMap = {};
+  DB.orders.filter(o => o.status !== '已取消').forEach(o => {
+    const m = (o.orderDate || '').slice(0, 7);
+    if(!m) return;
+    monthMap[m] = (monthMap[m] || 0) + (Number(o.qty)||0) * (Number(o.price)||0);
+  });
+  const months = Object.entries(monthMap).sort((a,b) => a[0].localeCompare(b[0])).slice(-6);
+  const maxM = months.length ? Math.max(...months.map(m => m[1])) : 1;
+  const monthBars = months.length ? months.map(([m, v], i) => {
+    const h = Math.max(Math.round(v / maxM * 130), 4);
+    const hi = i === months.length - 1;
+    return `<div class="bar-col">
+      <div class="bar-v">${(v/10000).toFixed(1)}w</div>
+      <div class="bar-track"><div class="bar-fill ${hi?'hi':''}" style="height:${h}px"></div></div>
+      <div class="bar-x">${m.slice(5)}月</div>
+    </div>`;
+  }).join('') : '<div class="empty" style="width:100%">暂无数据</div>';
+
+  const palette = ['#2f6fed','#0ea5a5','#7c3aed','#d98800','#16a34a','#dc2626','#0891b2','#9333ea'];
+  const procHtml = dictNames('processes').map((nm, i) => {
+    const n = DB.workorders.filter(w => w.process === nm).length;
+    const pct = DB.workorders.length ? Math.round(n / DB.workorders.length * 100) : 0;
+    return `<div class="dist-row">
+      <div class="dist-top"><span class="nm">${esc(nm)}</span><span class="vl">${n} 张</span></div>
+      <div class="dist-bar"><div class="dist-fill" style="width:${pct}%;background:${palette[i%palette.length]}"></div></div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">月度销售额趋势</div>
+        <div class="card-sub">按订单日期聚合 · 单位：万元</div>
+      </div>
+      <div class="bars">${monthBars}</div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">客户销售排行</div>
+        <div class="card-sub">按订单金额</div>
+      </div>
+      ${custHtml}
+    </div>
+  </div>
+
+  <div class="grid-2b">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">产品结构分析</div>
+        <div class="card-sub">按订单金额占比</div>
+      </div>
+      <div class="table-scroll">
+        <table style="min-width:auto">
+          <thead><tr><th>产品名称</th><th style="text-align:right">销售额</th><th style="text-align:right">占比</th></tr></thead>
+          <tbody>${prodHtml}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">工单工序分布</div>
+        <div class="card-sub">按字典「工序」统计</div>
+      </div>
+      ${procHtml}
+    </div>
+  </div>`;
+}
+
+/* ==================================================================
+   11. 系统设置
+   ================================================================== */
+let settingsTab = 'params';
+let editingDict = 'products';
+
+function renderSettings(){
+  return `
+  <div class="tabs">
+    <button class="tab ${settingsTab==='params'?'active':''}" onclick="setSettingsTab('params')">业务参数</button>
+    <button class="tab ${settingsTab==='dict'?'active':''}" onclick="setSettingsTab('dict')">数据字典</button>
+    <button class="tab ${settingsTab==='data'?'active':''}" onclick="setSettingsTab('data')">数据管理</button>
+    <button class="tab ${settingsTab==='fields'?'active':''}" onclick="setSettingsTab('fields')">字段配置</button>
+    <button class="tab ${settingsTab==='about'?'active':''}" onclick="setSettingsTab('about')">关于系统</button>
+  </div>
+  <div id="settingsBody">${renderSettingsBody()}</div>`;
+}
+function setSettingsTab(t){ settingsTab = t; render(); }
+
+function renderSettingsBody(){
+  if(settingsTab === 'params') return renderParams();
+  if(settingsTab === 'dict')   return renderDictManager();
+  if(settingsTab === 'data')   return renderDataManager();
+  if(settingsTab === 'fields') return renderFieldsConfig();
+  if(settingsTab === 'about')  return renderAbout();
+  return '';
+}
+
+function renderParams(){
+  const s = DB.settings;
+  return `
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">业务参数</div>
+      <div class="card-sub">修改后立即生效，并自动保存到本地</div>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">企业名称</div><div class="sd">显示于单据抬头与导出文件</div></div>
+      <input type="text" value="${esc(s.company)}" onchange="setSetting('company', this.value)">
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">货币符号</div><div class="sd">用于所有金额字段的前缀显示</div></div>
+      <input type="text" value="${esc(s.currency)}" maxlength="3" onchange="setSetting('currency', this.value)">
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">税率 (%)</div><div class="sd">用于订单金额的税额估算</div></div>
+      <input type="number" value="${s.taxRate}" step="0.1" onchange="setSetting('taxRate', Number(this.value))">
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">交期预警天数</div><div class="sd">工单距交期小于该天数时在看板中提示</div></div>
+      <input type="number" value="${s.dueWarnDays}" min="0" onchange="setSetting('dueWarnDays', Number(this.value))">
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">库存预警</div><div class="sd">开启后，库存低于安全线的物料会在侧栏与看板中提示</div></div>
+      <label class="switch">
+        <input type="checkbox" ${s.lowStockWarn ? 'checked' : ''}
+          onchange="setSetting('lowStockWarn', this.checked)">
+        <span class="sl2"></span>
+      </label>
+    </div>
+  </div>`;
+}
+function setSetting(k, v){
+  DB.settings[k] = v;
+  saveDB();
+  initNav();
+  render();
+  toast('参数已更新');
+}
+
+/* ---------- 数据字典 ---------- */
+function renderDictManager(){
+  const dictKeys = Object.keys(DB.dict);
+  const names = {
+    products:'产品', colors:'颜色', units:'计量单位', categories:'物料类别',
+    processes:'工序', orderStatus:'订单状态', workStatus:'工单状态',
+    purchaseStatus:'采购状态', grades:'质量等级', custLevels:'客户等级', warehouses:'库位'
+  };
+  const items = getDict(editingDict);
+  const colKeys = [];
+  items.forEach(it => Object.keys(it).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); }));
+
+  const rows = items.map((it, idx) => `
+    <tr>
+      ${colKeys.map(k => `<td class="${k === 'price' || k === 'rate' ? 'num' : ''}">${esc(it[k] == null ? '' : it[k])}</td>`).join('')}
+      <td class="row-actions">
+        <button class="icon-btn" title="编辑" onclick="openDictItem('${editingDict}', ${idx})">✎</button>
+        <button class="icon-btn danger" title="删除" onclick="delDictItem('${editingDict}', ${idx})">✕</button>
+      </td>
+    </tr>`).join('');
+
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">数据字典</div>
+      <div class="card-sub">所有下拉选项均来自此处，修改后全局生效</div>
+    </div>
+    <div class="dict-grid">
+      ${dictKeys.map(k => `
+        <button class="dict-btn ${editingDict===k?'active':''}" onclick="pickDict('${k}')">
+          <div class="dn">${names[k] || k}</div>
+          <div class="dc">${getDict(k).length} 项</div>
+        </button>`).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">${names[editingDict] || editingDict} · 选项列表</div>
+      <button class="btn btn-primary btn-sm" onclick="openDictItem('${editingDict}', -1)">＋ 新增选项</button>
+    </div>
+    <div class="table-scroll">
+      <table style="min-width:auto">
+        <thead>
+          <tr>
+            ${colKeys.map(k => `<th>${k === 'name' ? '名称' : k === 'code' ? '编码' : k === 'hex' ? '色值' : k === 'spec' ? '规格' : k === 'unit' ? '单位' : k === 'price' ? '参考单价' : k}</th>`).join('')}
+            <th class="row-actions">操作</th>
+          </tr>
+        </thead>
+        <tbody>${rows || `<tr><td colspan="${colKeys.length+1}" class="empty">该字典暂无选项</td></tr>`}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+function pickDict(k){ editingDict = k; render(); }
+
+function openDictItem(dictKey, idx){
+  const items = DB.dict[dictKey];
+  const editing = idx >= 0;
+  const item = editing ? items[idx] : {};
+  const colKeys = [];
+  items.forEach(it => Object.keys(it).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); }));
+  if(editing) Object.keys(item).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); });
+  if(!colKeys.length) colKeys.push('name');
+
+  const labelOf = k => k === 'name' ? '名称' : k === 'code' ? '编码' : k === 'hex' ? '色值(HEX)' : k === 'spec' ? '规格' : k === 'unit' ? '单位' : k === 'price' ? '参考单价' : k;
+
+  const html = `
+  <div class="modal-mask" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="max-width:460px">
+      <div class="modal-head">
+        <h3>${editing ? '编辑' : '新增'}字典选项</h3>
+        <button class="x" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid" style="grid-template-columns:1fr">
+          ${colKeys.map(k => `
+            <div class="field">
+              <label>${labelOf(k)}${k === 'name' ? '<span class="req">*</span>' : ''}</label>
+              <input type="text" id="dk_${k}" value="${esc(item[k] == null ? '' : item[k])}"
+                ${k === 'hex' ? 'placeholder="#1e3a5f"' : ''}>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveDictItem('${dictKey}', ${idx})">保存</button>
+      </div>
+    </div>
+  </div>`;
+  $('modalRoot').innerHTML = html;
+}
+
+function saveDictItem(dictKey, idx){
+  const items = DB.dict[dictKey];
+  const colKeys = [];
+  items.forEach(it => Object.keys(it).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); }));
+  if(idx >= 0) Object.keys(items[idx]).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); });
+  if(!colKeys.length) colKeys.push('name');
+
+  const obj = {};
+  colKeys.forEach(k => {
+    const el = $('dk_' + k);
+    if(el) obj[k] = el.value.trim();
+  });
+  if(!obj.name){ toast('「名称」不能为空'); return; }
+
+  const dup = items.findIndex((it, i) => it.name === obj.name && i !== idx);
+  if(dup > -1){ toast('已存在同名选项'); return; }
+
+  if(idx >= 0) items[idx] = obj;
+  else items.push(obj);
+
+  saveDB();
+  closeModal();
+  render();
+  toast(idx >= 0 ? '已保存' : '已新增');
+}
+
+function delDictItem(dictKey, idx){
+  const items = DB.dict[dictKey];
+  const it = items[idx];
+  if(!confirm(`确定删除字典项「${it.name}」吗？\n已使用该值的记录不会被自动修改。`)) return;
+  items.splice(idx, 1);
+  saveDB();
+  render();
+  toast('已删除');
+}
+
+/* ---------- 数据管理 ---------- */
+function renderDataManager(){
+  const size = (() => {
+    try{ return (JSON.stringify(DB).length / 1024).toFixed(1) + ' KB'; }
+    catch(e){ return '—'; }
+  })();
+  const counts = Object.keys(SCHEMAS).map(k => {
+    const S = SCHEMAS[k];
+    return `<div class="set-row">
+      <div><div class="sl">${S.title}</div><div class="sd">表名：${S.key}</div></div>
+      <span class="badge blue">${(DB[S.key]||[]).length} 条</span>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head">
+      <div class="card-title">数据概览</div>
+      <div class="card-sub">当前数据体积约 ${size}</div>
+    </div>
+    ${counts}
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">备份与恢复</div>
+      <div class="card-sub">所有修改均保存在浏览器本地</div>
+    </div>
+    <div class="set-row">
+      <div><div class="sl">导出全部数据</div><div class="sd">下载 JSON 备份文件，可用于迁移或存档</div></div>
+      <button class="btn" onclick="exportAll()">导出 JSON</button>
+    </div>
+    <div class="set-row">
+      <div><div class="sl">导入数据</div><div class="sd">从 JSON 备份文件恢复，将覆盖当前所有数据</div></div>
+      <label class="btn" style="cursor:pointer">
+        选择文件
+        <input type="file" accept=".json" style="display:none" onchange="importAll(this)">
+      </label>
+    </div>
+    <div class="set-row">
+      <div><div class="sl">恢复演示数据</div><div class="sd">清空当前修改，还原为内置示例数据</div></div>
+      <button class="btn" style="color:#dc2626" onclick="resetAll()">恢复默认</button>
+    </div>
+  </div>`;
+}
+function exportAll(){
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `织云ERP_${AUTHOR.name}_备份_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已导出备份文件');
+}
+function importAll(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const d = JSON.parse(e.target.result);
+      if(!d.settings || !d.dict) throw new Error('格式不符');
+      DB = d;
+      saveDB();
+      initNav();
+      render();
+      toast('数据导入成功');
+    }catch(err){
+      toast('文件格式不正确');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function resetAll(){
+  if(!confirm('确定恢复默认演示数据吗？当前所有修改将丢失。')) return;
+  DB = defaultDB();
+  saveDB();
+  initNav();
+  render();
+  toast('已恢复演示数据');
+}
+
+/* ---------- 字段配置 ---------- */
+function renderFieldsConfig(){
+  const cards = Object.keys(SCHEMAS).map(key => {
+    const S = SCHEMAS[key];
+    const hidden = (DB.settings.hiddenCols && DB.settings.hiddenCols[key]) || [];
+    return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-head">
+        <div class="card-title">${S.title}</div>
+        <div class="card-sub">共 ${S.fields.length} 个字段 · 已隐藏 ${hidden.length} 个</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        ${S.fields.map(f => {
+          const off = hidden.indexOf(f.k) > -1;
+          return `<button class="chip ${off ? '' : 'active'}"
+            onclick="toggleField('${key}','${f.k}')"
+            style="${off ? 'opacity:.5' : ''}">${off ? '○' : '●'} ${esc(f.l)}</button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card" style="margin-bottom:14px;background:#f8fbff;border-color:#d8e6fb">
+    <div style="font-size:12.5px;color:#3c4a5f;line-height:1.7">
+      <b>字段显示配置</b>：点击标签可切换该字段在各列表中的显示/隐藏状态，配置自动保存并立即生效。
+      所有字段的名称、类型、必填规则由系统 Schema 定义，如需扩展请修改代码中的 <code style="background:#e7efff;padding:1px 6px;border-radius:4px;font-family:monospace">SCHEMAS</code> 对象。
+    </div>
+  </div>
+  ${cards}`;
+}
+function toggleField(key, fieldKey){
+  if(!DB.settings.hiddenCols) DB.settings.hiddenCols = {};
+  const arr = DB.settings.hiddenCols[key] || [];
+  const i = arr.indexOf(fieldKey);
+  if(i > -1) arr.splice(i, 1);
+  else arr.push(fieldKey);
+  DB.settings.hiddenCols[key] = arr;
+  saveDB();
+  render();
+  toast(arr.indexOf(fieldKey) > -1 ? '已隐藏该字段' : '已显示该字段');
+}
+
+/* ---------- 关于系统（署名页） ---------- */
+function renderAbout(){
+  return `
+  <div class="card">
+    <div class="about-hero">
+      <div class="about-logo">织</div>
+      <div>
+        <div class="about-name">织云 ERP · 纺织行业管理系统</div>
+        <div class="about-desc">面向纺织行业全流程管理的轻量级解决方案</div>
+      </div>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">设计与开发</div><div class="sd">系统架构 / 交互设计 / 前端实现</div></div>
+      <div class="about-person">${esc(AUTHOR.name)}</div>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">联系方式</div><div class="sd">如需定制开发或技术咨询，欢迎联系</div></div>
+      <a class="about-link" href="mailto:${esc(AUTHOR.email)}">${esc(AUTHOR.email)}</a>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">技术栈</div><div class="sd">本地存储 · 零依赖 · 单文件部署</div></div>
+      <span class="badge blue">HTML5 + 原生 JS</span>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">版本信息</div><div class="sd">最近更新：${esc(AUTHOR.updated)}</div></div>
+      <span class="badge cyan">${esc(AUTHOR.version)}</span>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">数据存储</div><div class="sd">所有数据保存在浏览器本地，不会上传服务器</div></div>
+      <span class="badge green">本地安全</span>
+    </div>
+
+    <div class="set-row">
+      <div><div class="sl">功能范围</div><div class="sd">订单 / 工单 / 库存 / 采购 / 质量 / 报表 / 档案 / 配置</div></div>
+      <span class="badge purple">全流程覆盖</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;background:linear-gradient(135deg,#f0f6ff,#f7fbfb);border-color:#d8e6fb">
+    <div style="font-size:12.5px;color:#3c4a5f;line-height:1.9">
+      <b style="color:#2f6fed">使用提示</b><br>
+      · 所有列表均支持 <b>任意字段模糊搜索</b>，输入关键词会实时过滤并给出建议<br>
+      · 每张表格右上角可进行 <b>列设置 / 导出 CSV / 新增记录</b><br>
+      · 编辑任意行数据后，看板与报表会 <b>自动重新聚合</b><br>
+      · 在「数据字典」中可增删产品、颜色、工序、库位等所有下拉选项<br>
+      · 在「数据管理」中可导出 JSON 备份，随时恢复到其他浏览器
+    </div>
+  </div>`;
+}
+
+/* ==================================================================
+   12. 路由 & 渲染
+   ================================================================== */
+let currentPage = 'dashboard';
+
+function go(page){
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  render();
+  $('sidebar').classList.remove('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function render(){
+  const meta = PAGES[currentPage] || {title:'', sub:''};
+  $('pageTitle').textContent = meta.title;
+
+  let sub = meta.sub || '';
+  if(SCHEMAS[currentPage]){
+    const S = SCHEMAS[currentPage];
+    const n = filteredRows(currentPage).length;
+    const total = (DB[S.key] || []).length;
+    sub = `共 ${total} 条记录 · 当前显示 ${n} 条 · 支持搜索 / 筛选 / 编辑 / 新增`;
+  } else if(currentPage === 'dashboard'){
+    sub = `${DB.settings.company} · 实时汇总各业务模块数据`;
+  } else if(currentPage === 'report'){
+    sub = `基于当前全部业务数据实时聚合 · 导出文件将自动署名 ${AUTHOR.name}`;
+  }
+  $('pageSub').textContent = sub;
+
+  let html = '';
+  if(currentPage === 'dashboard')      html = renderDashboard();
+  else if(currentPage === 'report')    html = renderReport();
+  else if(currentPage === 'settings')  html = renderSettings();
+  else if(SCHEMAS[currentPage])        html = renderListPage(currentPage);
+  else html = '<div class="card">页面不存在</div>';
+
+  $('content').innerHTML = html;
+}
+
+/* ==================================================================
+   13. 启动
+   ================================================================== */
+function tickClock(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  $('clock').textContent = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+initNav();
+go('dashboard');
+tickClock();
+setInterval(tickClock, 30000);
+</script>
+</body>
+</html>
