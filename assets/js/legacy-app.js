@@ -87,14 +87,28 @@ function saveDB(){
     localStorage.setItem(STORE_KEY, JSON.stringify(DB));
   }catch(e){
     localSaved = false;
+    storageRecoveryRequired = true;
     console.error('浏览器缓存保存失败', e);
-    toast('浏览器存储空间不足或不可用；请立即导出 JSON 备份');
+    toast('浏览器缓存保存失败，已暂停后续写入；请导出备份或恢复存储');
   }
-  if(fileHandle && fileReady){
+  if(localSaved && fileHandle && fileReady){
     clearTimeout(saveTimer);
     saveTimer = setTimeout(writeToFile, 300);
   }
   return localSaved;
+}
+function snapshotDB(){
+  return JSON.parse(JSON.stringify(DB));
+}
+function commitDBMutation(previousDB){
+  if(saveDB()) return true;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  DB = previousDB;
+  initNav();
+  render();
+  toast('保存失败，本次更改已撤销；请检查浏览器存储并恢复后重试');
+  return false;
 }
 
 async function writeToFile(){
@@ -1002,6 +1016,7 @@ async function saveForm(){
     }
   }
 
+  const previousDB = snapshotDB();
   const candidateId = obj[S.idKey];
   if(candidateId && list.some(r => String(r[S.idKey]) === String(candidateId) &&
       (!editingId || String(r[S.idKey]) !== String(editingId)))){
@@ -1031,7 +1046,7 @@ async function saveForm(){
     if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
     DB.stockMovements.unshift(stockMovement);
   }
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   closeModal();
   render();
   initNav();
@@ -1067,8 +1082,9 @@ function delRow(key, id, fromModal){
     return;
   }
   if(!confirm(`确定删除「${id}」吗？此操作不可撤销。`)) return;
+  const previousDB = snapshotDB();
   DB[S.key] = DB[S.key].filter(r => String(r[S.idKey]) !== String(id));
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   if(fromModal) closeModal();
   render();
   initNav();
@@ -1106,9 +1122,10 @@ function applyColSettings(key){
   const boxes = document.querySelectorAll('[data-colkey]');
   const hidden = [];
   boxes.forEach(b => { if(!b.checked) hidden.push(b.dataset.colkey); });
+  const previousDB = snapshotDB();
   if(!DB.settings.hiddenCols) DB.settings.hiddenCols = {};
   DB.settings.hiddenCols[key] = hidden;
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   closeModal();
   refreshTable(key);
   toast('列设置已保存');
@@ -1726,8 +1743,9 @@ function renderParams(){
   </div>`;
 }
 function setSetting(k, v){
+  const previousDB = snapshotDB();
   DB.settings[k] = v;
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   initNav();
   render();
   toast('参数已更新');
@@ -1804,8 +1822,9 @@ function pickDict(k){ if(!Object.prototype.hasOwnProperty.call(DB.dict,k) || !Ar
 function clearDict(k){
   if(!Object.prototype.hasOwnProperty.call(DB.dict,k) || !Array.isArray(DB.dict[k])){ toast('字典不存在'); return; }
   if(!confirm(`确定清空「${k}」字典中的所有选项吗？\n此操作不可撤销。`)) return;
+  const previousDB = snapshotDB();
   DB.dict[k] = [];
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   render();
   toast('已清空');
 }
@@ -1866,10 +1885,11 @@ function saveDictItem(dictKey, idx){
   const dup = items.findIndex((it, i) => it.name === obj.name && i !== idx);
   if(dup > -1){ toast('已存在同名选项'); return; }
 
+  const previousDB = snapshotDB();
   if(idx >= 0) items[idx] = obj;
   else items.push(obj);
 
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   closeModal();
   render();
   toast(idx >= 0 ? '已保存' : '已新增');
@@ -1880,8 +1900,9 @@ function delDictItem(dictKey, idx){
   if(!Array.isArray(items) || !items[idx]){ toast('字典项不存在'); return; }
   const it = items[idx];
   if(!confirm(`确定删除字典项「${it.name}」吗？\n已使用该值的记录不会被自动修改。`)) return;
+  const previousDB = snapshotDB();
   items.splice(idx, 1);
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   render();
   toast('已删除');
 }
@@ -2003,12 +2024,13 @@ function importAll(input){
     try{
       const d = JSON.parse(e.target.result);
       if(!isValidDBShape(d)) throw new Error('数据结构不完整或版本不兼容');
+      const previousDB = snapshotDB();
       DB = d;
       storageRecoveryRequired = false;
-      const localSaved = saveDB();
+      if(!commitDBMutation(previousDB)) return;
       initNav();
       render();
-      toast(localSaved ? '数据导入成功' : '数据已载入当前页面，但本地缓存保存失败；请立即导出备份');
+      toast('数据导入成功');
     }catch(err){
       console.error('ERP 数据导入失败：', err);
       toast('导入失败：文件格式不正确或数据结构不完整，原数据未更改');
@@ -2019,9 +2041,10 @@ function importAll(input){
 }
 function resetAll(){
   if(!confirm('确定恢复默认演示数据吗？当前所有修改将丢失。')) return;
+  const previousDB = snapshotDB();
   DB = defaultDB();
   storageRecoveryRequired = false;
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   initNav();
   render();
   toast('已恢复演示数据');
@@ -2058,13 +2081,14 @@ function renderFieldsConfig(){
   ${cards}`;
 }
 function toggleField(key, fieldKey){
+  const previousDB = snapshotDB();
   if(!DB.settings.hiddenCols) DB.settings.hiddenCols = {};
   const arr = DB.settings.hiddenCols[key] || [];
   const i = arr.indexOf(fieldKey);
   if(i > -1) arr.splice(i, 1);
   else arr.push(fieldKey);
   DB.settings.hiddenCols[key] = arr;
-  saveDB();
+  if(!commitDBMutation(previousDB)) return;
   render();
   toast(arr.indexOf(fieldKey) > -1 ? '已隐藏该字段' : '已显示该字段');
 }
