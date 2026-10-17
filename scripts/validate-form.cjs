@@ -30,7 +30,7 @@ function run(values, initialRows = [], editingId = null) {
   return {rows:context.DB.orders,messages};
 }
 const assert = require('node:assert/strict');
-const todayLine = html.match(/const today = \(\) => \{[^\\n]+/);
+const todayLine = html.match(/const today = \(\) => \{[\\s\\S]*?\\};/);
 assert.ok(todayLine, 'ERP date helper must use the browser local calendar');
 const FakeDate = class { getFullYear(){return 2026;} getMonth(){return 9;} getDate(){return 18;} };
 const localToday = vm.runInNewContext('(function(){' + todayLine[0] + '; return today;})()', {Date:FakeDate});
