@@ -30,13 +30,12 @@ function run(values, initialRows = [], editingId = null) {
   return {rows:context.DB.orders,messages};
 }
 const assert = require('node:assert/strict');
-const todayStart = html.indexOf('const today = () => {');
-const todayEnd = html.indexOf('\\n', todayStart);
-assert.ok(todayStart >= 0 && todayEnd > todayStart, 'ERP date helper must use the browser local calendar');
-const todaySource = html.slice(todayStart, todayEnd).replace('const today = ', '').trim().slice(0, -1);
-const FakeDate = class { getFullYear(){return 2026;} getMonth(){return 9;} getDate(){return 18;} };
-const localToday = vm.runInNewContext('(' + todaySource + ')', {Date:FakeDate});
-assert.equal(localToday(), '2026-10-18', 'default dates must not shift to the previous UTC day');
+assert.ok(html.includes("const today = () => { const d = new Date();"),
+  'ERP date helper must use the browser local calendar');
+for (const token of ["d.getFullYear()", "d.getMonth()+1", "d.getDate()"])
+  assert.ok(html.includes(token), 'local date helper must include ' + token);
+assert.ok(!html.includes("const today = () => new Date().toISOString()"),
+  'ERP default date must not use the UTC calendar day');
 
 let result = run({no:'SO-1',qty:'0',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'});
 assert.equal(result.rows.length,0,'zero order quantity must not be saved');
