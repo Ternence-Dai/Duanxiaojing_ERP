@@ -728,6 +728,8 @@ function defaultDB(){
 const STORE_KEY = 'textile_erp_v4_enterprise';
 const IDB_NAME  = 'erp_file_handles';
 let DB = null;
+// A malformed or unreadable cache must never be silently replaced by demo defaults.
+let storageRecoveryRequired = false;
 let fileHandle = null;
 let fileReady = false;
 
@@ -755,18 +757,24 @@ function loadDB(){
     if(raw){
       const d = JSON.parse(raw);
       if(isValidDBShape(d)) return d;
+      storageRecoveryRequired = true;
       preserveInvalidDB(raw);
-      console.warn('ERP 缓存结构不完整，已保留恢复副本并载入演示数据。');
+      console.warn('ERP 缓存结构不完整，已保留恢复副本；在恢复前禁止自动覆盖原缓存。');
     }
   }catch(e){
+    storageRecoveryRequired = true;
     if(raw) preserveInvalidDB(raw);
-    console.error('ERP 缓存读取或解析失败；已尽力保留原始缓存。', e);
+    console.error('ERP 缓存读取或解析失败；在确认恢复前禁止自动覆盖原缓存。', e);
   }
   return defaultDB();
 }
 
 let saveTimer = null;
 function saveDB(){
+  if(storageRecoveryRequired){
+    toast('检测到原 ERP 缓存异常，已阻止演示数据覆盖；请先导入有效备份，或在确认后重置演示数据');
+    return false;
+  }
   let localSaved = true;
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify(DB));
@@ -783,6 +791,10 @@ function saveDB(){
 }
 
 async function writeToFile(){
+  if(storageRecoveryRequired){
+    console.warn('ERP 缓存仍待恢复，已阻止向绑定文件写入默认演示数据。');
+    return;
+  }
   if(!fileHandle || !fileReady) return;
   try{
     const w = await fileHandle.createWritable();
@@ -804,8 +816,13 @@ async function readFromFile(){
     const d = JSON.parse(text);
     if(isValidDBShape(d)){
       DB = d;
-      try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
-      catch(e){ console.error('文件数据已载入内存，但浏览器缓存写入失败。', e); toast('文件已读取，但浏览器缓存写入失败；请检查存储并保留原文件备份'); }
+      try{
+        localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+        storageRecoveryRequired = false;
+      }catch(e){
+        console.error('文件数据已载入内存，但浏览器缓存写入失败。', e);
+        toast('文件已读取，但浏览器缓存写入失败；请检查存储并保留原文件备份');
+      }
       render(); initNav();
       return true;
     }
@@ -2606,6 +2623,7 @@ function importAll(input){
       const d = JSON.parse(e.target.result);
       if(!isValidDBShape(d)) throw new Error('数据结构不完整或版本不兼容');
       DB = d;
+      storageRecoveryRequired = false;
       const localSaved = saveDB();
       initNav();
       render();
@@ -2621,6 +2639,7 @@ function importAll(input){
 function resetAll(){
   if(!confirm('确定恢复默认演示数据吗？当前所有修改将丢失。')) return;
   DB = defaultDB();
+  storageRecoveryRequired = false;
   saveDB();
   initNav();
   render();
