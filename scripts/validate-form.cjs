@@ -78,4 +78,58 @@ assert.ok(html.includes('onclick="setFilter(${jsArg(key)},${jsArg(o)})"'),
   'filter options must use JS-safe encoding rather than HTML escaping alone');
 assert.ok(html.includes('<div class="dn">${esc(names[k] || k)}</div>'), 'dictionary labels must be HTML escaped');
 
+
+function testStorageRecovery(initialRaw, readThrows = false) {
+  let writes = 0;
+  let preserved = 0;
+  const storage = {
+    getItem() { if (readThrows) throw new Error('storage unavailable'); return initialRaw; },
+    setItem() { writes++; },
+  };
+  const context = {
+    STORE_KEY:'erp_test',
+    SCHEMAS:{orders:{}},
+    localStorage:storage,
+    isValidDBShape:d=>!!(d && d.settings && d.dict && Array.isArray(d.orders)),
+    preserveInvalidDB:raw=>{ if(raw) preserved++; return true; },
+    defaultDB:()=>({settings:{demo:true},dict:{},orders:[]}),
+    DB:{settings:{demo:true},dict:{},orders:[]},
+    toast:()=>{},
+    fileHandle:null,
+    fileReady:false,
+    saveTimer:null,
+    writeToFile:()=>{},
+  };
+  vm.createContext(context);
+  const loadStart=html.indexOf('function loadDB(){');
+  const loadEnd=html.indexOf('\\n\\nlet saveTimer',loadStart);
+  assert.ok(loadStart>=0 && loadEnd>loadStart,'loadDB source must be available');
+  vm.runInContext(html.slice(loadStart,loadEnd),context);
+  const loaded=context.loadDB();
+  const locked=vm.runInContext('storageRecoveryRequired',context);
+  const saveStart=html.indexOf('function saveDB(){');
+  const saveEnd=html.indexOf('\\n\\nasync function writeToFile',saveStart);
+  assert.ok(saveStart>=0 && saveEnd>saveStart,'saveDB source must be available');
+  vm.runInContext(html.slice(saveStart,saveEnd),context);
+  const saved=context.saveDB();
+  return {loaded,locked,saved,writes,preserved};
+}
+let recovery=testStorageRecovery('{broken-json');
+assert.equal(recovery.locked,true,'malformed persisted data must activate recovery lock');
+assert.equal(recovery.saved,false,'automatic save must be blocked while recovery is required');
+assert.equal(recovery.writes,0,'demo defaults must never overwrite malformed persisted data');
+assert.equal(recovery.preserved,1,'malformed raw data must be preserved for recovery');
+recovery=testStorageRecovery(null,true);
+assert.equal(recovery.locked,true,'an unreadable storage backend must activate recovery lock');
+assert.equal(recovery.saved,false,'automatic save must be blocked when storage cannot be read');
+assert.equal(recovery.writes,0,'no writes are allowed after a storage read failure');
+recovery=testStorageRecovery(JSON.stringify({settings:{},dict:{},orders:[]}));
+assert.equal(recovery.locked,false,'valid persisted data must not activate recovery lock');
+assert.equal(recovery.saved,true,'valid persisted data may be saved normally');
+assert.equal(recovery.writes,1,'normal save must persist valid data exactly once');
+assert.ok(html.includes('storageRecoveryRequired = false;\\n      const localSaved = saveDB();'),
+  'valid JSON import must release the recovery lock before saving');
+assert.ok(html.includes('storageRecoveryRequired = false;\\n  saveDB();'),
+  'explicitly confirmed demo reset must release the recovery lock');
+
 console.log('ERP form validation regression checks passed.');
