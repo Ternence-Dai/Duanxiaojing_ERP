@@ -74,6 +74,8 @@ assert.ok(html.includes("onclick=\"delRow(${jsArg(key)},${jsArg(id)},true)\""), 
 assert.ok(html.includes("const show = record ? esc(val) :"), 'read-only fields must escape imported record values');
 assert.ok(html.includes("onclick=\"pickDict(${jsArg(k)})\""), 'dictionary keys must use JS-safe handler encoding');
 assert.ok(html.includes("onclick=\"saveDictItem(${jsArg(dictKey)}, ${idx})\""), 'dictionary save handler must encode its key');
+assert.ok(html.includes('onclick="setFilter(${jsArg(key)},${jsArg(o)})"'),
+  'filter options must use JS-safe encoding rather than HTML escaping alone');
 assert.ok(html.includes('<div class="dn">${esc(names[k] || k)}</div>'), 'dictionary labels must be HTML escaped');
 
 console.log('ERP form validation regression checks passed.');
