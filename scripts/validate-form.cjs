@@ -33,7 +33,7 @@ const assert = require('node:assert/strict');
 const todayStart = html.indexOf('const today = () => {');
 const todayEnd = html.indexOf('\\n', todayStart);
 assert.ok(todayStart >= 0 && todayEnd > todayStart, 'ERP date helper must use the browser local calendar');
-const todaySource = html.slice(todayStart, todayEnd).replace('const today = ', '').replace(/;$/, '');
+const todaySource = html.slice(todayStart, todayEnd).replace('const today = ', '').trim().slice(0, -1);
 const FakeDate = class { getFullYear(){return 2026;} getMonth(){return 9;} getDate(){return 18;} };
 const localToday = vm.runInNewContext('(' + todaySource + ')', {Date:FakeDate});
 assert.equal(localToday(), '2026-10-18', 'default dates must not shift to the previous UTC day');
