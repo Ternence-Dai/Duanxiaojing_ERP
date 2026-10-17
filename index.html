@@ -735,25 +735,42 @@ function isValidDBShape(d){
      !d.dict || typeof d.dict !== 'object') return false;
   return Object.keys(SCHEMAS).every(key => Array.isArray(d[key]));
 }
-function loadDB(){
+function preserveInvalidDB(raw){
+  if(!raw) return false;
   try{
-    const raw = localStorage.getItem(STORE_KEY);
+    const key = STORE_KEY + '_recovery_' + Date.now();
+    localStorage.setItem(key, raw);
+    console.warn('已将无法识别的 ERP 缓存原文保存在恢复项：' + key);
+    return true;
+  }catch(e){
+    console.error('无法创建 ERP 缓存恢复副本。', e);
+    return false;
+  }
+}
+function loadDB(){
+  let raw = null;
+  try{
+    raw = localStorage.getItem(STORE_KEY);
     if(raw){
       const d = JSON.parse(raw);
       if(isValidDBShape(d)) return d;
-      console.warn('ERP 缓存结构不完整，未加载为有效业务数据。');
+      preserveInvalidDB(raw);
+      console.warn('ERP 缓存结构不完整，已保留恢复副本并载入演示数据。');
     }
   }catch(e){
-    console.error('ERP 缓存读取或解析失败。', e);
+    if(raw) preserveInvalidDB(raw);
+    console.error('ERP 缓存读取或解析失败；已尽力保留原始缓存。', e);
   }
   return defaultDB();
 }
 
 let saveTimer = null;
 function saveDB(){
+  let localSaved = true;
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify(DB));
   }catch(e){
+    localSaved = false;
     console.error('浏览器缓存保存失败', e);
     toast('浏览器存储空间不足或不可用；请立即导出 JSON 备份');
   }
@@ -761,6 +778,7 @@ function saveDB(){
     clearTimeout(saveTimer);
     saveTimer = setTimeout(writeToFile, 300);
   }
+  return localSaved;
 }
 
 async function writeToFile(){
@@ -2536,10 +2554,10 @@ function importAll(input){
       const d = JSON.parse(e.target.result);
       if(!isValidDBShape(d)) throw new Error('数据结构不完整或版本不兼容');
       DB = d;
-      saveDB();
+      const localSaved = saveDB();
       initNav();
       render();
-      toast('数据导入成功');
+      toast(localSaved ? '数据导入成功' : '数据已载入当前页面，但本地缓存保存失败；请立即导出备份');
     }catch(err){
       console.error('ERP 数据导入失败：', err);
       toast('导入失败：文件格式不正确或数据结构不完整，原数据未更改');
