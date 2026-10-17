@@ -6,7 +6,7 @@ const start = html.indexOf('function saveForm(){');
 const end = html.indexOf('\nfunction genId', start);
 if (start < 0 || end < 0) throw new Error('saveForm source not found');
 const source = html.slice(start, end);
-function run(values, initialRows = []) {
+function run(values, initialRows = [], editingId = null) {
   const fields = [
     {k:'no',l:'订单号',t:'text',req:true},
     {k:'qty',l:'数量',t:'number',req:true},
@@ -17,7 +17,7 @@ function run(values, initialRows = []) {
   const elements = Object.fromEntries(Object.entries(values).map(([k,value]) => ['ff_'+k,{value:String(value)}]));
   const messages = [];
   const context = {
-    formState:{key:'orders',editingId:null},
+    formState:{key:'orders',editingId},
     SCHEMAS:{orders:{key:'orders',idKey:'no',fields}},
     DB:{orders:initialRows},
     $:id=>elements[id] || null,
@@ -43,6 +43,18 @@ result = run({no:'SO-4',qty:'2',price:'12.5',orderDate:'2026-10-17',delivery:'20
 assert.equal(result.rows.length,1,'valid order should be saved');
 assert.equal(result.rows[0].qty,2);
 assert.equal(result.rows[0].price,12.5);
+result = run({no:'SO-2',qty:'3',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'}, [
+  {no:'SO-1',qty:2,price:10,orderDate:'2026-10-16',delivery:'2026-10-20'},
+  {no:'SO-2',qty:4,price:11,orderDate:'2026-10-16',delivery:'2026-10-21'}
+], 'SO-1');
+assert.equal(result.rows[0].no, 'SO-1', 'editing must not overwrite another record with a duplicate primary key');
+assert.equal(result.rows[0].qty, 2);
+assert.match(result.messages[0], /已存在/);
+result = run({no:'SO-1',qty:'3',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'}, [
+  {no:'SO-1',qty:2,price:10,orderDate:'2026-10-16',delivery:'2026-10-20'}
+], 'SO-1');
+assert.equal(result.rows[0].qty, 3, 'editing must allow retaining the current record primary key');
+
 assert.ok(html.includes('const jsArg = value => JSON.stringify('),
   'dynamic handler arguments must use JavaScript-string plus HTML-attribute encoding');
 for (const token of [
