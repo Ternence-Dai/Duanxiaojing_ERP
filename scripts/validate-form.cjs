@@ -23,7 +23,7 @@ function run(values, initialRows = [], editingId = null) {
     DB:{orders:initialRows},
     $:id=>elements[id] || null,
     toast:m=>messages.push(m),
-    saveDB:()=>true,closeModal:()=>{},render:()=>{},initNav:()=>{},
+    saveDB:()=>true, snapshotDB:()=>JSON.parse(JSON.stringify(context.DB)), commitDBMutation:()=>true, closeModal:()=>{},render:()=>{},initNav:()=>{},
     genId:()=> 'SO-TEST'
   };
   vm.runInNewContext(source, context);
