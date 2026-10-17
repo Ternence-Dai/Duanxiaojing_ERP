@@ -150,10 +150,19 @@ async function bindLocalFile(){
       multiple: false
     });
     fileHandle = handle;
+    fileReady = false;
+    const imported = await readFromFile();
+    if(!imported){
+      fileHandle = null;
+      fileReady = false;
+      updateFileStatus();
+      toast('所选文件为空、格式无效或结构不兼容；未覆盖原文件，请使用有效备份或新建数据文件');
+      return;
+    }
     fileReady = true;
     await persistHandle(handle);
-    await writeToFile();
-    toast('已绑定：' + handle.name + ' · 之后编辑将自动保存');
+    toast('已读取并绑定：' + handle.name + ' · 后续编辑将自动保存');
+    updateFileStatus();
     render();
   }catch(e){
     if(e.name !== 'AbortError') toast('绑定失败：' + e.message);
@@ -212,9 +221,15 @@ async function restoreHandle(){
       return;
     }
     fileHandle = handle;
+    fileReady = false;
+    const imported = await readFromFile();
+    if(!imported){
+      fileReady = false;
+      updateFileStatus();
+      console.warn('绑定的 ERP 文件无法验证，已停止恢复且未写入该文件。');
+      return;
+    }
     fileReady = true;
-    await readFromFile();
-    await writeToFile();
     updateFileStatus();
   }catch(e){
     console.error('恢复句柄失败', e);
@@ -226,10 +241,17 @@ async function reRequestPermission(){
   try{
     const perm = await fileHandle.requestPermission({ mode:'readwrite' });
     if(perm === 'granted'){
+      fileReady = false;
+      const imported = await readFromFile();
+      if(!imported){
+        fileReady = false;
+        updateFileStatus();
+        toast('文件读取或校验失败，未向原文件写入任何数据');
+        return;
+      }
       fileReady = true;
-      await readFromFile();
-      await writeToFile();
-      toast('授权成功，已恢复自动保存');
+      updateFileStatus();
+      toast('授权成功，已读取文件并恢复自动保存');
       render();
     } else {
       toast('未授予权限，编辑不会自动保存');
