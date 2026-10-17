@@ -64,3 +64,14 @@ img,svg,canvas{max-width:100%}
   body{background:#fff!important;color:#111!important}
   :where(.card,.panel,.stat-card,.metric-card){box-shadow:none!important;break-inside:avoid}
 }
+
+
+/* V2 application-specific visual layer */
+body .app .sidebar{background:linear-gradient(180deg,#111f36,#0d1728);border-right:0;box-shadow:10px 0 30px rgba(15,23,42,.12)}
+body .app .main-content{min-width:0;background:#f5f7fb}
+body .app .topbar{background:rgba(255,255,255,.94);border-bottom-color:#e7ecf3;box-shadow:0 3px 14px rgba(20,40,80,.04)}
+body .app .content-body{padding:clamp(16px,2vw,30px)}
+body .app .card{border:1px solid #e7ecf3;border-radius:14px;box-shadow:0 5px 20px rgba(20,40,80,.045)}
+body .app .nav-item{border-radius:9px;margin:2px 10px;padding-left:16px}
+body .app .nav-item.active{background:rgba(79,140,255,.18);border-left:3px solid #4f8cff;color:#fff}
+body .app .btn-primary{background:linear-gradient(135deg,#3478ed,#6b83f5);box-shadow:0 5px 14px rgba(79,140,255,.18)}
