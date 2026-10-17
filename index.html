@@ -1189,7 +1189,7 @@ function initNav(){
     html += `<div class="nav-label">${g.group}</div>`;
     g.items.forEach(n => {
       const dot = navDot(n.key);
-      html += `<button class="nav-item" data-page="${n.key}" onclick="go('${n.key}')">
+      html += `<button class="nav-item" data-page="${n.key}" onclick="go(${jsArg(n.key)})">
         ${svgWrap(n.icon)}<span>${n.label}</span>${dot ? `<span class="dot">${dot}</span>` : ''}
       </button>`;
     });
@@ -1339,7 +1339,7 @@ function renderChips(key){
     const total = DB[S.key].length;
     const n = o === '全部' ? total : DB[S.key].filter(r => String(r[S.filterField]) === o).length;
     return `<button class="chip ${st.filter === o ? 'active' : ''}"
-      onclick="setFilter('${key}','${esc(o)}')">${esc(o)} <b>${n}</b></button>`;
+      onclick="setFilter(${jsArg(key)},${jsArg(o)})">${esc(o)} <b>${n}</b></button>`;
   }).join('');
 }
 function setFilter(key, v){
@@ -1428,17 +1428,17 @@ function renderListPage(key){
       <span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></span>
       <input type="text" id="kw_${key}" placeholder="搜索${S.title}…（支持任意字段模糊匹配）"
         value="${esc(st.kw)}" autocomplete="off"
-        oninput="onSearchInput('${key}', this.value)"
-        onfocus="if(this.value)showSuggest('${key}', this.value)">
-      <button class="clr ${st.kw ? 'show' : ''}" id="clr_${key}" onclick="clearSearch('${key}')">✕</button>
+        oninput="onSearchInput(${jsArg(key)}, this.value)"
+        onfocus="if(this.value)showSuggest(${jsArg(key)}, this.value)">
+      <button class="clr ${st.kw ? 'show' : ''}" id="clr_${key}" onclick="clearSearch(${jsArg(key)})">✕</button>
       <div class="suggest" id="sg_${key}"></div>
     </div>
     ${S.filterField ? `<div class="chips" id="chips_${key}">${renderChips(key)}</div>` : ''}
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <span style="font-size:11.5px;color:var(--muted)" id="cnt_${key}"></span>
-      <button class="btn btn-sm" onclick="openColSettings('${key}')">列设置</button>
-      <button class="btn btn-sm" onclick="exportTable('${key}')">导出</button>
-      <button class="btn btn-primary btn-sm" onclick="openForm('${key}')">＋ 新增</button>
+      <button class="btn btn-sm" onclick="openColSettings(${jsArg(key)})">列设置</button>
+      <button class="btn btn-sm" onclick="exportTable(${jsArg(key)})">导出</button>
+      <button class="btn btn-primary btn-sm" onclick="openForm(${jsArg(key)})">＋ 新增</button>
     </div>
   </div>
 
@@ -1513,7 +1513,7 @@ function renderField(f, record){
       : refValues(f);
     const dlId = 'dl_' + f.k;
     const handler = f.fill
-      ? `oninput="autoFillFromRef('${formState.key}','${f.k}', this.value)"`
+      ? `oninput="autoFillFromRef(${jsArg(formState.key)},${jsArg(f.k)}, this.value)"`
       : '';
     ctrl = `<input type="text" id="ff_${f.k}" list="${dlId}" value="${esc(val)}"
         placeholder="可输入或下拉选择" autocomplete="off" ${handler}>
@@ -1698,7 +1698,7 @@ function openColSettings(key){
       </div>
       <div class="modal-foot">
         <button class="btn" onclick="closeModal()">取消</button>
-        <button class="btn btn-primary" onclick="applyColSettings('${key}')">应用</button>
+        <button class="btn btn-primary" onclick="applyColSettings(${jsArg(key)})">应用</button>
       </div>
     </div>
   </div>`;
@@ -2642,7 +2642,7 @@ function renderFieldsConfig(){
         ${S.fields.map(f => {
           const off = hidden.indexOf(f.k) > -1;
           return `<button class="chip ${off ? '' : 'active'}"
-            onclick="toggleField('${key}','${f.k}')"
+            onclick="toggleField(${jsArg(key)},${jsArg(f.k)})"
             style="${off ? 'opacity:.5' : ''}">${off ? '○' : '●'} ${esc(f.l)}</button>`;
         }).join('')}
       </div>
