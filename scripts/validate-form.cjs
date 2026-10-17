@@ -138,6 +138,38 @@ assert.ok(html.includes("if(previous && String(previous.code).trim() !== String(
 assert.ok(html.includes("库存编码不可直接修改"), 'SKU rename protection must explain the safe retirement workflow');
 assert.ok(html.includes("if(key === 'inventory' && Number(rec.qty) !== 0)"), 'non-zero inventory must not be deleted outside the stock ledger');
 assert.ok(html.includes("请先通过库存调整完成出库"), 'blocked stock deletion must direct users to a traceable adjustment');
+
+const bindStart=html.indexOf('async function bindLocalFile(){');
+const bindEnd=html.indexOf('\nasync function createLocalFile()',bindStart);
+const bindSource=html.slice(bindStart,bindEnd);
+assert.ok(bindStart>=0 && bindEnd>bindStart,'file binding source must be available');
+assert.ok(bindSource.includes('const imported = await readFromFile();'),
+  'binding an existing file must import and validate it before enabling writes');
+assert.ok(bindSource.includes('if(!imported){'),
+  'invalid or empty files must be rejected');
+assert.ok(!bindSource.includes('await writeToFile();'),
+  'binding an existing file must never overwrite it immediately');
+
+const restoreStart=html.indexOf('async function restoreHandle(){');
+const restoreEnd=html.indexOf('\nasync function reRequestPermission()',restoreStart);
+const restoreSource=html.slice(restoreStart,restoreEnd);
+assert.ok(restoreSource.includes('const imported = await readFromFile();'),
+  'restoring a file handle must validate the existing file first');
+assert.ok(restoreSource.includes('if(!imported){'),
+  'failed handle restoration must stop without writing');
+assert.ok(!restoreSource.includes('await writeToFile();'),
+  'failed handle restoration must not overwrite unreadable data');
+
+const permissionStart=html.indexOf('async function reRequestPermission(){');
+const permissionEnd=html.indexOf('\nfunction openHandleDB()',permissionStart);
+const permissionSource=html.slice(permissionStart,permissionEnd);
+assert.ok(permissionSource.includes('const imported = await readFromFile();'),
+  'permission renewal must reload and validate the selected file');
+assert.ok(permissionSource.includes('if(!imported){'),
+  'permission renewal must stop when the file cannot be validated');
+assert.ok(!permissionSource.includes('await writeToFile();'),
+  'permission renewal must not write browser defaults over an unreadable file');
+
 console.log('ERP form validation regression checks passed.');
 
 assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
