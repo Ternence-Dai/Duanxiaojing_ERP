@@ -763,6 +763,36 @@ document.addEventListener('click', e => {
   if(gp && !gp.contains(e.target) && e.target.id !== 'globalInput') gp.classList.remove('show');
 });
 
+function renderStockMovementHistory(){
+  const movements = Array.isArray(DB.stockMovements) ? DB.stockMovements : [];
+  const rows = movements.slice(0, 50).map(m => {
+    const date = new Date(m && m.occurredAt);
+    const dateLabel = Number.isFinite(date.getTime()) ? date.toLocaleString() : '时间无效';
+    const delta = Number(m && m.quantityDelta);
+    const deltaLabel = Number.isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(3) : '—';
+    const previous = Number(m && m.previousBalance);
+    const next = Number(m && m.nextBalance);
+    return `<tr>
+      <td>${esc(dateLabel)}</td>
+      <td class="mono">${esc(m && m.sku || '—')}</td>
+      <td style="text-align:right;font-weight:700;color:${delta > 0 ? '#15803d' : delta < 0 ? '#dc2626' : 'inherit'}">${esc(deltaLabel)}</td>
+      <td style="text-align:right">${Number.isFinite(previous) ? previous.toFixed(3) : '—'}</td>
+      <td style="text-align:right">${Number.isFinite(next) ? next.toFixed(3) : '—'}</td>
+      <td>${esc(m && m.reference || '—')}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="card" style="margin-top:16px">
+    <div class="card-head">
+      <div class="card-title">库存变更流水</div>
+      <div class="card-sub">最近 ${Math.min(movements.length, 50)} 条 · 共 ${movements.length} 条</div>
+    </div>
+    ${rows ? `<div class="table-wrap"><div class="table-scroll"><table>
+      <thead><tr><th>发生时间</th><th>物料编码</th><th style="text-align:right">变更量</th><th style="text-align:right">变更前</th><th style="text-align:right">变更后</th><th>关联单据/引用</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>` : '<div class="empty" style="padding:18px 0">暂无库存流水。历史库存不会自动补造流水；从本版本开始新增或调整库存时会记录变更。</div>'}
+  </div>`;
+}
+
 function renderListPage(key){
   const S = SCHEMAS[key];
   const st = getState(key);
@@ -813,7 +843,8 @@ function renderListPage(key){
         <tbody id="tb_${key}">${renderTableBody(key)}</tbody>
       </table>
     </div>
-  </div>`;
+  </div>
+  ${key === 'inventory' ? renderStockMovementHistory() : ''}`;
 }
 
 /* ==================================================================
