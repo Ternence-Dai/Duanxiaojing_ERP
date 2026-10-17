@@ -138,3 +138,6 @@ assert.ok(html.includes("库存编码不可直接修改"), 'SKU rename protectio
 assert.ok(html.includes("if(key === 'inventory' && Number(rec.qty) !== 0)"), 'non-zero inventory must not be deleted outside the stock ledger');
 assert.ok(html.includes("请先通过库存调整完成出库"), 'blocked stock deletion must direct users to a traceable adjustment');
 console.log('ERP form validation regression checks passed.');
+
+assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
+assert.ok(html.includes("function delRow(key, id, fromModal){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record deletion must stop before mutating memory when cache recovery is required');
