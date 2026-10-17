@@ -325,6 +325,9 @@ button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none}
 img,svg,canvas,video{max-width:100%}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 @media print{*{box-shadow:none!important;text-shadow:none!important}body{overflow:visible!important;height:auto!important;min-height:0!important;background:#fff!important;color:#111!important}.sidebar,.bottomnav,.bottomnav,.tabbar,.toast,.toast-container,.modal-backdrop{display:none!important}.main,.main-content,.content,.view{overflow:visible!important;height:auto!important;min-height:0!important;margin:0!important;width:100%!important;color:#111!important;background:#fff!important}}
+
+/* Zhiyun ERP product redesign v1 */
+.erp-intro{--intro-accent:#2563eb;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 22px;margin:16px 22px 0;border:1px solid #d8e4f5;border-radius:16px;background:linear-gradient(110deg,#f7faff,#edf4ff 58%,#f7fbff);box-shadow:0 8px 24px rgba(31,72,130,.06)}.erp-intro .eyebrow{font-size:10px;font-weight:800;letter-spacing:1.6px;color:#2563eb}.erp-intro h2{font-size:21px;letter-spacing:-.4px;color:#132b4d;margin:4px 0}.erp-intro p{font-size:12px;color:#61738c;line-height:1.65;max-width:650px}.erp-intro .erp-modules{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.erp-intro .erp-modules span{font-size:10px;padding:5px 9px;border-radius:7px;background:#fff;border:1px solid #dbe6f5;color:#3e5d85}.erp-intro .erp-mark{flex:0 0 74px;width:74px;height:74px;display:grid;place-items:center;border-radius:20px;background:linear-gradient(145deg,#dbeafe,#eff6ff);color:#1d4ed8;font-size:27px;font-weight:900}@media(max-width:700px){.erp-intro{margin:12px 12px 0;padding:15px}.erp-intro .erp-mark{display:none}}
 </style>
 </head>
 <body>
@@ -368,6 +371,7 @@ img,svg,canvas,video{max-width:100%}
       </div>
     </header>
 
+    <section class="erp-intro"><div><div class="eyebrow">ZHIYUN · BUSINESS OPERATIONS</div><h2>企业经营协同中心</h2><p>围绕客户、订单、物料、库存与生产协同开展日常经营管理。关键业务变更请核对单据与关联记录，并定期导出备份。</p><div class="erp-modules"><span>客户与订单</span><span>物料与库存</span><span>生产与质量</span><span>经营分析</span><span>数据备份</span></div></div><div class="erp-mark">织云</div></section>
     <div class="content" id="content"></div>
 
     <footer class="app-footer">
