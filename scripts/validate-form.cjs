@@ -230,7 +230,7 @@ assert.ok(html.includes("function delRow(key, id, fromModal){\n  if(storageRecov
 // Deletion must preserve the audit trail. Non-zero stock is not deletable;
 // zero-balance retirement removes only the master row, never historical moves.
 const deleteStart=html.indexOf('function delRow(key, id, fromModal){');
-const deleteEnd=html.indexOf('\\nfunction openColSettings',deleteStart);
+const deleteEnd=html.indexOf('function openColSettings',deleteStart);
 assert.ok(deleteStart>=0 && deleteEnd>deleteStart,'inventory deletion source must be available');
 const deleteSource=html.slice(deleteStart,deleteEnd);
 function runDelete(quantity, confirmResult=true){
