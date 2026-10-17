@@ -318,6 +318,13 @@ tbody tr:hover{background:#fafcff}
   .gs-wrap{width:150px}
   .form-grid,.form-grid.cols-3{grid-template-columns:1fr}
 }
+
+/* Ternence UX foundation: keyboard access, reduced motion, resilient small screens. */
+:focus-visible{outline:2px solid var(--focus-ring,#60a5fa);outline-offset:3px}
+button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none}
+img,svg,canvas,video{max-width:100%}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media print{*{box-shadow:none!important;text-shadow:none!important}body{overflow:visible!important;height:auto!important;min-height:0!important;background:#fff!important;color:#111!important}.sidebar,.bottomnav,.bottomnav,.tabbar,.toast,.toast-container,.modal-backdrop{display:none!important}.main,.main-content,.content,.view{overflow:visible!important;height:auto!important;min-height:0!important;margin:0!important;width:100%!important;color:#111!important;background:#fff!important}}
 </style>
 </head>
 <body>
