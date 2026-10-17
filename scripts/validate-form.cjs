@@ -225,3 +225,50 @@ console.log('ERP form validation and persistence rollback regression checks pass
 
 assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
 assert.ok(html.includes("function delRow(key, id, fromModal){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record deletion must stop before mutating memory when cache recovery is required');
+
+
+// Deletion must preserve the audit trail. Non-zero stock is not deletable;
+// zero-balance retirement removes only the master row, never historical moves.
+const deleteStart=html.indexOf('function delRow(key, id, fromModal){');
+const deleteEnd=html.indexOf('\\nfunction openColSettings',deleteStart);
+assert.ok(deleteStart>=0 && deleteEnd>deleteStart,'inventory deletion source must be available');
+const deleteSource=html.slice(deleteStart,deleteEnd);
+function runDelete(quantity, confirmResult=true){
+  const db={
+    inventory:[{code:'SKU-1',qty:quantity,name:'Test item'}],
+    stockMovements:[
+      {sku:'SKU-1',quantityDelta:5,previousBalance:0,nextBalance:5,reference:'OPEN-1'},
+      {sku:'SKU-1',quantityDelta:-5,previousBalance:5,nextBalance:0,reference:'OUT-1'}
+    ],
+    settings:{},dict:{}
+  };
+  const messages=[];
+  let confirms=0;
+  const context={
+    storageRecoveryRequired:false,
+    SCHEMAS:{inventory:{key:'inventory',idKey:'code'}},
+    DB:db,
+    snapshotDB:()=>JSON.parse(JSON.stringify(db)),
+    commitDBMutation:()=>true,
+    confirm:()=>{confirms++;return confirmResult;},
+    toast:m=>messages.push(m),
+    closeModal:()=>{},
+    render:()=>{},
+    initNav:()=>{}
+  };
+  vm.createContext(context);
+  vm.runInContext(deleteSource,context);
+  context.delRow('inventory','SKU-1',false);
+  return {db,messages,confirms};
+}
+let deletion=runDelete(2);
+assert.equal(deletion.db.inventory.length,1,'non-zero stock deletion must leave the master record intact');
+assert.equal(deletion.confirms,0,'non-zero stock deletion must stop before confirmation');
+assert.equal(deletion.db.stockMovements.length,2,'blocked deletion must leave ledger history intact');
+deletion=runDelete(0);
+assert.equal(deletion.db.inventory.length,0,'zero-balance inventory may be retired');
+assert.equal(deletion.db.stockMovements.length,2,'retiring a zero-balance SKU must retain its full audit trail');
+assert.equal(deletion.db.stockMovements[1].nextBalance,0,'retained ledger must preserve the closing zero balance');
+deletion=runDelete(0,false);
+assert.equal(deletion.db.inventory.length,1,'cancelled deletion must preserve the master record');
+assert.equal(deletion.db.stockMovements.length,2,'cancelled deletion must preserve the ledger');
