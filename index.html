@@ -729,14 +729,22 @@ let DB = null;
 let fileHandle = null;
 let fileReady = false;
 
+function isValidDBShape(d){
+  if(!d || typeof d !== 'object' || !d.settings || typeof d.settings !== 'object' ||
+     !d.dict || typeof d.dict !== 'object') return false;
+  return Object.keys(SCHEMAS).every(key => Array.isArray(d[key]));
+}
 function loadDB(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
     if(raw){
       const d = JSON.parse(raw);
-      if(d && d.settings && d.dict && Array.isArray(d.orders)) return d;
+      if(isValidDBShape(d)) return d;
+      console.warn('ERP 缓存结构不完整，未加载为有效业务数据。');
     }
-  }catch(e){}
+  }catch(e){
+    console.error('ERP 缓存读取或解析失败。', e);
+  }
   return defaultDB();
 }
 
@@ -774,9 +782,10 @@ async function readFromFile(){
     const text = await file.text();
     if(!text.trim()) return false;
     const d = JSON.parse(text);
-    if(d && d.settings && d.dict){
+    if(isValidDBShape(d)){
       DB = d;
-      try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+      try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+      catch(e){ console.error('文件数据已载入内存，但浏览器缓存写入失败。', e); toast('文件已读取，但浏览器缓存写入失败；请检查存储并保留原文件备份'); }
       render(); initNav();
       return true;
     }
@@ -2524,14 +2533,15 @@ function importAll(input){
   reader.onload = e => {
     try{
       const d = JSON.parse(e.target.result);
-      if(!d.settings || !d.dict) throw new Error('格式不符');
+      if(!isValidDBShape(d)) throw new Error('数据结构不完整或版本不兼容');
       DB = d;
       saveDB();
       initNav();
       render();
       toast('数据导入成功');
     }catch(err){
-      toast('文件格式不正确');
+      console.error('ERP 数据导入失败：', err);
+      toast('导入失败：文件格式不正确或数据结构不完整，原数据未更改');
     }
     input.value = '';
   };
