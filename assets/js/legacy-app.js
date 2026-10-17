@@ -324,7 +324,7 @@ const SCHEMAS = {
       {k:'cat',   l:'类别',    t:'ref',    ref:'dict.categories', refLabel:'name', req:true, w:'90px'},
       {k:'batch', l:'批次/缸号', t:'text',  w:'140px'},
       {k:'loc',   l:'库位',    t:'ref',    ref:'dict.warehouses', refLabel:'name', w:'96px'},
-      {k:'qty',   l:'库存量',   t:'number', req:true, align:'right', w:'96px'},
+      {k:'qty',   l:'库存量',   t:'number', req:true, align:'right', step:'0.001', w:'96px'},
       {k:'unit',  l:'单位',    t:'select', opts:'units', w:'70px'},
       {k:'safe',  l:'安全库存', t:'number', align:'right', w:'92px'},
       {k:'price', l:'单价',    t:'number', align:'right', step:'0.01', w:'88px'},
