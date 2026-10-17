@@ -16,6 +16,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Validate ERP form business rules
+        run: node scripts/validate-form.cjs
       - name: Parse embedded JavaScript
         run: |
           node <<'NODE'
