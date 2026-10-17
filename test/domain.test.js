@@ -7,9 +7,9 @@ test("records a traceable stock ledger transition",()=>{
  assert.equal(row.previousBalance,10); assert.equal(row.nextBalance,7);
 });
 test("prevents negative stock",()=>assert.throws(()=>applyStockMovement(2,movement),RangeError));
-test("requires reference and integer quantities",()=>{
+test("requires a traceable reference and non-zero quantity",()=>{
  assert.throws(()=>applyStockMovement(2,{...movement,reference:""}),TypeError);
- assert.throws(()=>applyStockMovement(2,{...movement,quantityDelta:0.5}),RangeError);
+ assert.throws(()=>applyStockMovement(2,{...movement,quantityDelta:0}),RangeError);
 });
 
 test("supports textile stock quantities to three decimal places",()=>{
