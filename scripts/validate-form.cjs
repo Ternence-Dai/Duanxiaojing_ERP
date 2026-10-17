@@ -133,4 +133,8 @@ assert.ok(html.includes('storageRecoveryRequired = false;\n      const localSave
 assert.ok(html.includes('storageRecoveryRequired = false;\n  saveDB();'),
   'explicitly confirmed demo reset must release the recovery lock');
 
+assert.ok(html.includes("if(previous && String(previous.code).trim() !== String(obj.code).trim())"), 'inventory SKU identity must not be renamed in-place');
+assert.ok(html.includes("库存编码不可直接修改"), 'SKU rename protection must explain the safe retirement workflow');
+assert.ok(html.includes("if(key === 'inventory' && Number(rec.qty) !== 0)"), 'non-zero inventory must not be deleted outside the stock ledger');
+assert.ok(html.includes("请先通过库存调整完成出库"), 'blocked stock deletion must direct users to a traceable adjustment');
 console.log('ERP form validation regression checks passed.');
