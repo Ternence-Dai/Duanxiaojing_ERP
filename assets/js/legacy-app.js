@@ -875,6 +875,10 @@ function defaultValFor(f){
 function closeModal(){ $('modalRoot').innerHTML = ''; formState = { key:null, editingId:null }; }
 
 async function saveForm(){
+  if(storageRecoveryRequired){
+    toast('检测到原 ERP 缓存异常，已阻止编辑；请先恢复数据或明确重置演示数据');
+    return;
+  }
   const key = formState.key;
   if(!key) return;
   const S = SCHEMAS[key];
@@ -1025,6 +1029,10 @@ function genId(key){
 }
 
 function delRow(key, id, fromModal){
+  if(storageRecoveryRequired){
+    toast('检测到原 ERP 缓存异常，已阻止删除；请先恢复数据或明确重置演示数据');
+    return;
+  }
   const S = SCHEMAS[key];
   const rec = (DB[S.key] || []).find(r => String(r[S.idKey]) === String(id));
   if(!rec){ toast('记录不存在'); return; }
