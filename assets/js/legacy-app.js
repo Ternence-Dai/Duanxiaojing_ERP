@@ -874,7 +874,7 @@ function defaultValFor(f){
 }
 function closeModal(){ $('modalRoot').innerHTML = ''; formState = { key:null, editingId:null }; }
 
-function saveForm(){
+async function saveForm(){
   const key = formState.key;
   if(!key) return;
   const S = SCHEMAS[key];
@@ -940,6 +940,30 @@ function saveForm(){
 
   if(err){ toast(err); return; }
 
+  // Inventory edits are posted through the domain ledger before the master
+  // record is changed. Failed validation leaves both untouched.
+  let stockMovement = null;
+  if(key === 'inventory'){
+    const previous = editingId ? list.find(r => String(r[S.idKey]) === editingId) : null;
+    const previousQty = previous ? Number(previous.qty) : 0;
+    const nextQty = Number(obj.qty);
+    const delta = Number((nextQty - previousQty).toFixed(3));
+    if(delta !== 0){
+      try{
+        const domain = await import('../../src/domain/index.js');
+        stockMovement = domain.applyStockMovement(previousQty, {
+          sku: obj.code,
+          quantityDelta: delta,
+          reference: (editingId ? 'INV-ADJUST-' : 'INV-OPEN-') + obj.code + '-' + Date.now(),
+          occurredAt: new Date().toISOString()
+        });
+      }catch(e){
+        toast('库存变更未保存：' + (e && e.message ? e.message : '领域校验失败'));
+        return;
+      }
+    }
+  }
+
   const candidateId = obj[S.idKey];
   if(candidateId && list.some(r => String(r[S.idKey]) === String(candidateId) &&
       (!editingId || String(r[S.idKey]) !== String(editingId)))){
@@ -965,6 +989,10 @@ function saveForm(){
     toast(`新增成功 · ${obj[S.idKey]}`);
   }
 
+  if(stockMovement){
+    if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
+    DB.stockMovements.unshift(stockMovement);
+  }
   saveDB();
   closeModal();
   render();
