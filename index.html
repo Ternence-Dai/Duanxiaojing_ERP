@@ -738,7 +738,12 @@ function loadDB(){
 
 let saveTimer = null;
 function saveDB(){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }catch(e){}
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+  }catch(e){
+    console.error('浏览器缓存保存失败', e);
+    toast('浏览器存储空间不足或不可用；请立即导出 JSON 备份');
+  }
   if(fileHandle && fileReady){
     clearTimeout(saveTimer);
     saveTimer = setTimeout(writeToFile, 300);
