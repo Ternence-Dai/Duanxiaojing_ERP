@@ -25,7 +25,7 @@ jobs:
           const os = require('node:os');
           const path = require('node:path');
           const { execFileSync } = require('node:child_process');
-          const html = fs.readFileSync('index.html', 'utf8');
+          const html = fs.readFileSync('index.html', 'utf8') + '<script>' + fs.readFileSync('assets/js/legacy-app.js', 'utf8') + String.fromCharCode(60,47,115,99,114,105,112,116,62);
           const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
           const executable = scripts.filter(([, attrs]) => {
             const type = (attrs.match(/\btype=["']([^"']+)["']/i) || [])[1] || '';
