@@ -24,10 +24,10 @@ jobs:
           const path = require('node:path');
           const { execFileSync } = require('node:child_process');
           const html = fs.readFileSync('index.html', 'utf8');
-          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)];
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
           const executable = scripts.filter(([, attrs]) => {
-            const type = (attrs.match(/\\btype=["']([^"']+)["']/i) || [])[1] || '';
-            return !type || /^(module|text\\/javascript|application\\/javascript)$/i.test(type);
+            const type = (attrs.match(/\btype=["']([^"']+)["']/i) || [])[1] || '';
+            return !type || /^(module|text\/javascript|application\/javascript)$/i.test(type);
           });
           if (!executable.length) throw new Error('No inline executable JavaScript found');
           const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inline-js-'));
