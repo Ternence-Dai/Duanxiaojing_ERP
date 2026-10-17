@@ -43,4 +43,12 @@ result = run({no:'SO-4',qty:'2',price:'12.5',orderDate:'2026-10-17',delivery:'20
 assert.equal(result.rows.length,1,'valid order should be saved');
 assert.equal(result.rows[0].qty,2);
 assert.equal(result.rows[0].price,12.5);
+assert.ok(html.includes('const jsArg = value => JSON.stringify('),
+  'dynamic handler arguments must use JavaScript-string plus HTML-attribute encoding');
+for (const token of [
+  'openForm(${jsArg(key)},${jsArg(id)})',
+  'delRow(${jsArg(key)},${jsArg(id)})',
+  'jumpTo(${jsArg(x.key)},${jsArg(x.id)})',
+  'pickSuggest(${jsArg(key)},${jsArg(v)})'
+]) assert.ok(html.includes(token), 'dynamic inline handler must encode its arguments: ' + token);
 console.log('ERP form validation regression checks passed.');
