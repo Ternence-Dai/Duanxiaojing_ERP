@@ -129,9 +129,9 @@ recovery=testStorageRecovery(JSON.stringify({settings:{},dict:{},orders:[]}));
 assert.equal(recovery.locked,false,'valid persisted data must not activate recovery lock');
 assert.equal(recovery.saved,true,'valid persisted data may be saved normally');
 assert.equal(recovery.writes,1,'normal save must persist valid data exactly once');
-assert.ok(html.includes('storageRecoveryRequired = false;\n      const localSaved = saveDB();'),
+assert.ok(html.includes('storageRecoveryRequired = false;\n      if(!commitDBMutation(previousDB)) return;'),
   'valid JSON import must release the recovery lock before saving');
-assert.ok(html.includes('storageRecoveryRequired = false;\n  saveDB();'),
+assert.ok(html.includes('storageRecoveryRequired = false;\n  if(!commitDBMutation(previousDB)) return;'),
   'explicitly confirmed demo reset must release the recovery lock');
 
 assert.ok(html.includes("if(previous && String(previous.code).trim() !== String(obj.code).trim())"), 'inventory SKU identity must not be renamed in-place');
