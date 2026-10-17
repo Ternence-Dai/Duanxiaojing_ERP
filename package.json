@@ -1,0 +1,9 @@
+{
+  "name": "textile-erp-domain-core",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/domain/index.js"
+  }
+}
