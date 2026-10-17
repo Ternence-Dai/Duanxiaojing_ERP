@@ -210,6 +210,17 @@ for(const token of [
   'const previousDB = snapshotDB();'
 ]) assert.ok(html.includes(token),'mutating operations must use rollback-safe persistence: '+token);
 
+
+assert.ok(html.includes('function renderStockMovementHistory(){'),
+  'inventory page must expose the saved stock movement ledger');
+for (const token of ['m.occurredAt','m.sku','m.quantityDelta','m.previousBalance','m.nextBalance','m.reference']) {
+  assert.ok(html.includes(token), 'stock ledger must display traceable movement field: ' + token);
+}
+assert.ok(html.includes("暂无库存流水。历史库存不会自动补造流水"),
+  'legacy inventory without a ledger must be clearly distinguished from recorded movement history');
+assert.ok(html.includes("key === 'inventory' ? renderStockMovementHistory() : ''"),
+  'stock movement history must appear on the inventory page only');
+
 console.log('ERP form validation and persistence rollback regression checks passed.');
 
 assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
