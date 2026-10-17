@@ -1,0 +1,40 @@
+name: Validate standalone app
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inline-javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Parse embedded JavaScript
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const os = require('node:os');
+          const path = require('node:path');
+          const { execFileSync } = require('node:child_process');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)];
+          const executable = scripts.filter(([, attrs]) => {
+            const type = (attrs.match(/\\btype=["']([^"']+)["']/i) || [])[1] || '';
+            return !type || /^(module|text\\/javascript|application\\/javascript)$/i.test(type);
+          });
+          if (!executable.length) throw new Error('No inline executable JavaScript found');
+          const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'inline-js-'));
+          executable.forEach(([, , source], index) => {
+            const file = path.join(dir, `script-${index + 1}.js`);
+            fs.writeFileSync(file, source);
+            execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' });
+          });
+          console.log(`Syntax OK: ${executable.length} inline script(s)`);
+          NODE
