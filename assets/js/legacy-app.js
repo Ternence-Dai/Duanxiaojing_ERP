@@ -170,6 +170,10 @@ async function bindLocalFile(){
 }
 
 async function createLocalFile(){
+  if(storageRecoveryRequired){
+    toast('原 ERP 缓存仍待恢复；请先导入有效备份或确认重置演示数据，再创建新数据文件');
+    return;
+  }
   if(!window.showSaveFilePicker){
     toast('当前浏览器不支持文件访问，请使用 Chrome / Edge');
     return;
