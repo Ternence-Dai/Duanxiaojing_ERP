@@ -1563,15 +1563,54 @@ function saveForm(){
     if(f.ro) return;
     const el = $('ff_' + f.k);
     if(!el) return;
-    let v = el.value;
-    if(f.t === 'number'){
-      v = v === '' ? 0 : Number(v);
-      if(isNaN(v)) v = 0;
-    }
-    if(f.req && (v === '' || v == null)){
+    const raw = el.value;
+    let v = raw;
+    if(f.req && (raw === '' || raw == null)){
       if(!err) err = `「${f.l}」为必填项`;
     }
+    if(f.t === 'number'){
+      if(raw === '' || raw == null) v = 0;
+      else {
+        v = Number(raw);
+        if(!Number.isFinite(v) && !err) err = `「${f.l}」必须是有效数字`;
+      }
+    }
     obj[f.k] = v;
+  });
+
+  // Domain constraints: reject impossible values instead of silently coercing
+  // malformed numeric input to zero and persisting it.
+  const nonNegative = ['qty','safe','price','done','receivable','lead','len','width','gsm'];
+  const strictlyPositive = key === 'orders' || key === 'purchase'
+    ? ['qty'] : key === 'workorders' ? ['plan'] : [];
+  const percentageFields = key === 'workorders' ? ['eff']
+    : key === 'suppliers' ? ['rate'] : [];
+  S.fields.filter(f => f.t === 'number').forEach(f => {
+    const raw = $('ff_' + f.k)?.value;
+    if(raw === '' || raw == null) return;
+    const value = Number(raw);
+    if(!Number.isFinite(value)) return;
+    if(nonNegative.includes(f.k) && value < 0 && !err)
+      err = `「${f.l}」不能小于 0`;
+    if(strictlyPositive.includes(f.k) && value <= 0 && !err)
+      err = `「${f.l}」必须大于 0`;
+    if(percentageFields.includes(f.k) && (value < 0 || value > 100) && !err)
+      err = `「${f.l}」必须在 0–100 之间`;
+  });
+
+  const validDate = value => !value || ( /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(value + 'T00:00:00Z')) &&
+    new Date(value + 'T00:00:00Z').toISOString().slice(0,10) === value );
+  S.fields.filter(f => f.t === 'date').forEach(f => {
+    const value = obj[f.k];
+    if(value && !validDate(value) && !err) err = `「${f.l}」日期格式无效`;
+  });
+  const datePairs = key === 'orders' ? [['orderDate','delivery','交货日期不能早于下单日期']]
+    : key === 'purchase' ? [['date','eta','预计到货日期不能早于下单日期']]
+    : key === 'workorders' ? [['start','due','工单交期不能早于开工日期']] : [];
+  datePairs.forEach(([from,to,message]) => {
+    if(obj[from] && obj[to] && validDate(obj[from]) && validDate(obj[to]) &&
+       obj[to] < obj[from] && !err) err = message;
   });
 
   if(err){ toast(err); return; }
@@ -1579,6 +1618,7 @@ function saveForm(){
   if(editingId){
     const i = list.findIndex(r => String(r[S.idKey]) === editingId);
     if(i > -1) list[i] = Object.assign({}, list[i], obj);
+    else { toast('原记录已不存在，请刷新后重试'); return; }
     toast('已保存修改');
   } else {
     const newId = obj[S.idKey];
