@@ -24,8 +24,10 @@ Use transactional data integrity, explicit workflow states, immutable stock move
 - Accessible, responsive interface with clear loading, empty, error, and offline states.
 - Open-source components are evaluated for maintenance, license compatibility, security, and fit before adoption.
 
-## Rebuild status
+## Delivery status
 
-The rebuild/platform-v2 branch is the new implementation track. The existing main branch remains unchanged during development. This repository is not considered rebuilt until the implementation, tests, documentation, and deployment path have been verified.
+The modernization work is being applied directly to `main`. The current baseline includes a domain-core module, automated domain tests, standalone-app validation, and a GitHub Pages deployment workflow. These checks passing confirms the current baseline is buildable; it does **not** mean the full product rebuild is complete.
+
+Remaining delivery work includes validating the existing application workflows and data, extracting maintainable modules from the legacy entry point, adding migration-safe persistence and import/export checks, and documenting verified domain rules. Existing user data and the legacy application must be preserved while these changes are introduced.
 
 See [the rebuild plan](docs/REBUILD_PLAN.md).
