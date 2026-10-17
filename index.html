@@ -1580,7 +1580,7 @@ function saveForm(){
 
   // Domain constraints: reject impossible values instead of silently coercing
   // malformed numeric input to zero and persisting it.
-  const nonNegative = ['qty','safe','price','done','receivable','lead','len','width','gsm'];
+  const nonNegative = ['qty','safe','price','done','lead','len','width','gsm'];
   const strictlyPositive = key === 'orders' || key === 'purchase'
     ? ['qty'] : key === 'workorders' ? ['plan'] : [];
   const percentageFields = key === 'workorders' ? ['eff']
@@ -1598,7 +1598,7 @@ function saveForm(){
       err = `「${f.l}」必须在 0–100 之间`;
   });
 
-  const validDate = value => !value || ( /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+  const validDate = value => !value || ( /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(value + 'T00:00:00Z')) &&
     new Date(value + 'T00:00:00Z').toISOString().slice(0,10) === value );
   S.fields.filter(f => f.t === 'date').forEach(f => {
