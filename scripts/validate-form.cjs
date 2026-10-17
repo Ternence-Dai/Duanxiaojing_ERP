@@ -51,4 +51,6 @@ for (const token of [
   'jumpTo(${jsArg(x.key)},${jsArg(x.id)})',
   'pickSuggest(${jsArg(key)},${jsArg(v)})'
 ]) assert.ok(html.includes(token), 'dynamic inline handler must encode its arguments: ' + token);
+assert.ok(html.includes("onclick=\"delRow(${jsArg(key)},${jsArg(id)},true)\""), 'delete action arguments must use JS-safe attribute encoding');
+assert.ok(html.includes("const show = record ? esc(val) :"), 'read-only fields must escape imported record values');
 console.log('ERP form validation regression checks passed.');
