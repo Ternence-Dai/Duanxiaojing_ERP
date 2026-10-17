@@ -30,10 +30,12 @@ function run(values, initialRows = [], editingId = null) {
   return {rows:context.DB.orders,messages};
 }
 const assert = require('node:assert/strict');
-const todayLine = html.match(/const today = \(\) => \{[\\s\\S]*?\\};/);
-assert.ok(todayLine, 'ERP date helper must use the browser local calendar');
+const todayStart = html.indexOf('const today = () => {');
+const todayEnd = html.indexOf('\\n', todayStart);
+assert.ok(todayStart >= 0 && todayEnd > todayStart, 'ERP date helper must use the browser local calendar');
+const todaySource = html.slice(todayStart, todayEnd).replace('const today = ', '').replace(/;$/, '');
 const FakeDate = class { getFullYear(){return 2026;} getMonth(){return 9;} getDate(){return 18;} };
-const localToday = vm.runInNewContext('(function(){' + todayLine[0] + '; return today;})()', {Date:FakeDate});
+const localToday = vm.runInNewContext('(' + todaySource + ')', {Date:FakeDate});
 assert.equal(localToday(), '2026-10-18', 'default dates must not shift to the previous UTC day');
 
 let result = run({no:'SO-1',qty:'0',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'});
