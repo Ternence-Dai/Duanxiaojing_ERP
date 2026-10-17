@@ -1479,7 +1479,7 @@ function openForm(key, id){
       </div>
       <div class="modal-foot">
         ${editing ? `<button class="btn btn-sm" style="margin-right:auto;color:#dc2626"
-            onclick="delRow('${key}','${esc(id)}',true)">删除此记录</button>` : ''}
+            onclick="delRow(${jsArg(key)},${jsArg(id)},true)">删除此记录</button>` : ''}
         <button class="btn" onclick="closeModal()">取消</button>
         <button class="btn btn-primary" onclick="saveForm()">${editing ? '保存修改' : '确认新增'}</button>
       </div>
@@ -1493,7 +1493,7 @@ function renderField(f, record){
   const full = (f.t === 'text' && !f.w) || f.w === '230px' || f.w === '240px' ? ' full' : '';
 
   if(f.ro){
-    const show = record ? val : '<span style="color:#a9b4c4">保存后自动生成</span>';
+    const show = record ? esc(val) : '<span style="color:#a9b4c4">保存后自动生成</span>';
     return `<div class="field${full}">
       <label>${f.l}</label>
       <div class="ro-field">${show === '' ? '<span style="color:#a9b4c4">—</span>' : show}</div>
