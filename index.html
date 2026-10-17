@@ -1616,6 +1616,13 @@ function saveForm(){
 
   if(err){ toast(err); return; }
 
+  const candidateId = obj[S.idKey];
+  if(candidateId && list.some(r => String(r[S.idKey]) === String(candidateId) &&
+      (!editingId || String(r[S.idKey]) !== String(editingId)))){
+    toast(`「${candidateId}」已存在，请修改编号`);
+    return;
+  }
+
   if(editingId){
     const i = list.findIndex(r => String(r[S.idKey]) === editingId);
     if(i > -1) list[i] = Object.assign({}, list[i], obj);
