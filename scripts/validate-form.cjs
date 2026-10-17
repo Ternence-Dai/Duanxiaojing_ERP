@@ -88,6 +88,7 @@ function testStorageRecovery(initialRaw, readThrows = false) {
   };
   const context = {
     STORE_KEY:'erp_test',
+    storageRecoveryRequired:false,
     SCHEMAS:{orders:{}},
     localStorage:storage,
     isValidDBShape:d=>!!(d && d.settings && d.dict && Array.isArray(d.orders)),
