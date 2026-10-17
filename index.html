@@ -401,7 +401,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
 const fmtN  = n => Number(n || 0).toLocaleString('zh-CN');
 const CUR   = () => (DB.settings.currency || '¥');
 const fmtM0 = n => CUR() + Number(n || 0).toLocaleString('zh-CN', {maximumFractionDigits:0});
-const today = () => new Date().toISOString().slice(0,10);
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
 const AUTHOR = {
   name: '段小静',
