@@ -18,6 +18,7 @@ function run(values, initialRows = [], editingId = null) {
   const messages = [];
   const context = {
     formState:{key:'orders',editingId},
+    storageRecoveryRequired:false,
     SCHEMAS:{orders:{key:'orders',idKey:'no',fields}},
     DB:{orders:initialRows},
     $:id=>elements[id] || null,
