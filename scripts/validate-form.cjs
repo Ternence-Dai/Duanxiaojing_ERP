@@ -178,7 +178,39 @@ assert.ok(createStart>=0 && createEnd>createStart,'new-file creation source must
 assert.ok(createSource.includes('if(storageRecoveryRequired){'),
   'new ERP files must not be created from untrusted demo defaults while recovery is pending');
 
-console.log('ERP form validation regression checks passed.');
+
+const persistenceStart=html.indexOf('function snapshotDB(){');
+const persistenceEnd=html.indexOf('\n\nasync function writeToFile',persistenceStart);
+assert.ok(persistenceStart>=0 && persistenceEnd>persistenceStart,'ERP persistence transaction helpers must be available');
+const persistenceSource=html.slice(persistenceStart,persistenceEnd);
+const persistenceContext={
+  DB:{settings:{company:'before'},orders:[{no:'SO-1'}]},
+  saveDB:()=>false,
+  clearTimeout:()=>{},
+  saveTimer:null,
+  initNav:()=>{},
+  render:()=>{},
+  toast:()=>{}
+};
+vm.createContext(persistenceContext);
+vm.runInContext(persistenceSource,persistenceContext);
+const before=persistenceContext.snapshotDB();
+persistenceContext.DB.settings.company='unsaved-change';
+persistenceContext.DB.orders.push({no:'SO-2'});
+assert.equal(persistenceContext.commitDBMutation(before),false,'failed persistence must report failure');
+assert.equal(persistenceContext.DB.settings.company,'before','failed persistence must roll back settings');
+assert.equal(persistenceContext.DB.orders.length,1,'failed persistence must roll back added business rows');
+
+assert.match(html,/storageRecoveryRequired = true;\n    console\.error\('浏览器缓存保存失败'/,
+  'browser persistence failure must activate a write-protection lock');
+assert.match(html,/if\(localSaved && fileHandle && fileReady\)/,
+  'failed local persistence must not queue an external-file write of uncommitted data');
+for(const token of [
+  'if(!commitDBMutation(previousDB)) return;',
+  'const previousDB = snapshotDB();'
+]) assert.ok(html.includes(token),'mutating operations must use rollback-safe persistence: '+token);
+
+console.log('ERP form validation and persistence rollback regression checks passed.');
 
 assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
 assert.ok(html.includes("function delRow(key, id, fromModal){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record deletion must stop before mutating memory when cache recovery is required');
