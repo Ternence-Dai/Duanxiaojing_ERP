@@ -945,6 +945,14 @@ async function saveForm(){
   let stockMovement = null;
   if(key === 'inventory'){
     const previous = editingId ? list.find(r => String(r[S.idKey]) === editingId) : null;
+    if(editingId && !previous){ toast('原库存记录已不存在，请刷新后重试'); return; }
+    // SKU is the ledger identity. Renaming it in-place would leave the old
+    // stock balance orphaned, so require a deliberate zero-stock retirement
+    // before a new SKU is created.
+    if(previous && String(previous.code).trim() !== String(obj.code).trim()){
+      toast('库存编码不可直接修改；请先将原库存调整为 0，再新建库存编码');
+      return;
+    }
     const previousQty = previous ? Number(previous.qty) : 0;
     const nextQty = Number(obj.qty);
     const delta = Number((nextQty - previousQty).toFixed(3));
@@ -1020,6 +1028,10 @@ function delRow(key, id, fromModal){
   const S = SCHEMAS[key];
   const rec = (DB[S.key] || []).find(r => String(r[S.idKey]) === String(id));
   if(!rec){ toast('记录不存在'); return; }
+  if(key === 'inventory' && Number(rec.qty) !== 0){
+    toast('库存数量不为 0，不能直接删除；请先通过库存调整完成出库，再删除记录');
+    return;
+  }
   if(!confirm(`确定删除「${id}」吗？此操作不可撤销。`)) return;
   DB[S.key] = DB[S.key].filter(r => String(r[S.idKey]) !== String(id));
   saveDB();
