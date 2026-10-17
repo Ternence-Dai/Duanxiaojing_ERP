@@ -2337,7 +2337,6 @@ function setSetting(k, v){
 
 /* ---------- 数据字典 ---------- */
 function renderDictManager(){
-  const dictKeys = Object.keys(DB.dict);
   const names = {
     products:'产品', specs:'规格', colors:'颜色色号', units:'计量单位', categories:'物料类别',
     processes:'工序', orderStatus:'订单状态', workStatus:'工单状态',
@@ -2346,6 +2345,7 @@ function renderDictManager(){
     priorities:'优先级', salesmen:'业务员', inspectors:'检验员', departments:'部门',
     methods:'检验方式',
   };
+  const dictKeys = Object.keys(DB.dict).filter(k => /^[A-Za-z][A-Za-z0-9_]*$/.test(k) && Array.isArray(DB.dict[k]));
   const items = getDict(editingDict);
   const colKeys = [];
   items.forEach(it => Object.keys(it).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); }));
@@ -2360,8 +2360,8 @@ function renderDictManager(){
         return `<td class="${k === 'price' || k === 'rate' ? 'num' : ''}">${esc(val)}</td>`;
       }).join('')}
       <td class="row-actions">
-        <button class="icon-btn" title="编辑" onclick="openDictItem('${editingDict}', ${idx})">✎</button>
-        <button class="icon-btn danger" title="删除" onclick="delDictItem('${editingDict}', ${idx})">✕</button>
+        <button class="icon-btn" title="编辑" onclick="openDictItem(${jsArg(editingDict)}, ${idx})">✎</button>
+        <button class="icon-btn danger" title="删除" onclick="delDictItem(${jsArg(editingDict)}, ${idx})">✕</button>
       </td>
     </tr>`).join('');
 
@@ -2373,8 +2373,8 @@ function renderDictManager(){
     </div>
     <div class="dict-grid">
       ${dictKeys.map(k => `
-        <button class="dict-btn ${editingDict===k?'active':''}" onclick="pickDict('${k}')">
-          <div class="dn">${names[k] || k}</div>
+        <button class="dict-btn ${editingDict===k?'active':''}" onclick="pickDict(${jsArg(k)})">
+          <div class="dn">${esc(names[k] || k)}</div>
           <div class="dc">${getDict(k).length} 项</div>
         </button>`).join('')}
     </div>
@@ -2382,17 +2382,17 @@ function renderDictManager(){
 
   <div class="card">
     <div class="card-head">
-      <div class="card-title">${names[editingDict] || editingDict} · 选项列表</div>
+      <div class="card-title">${esc(names[editingDict] || editingDict)} · 选项列表</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-sm" onclick="clearDict('${editingDict}')">清空本类</button>
-        <button class="btn btn-primary btn-sm" onclick="openDictItem('${editingDict}', -1)">＋ 新增选项</button>
+        <button class="btn btn-sm" onclick="clearDict(${jsArg(editingDict)})">清空本类</button>
+        <button class="btn btn-primary btn-sm" onclick="openDictItem(${jsArg(editingDict)}, -1)">＋ 新增选项</button>
       </div>
     </div>
     <div class="table-scroll">
       <table style="min-width:auto">
         <thead>
           <tr>
-            ${colKeys.map(k => `<th>${k === 'name' ? '名称' : k === 'code' ? '编码' : k === 'hex' ? '色值' : k === 'spec' ? '规格' : k === 'unit' ? '单位' : k === 'price' ? '参考单价' : k === 'cat' ? '分类' : k}</th>`).join('')}
+            ${colKeys.map(k => `<th>${esc(k === 'name' ? '名称' : k === 'code' ? '编码' : k === 'hex' ? '色值' : k === 'spec' ? '规格' : k === 'unit' ? '单位' : k === 'price' ? '参考单价' : k === 'cat' ? '分类' : k)}</th>`).join('')}
             <th class="row-actions">操作</th>
           </tr>
         </thead>
@@ -2401,9 +2401,10 @@ function renderDictManager(){
     </div>
   </div>`;
 }
-function pickDict(k){ editingDict = k; render(); }
+function pickDict(k){ if(!Object.prototype.hasOwnProperty.call(DB.dict,k) || !Array.isArray(DB.dict[k])) return; editingDict = k; render(); }
 
 function clearDict(k){
+  if(!Object.prototype.hasOwnProperty.call(DB.dict,k) || !Array.isArray(DB.dict[k])){ toast('字典不存在'); return; }
   if(!confirm(`确定清空「${k}」字典中的所有选项吗？\n此操作不可撤销。`)) return;
   DB.dict[k] = [];
   saveDB();
@@ -2413,6 +2414,7 @@ function clearDict(k){
 
 function openDictItem(dictKey, idx){
   const items = DB.dict[dictKey];
+  if(!Array.isArray(items)){ toast('字典不存在'); return; }
   const editing = idx >= 0;
   const item = editing ? items[idx] : {};
   const colKeys = [];
@@ -2426,22 +2428,22 @@ function openDictItem(dictKey, idx){
   <div class="modal-mask" onclick="if(event.target===this)closeModal()">
     <div class="modal" style="max-width:520px">
       <div class="modal-head">
-        <h3>${editing ? '编辑' : '新增'}字典选项 · ${dictKey}</h3>
+        <h3>${editing ? '编辑' : '新增'}字典选项 · ${esc(dictKey)}</h3>
         <button class="x" onclick="closeModal()">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-grid" style="grid-template-columns:1fr">
           ${colKeys.map(k => `
             <div class="field">
-              <label>${labelOf(k)}${k === 'name' ? '<span class="req">*</span>' : ''}</label>
-              <input type="text" id="dk_${k}" value="${esc(item[k] == null ? '' : item[k])}"
+              <label>${esc(labelOf(k))}${k === 'name' ? '<span class="req">*</span>' : ''}</label>
+              <input type="text" id="dk_${esc(k)}" value="${esc(item[k] == null ? '' : item[k])}"
                 ${k === 'hex' ? 'placeholder="#1e3a5f"' : ''}>
             </div>`).join('')}
         </div>
       </div>
       <div class="modal-foot">
         <button class="btn" onclick="closeModal()">取消</button>
-        <button class="btn btn-primary" onclick="saveDictItem('${dictKey}', ${idx})">保存</button>
+        <button class="btn btn-primary" onclick="saveDictItem(${jsArg(dictKey)}, ${idx})">保存</button>
       </div>
     </div>
   </div>`;
@@ -2450,6 +2452,7 @@ function openDictItem(dictKey, idx){
 
 function saveDictItem(dictKey, idx){
   const items = DB.dict[dictKey];
+  if(!Array.isArray(items)){ toast('字典不存在'); return; }
   const colKeys = [];
   items.forEach(it => Object.keys(it).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); }));
   if(idx >= 0) Object.keys(items[idx]).forEach(k => { if(colKeys.indexOf(k) === -1) colKeys.push(k); });
@@ -2476,6 +2479,7 @@ function saveDictItem(dictKey, idx){
 
 function delDictItem(dictKey, idx){
   const items = DB.dict[dictKey];
+  if(!Array.isArray(items) || !items[idx]){ toast('字典项不存在'); return; }
   const it = items[idx];
   if(!confirm(`确定删除字典项「${it.name}」吗？\n已使用该值的记录不会被自动修改。`)) return;
   items.splice(idx, 1);
