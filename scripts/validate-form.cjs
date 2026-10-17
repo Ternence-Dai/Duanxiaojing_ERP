@@ -102,13 +102,13 @@ function testStorageRecovery(initialRaw, readThrows = false) {
   };
   vm.createContext(context);
   const loadStart=html.indexOf('function loadDB(){');
-  const loadEnd=html.indexOf('\\n\\nlet saveTimer',loadStart);
+  const loadEnd=html.indexOf('\n\nlet saveTimer',loadStart);
   assert.ok(loadStart>=0 && loadEnd>loadStart,'loadDB source must be available');
   vm.runInContext(html.slice(loadStart,loadEnd),context);
   const loaded=context.loadDB();
   const locked=vm.runInContext('storageRecoveryRequired',context);
   const saveStart=html.indexOf('function saveDB(){');
-  const saveEnd=html.indexOf('\\n\\nasync function writeToFile',saveStart);
+  const saveEnd=html.indexOf('\n\nasync function writeToFile',saveStart);
   assert.ok(saveStart>=0 && saveEnd>saveStart,'saveDB source must be available');
   vm.runInContext(html.slice(saveStart,saveEnd),context);
   const saved=context.saveDB();
@@ -127,9 +127,9 @@ recovery=testStorageRecovery(JSON.stringify({settings:{},dict:{},orders:[]}));
 assert.equal(recovery.locked,false,'valid persisted data must not activate recovery lock');
 assert.equal(recovery.saved,true,'valid persisted data may be saved normally');
 assert.equal(recovery.writes,1,'normal save must persist valid data exactly once');
-assert.ok(html.includes('storageRecoveryRequired = false;\\n      const localSaved = saveDB();'),
+assert.ok(html.includes('storageRecoveryRequired = false;\n      const localSaved = saveDB();'),
   'valid JSON import must release the recovery lock before saving');
-assert.ok(html.includes('storageRecoveryRequired = false;\\n  saveDB();'),
+assert.ok(html.includes('storageRecoveryRequired = false;\n  saveDB();'),
   'explicitly confirmed demo reset must release the recovery lock');
 
 console.log('ERP form validation regression checks passed.');
