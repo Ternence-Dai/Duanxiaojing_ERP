@@ -30,6 +30,12 @@ function run(values, initialRows = [], editingId = null) {
   return {rows:context.DB.orders,messages};
 }
 const assert = require('node:assert/strict');
+const todayLine = html.match(/const today = \(\) => \{[^\\n]+/);
+assert.ok(todayLine, 'ERP date helper must use the browser local calendar');
+const FakeDate = class { getFullYear(){return 2026;} getMonth(){return 9;} getDate(){return 18;} };
+const localToday = vm.runInNewContext('(' + todayLine[0].replace('const today = ', '') + ')', {Date:FakeDate});
+assert.equal(localToday(), '2026-10-18', 'default dates must not shift to the previous UTC day');
+
 let result = run({no:'SO-1',qty:'0',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'});
 assert.equal(result.rows.length,0,'zero order quantity must not be saved');
 assert.match(result.messages[0],/必须大于 0/);
