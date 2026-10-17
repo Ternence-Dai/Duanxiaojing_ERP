@@ -1,0 +1,46 @@
+'use strict';
+const fs = require('node:fs');
+const vm = require('node:vm');
+const html = fs.readFileSync('index.html', 'utf8');
+const start = html.indexOf('function saveForm(){');
+const end = html.indexOf('\nfunction genId', start);
+if (start < 0 || end < 0) throw new Error('saveForm source not found');
+const source = html.slice(start, end);
+function run(values, initialRows = []) {
+  const fields = [
+    {k:'no',l:'订单号',t:'text',req:true},
+    {k:'qty',l:'数量',t:'number',req:true},
+    {k:'price',l:'单价',t:'number'},
+    {k:'orderDate',l:'下单日期',t:'date'},
+    {k:'delivery',l:'交货日期',t:'date',req:true}
+  ];
+  const elements = Object.fromEntries(Object.entries(values).map(([k,value]) => ['ff_'+k,{value:String(value)}]));
+  const messages = [];
+  const context = {
+    formState:{key:'orders',editingId:null},
+    SCHEMAS:{orders:{key:'orders',idKey:'no',fields}},
+    DB:{orders:initialRows},
+    $:id=>elements[id] || null,
+    toast:m=>messages.push(m),
+    saveDB:()=>true,closeModal:()=>{},render:()=>{},initNav:()=>{},
+    genId:()=> 'SO-TEST'
+  };
+  vm.runInNewContext(source, context);
+  context.saveForm();
+  return {rows:context.DB.orders,messages};
+}
+const assert = require('node:assert/strict');
+let result = run({no:'SO-1',qty:'0',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'});
+assert.equal(result.rows.length,0,'zero order quantity must not be saved');
+assert.match(result.messages[0],/必须大于 0/);
+result = run({no:'SO-2',qty:'2',price:'12.5',orderDate:'2026-10-19',delivery:'2026-10-18'});
+assert.equal(result.rows.length,0,'delivery before order date must be rejected');
+assert.match(result.messages[0],/不能早于/);
+result = run({no:'SO-3',qty:'2',price:'12.5',orderDate:'2026-02-30',delivery:'2026-10-18'});
+assert.equal(result.rows.length,0,'invalid calendar date must be rejected');
+assert.match(result.messages[0],/日期格式无效/);
+result = run({no:'SO-4',qty:'2',price:'12.5',orderDate:'2026-10-17',delivery:'2026-10-18'});
+assert.equal(result.rows.length,1,'valid order should be saved');
+assert.equal(result.rows[0].qty,2);
+assert.equal(result.rows[0].price,12.5);
+console.log('ERP form validation regression checks passed.');
