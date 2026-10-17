@@ -72,4 +72,8 @@ for (const token of [
 ]) assert.ok(html.includes(token), 'dynamic inline handler must encode its arguments: ' + token);
 assert.ok(html.includes("onclick=\"delRow(${jsArg(key)},${jsArg(id)},true)\""), 'delete action arguments must use JS-safe attribute encoding');
 assert.ok(html.includes("const show = record ? esc(val) :"), 'read-only fields must escape imported record values');
+assert.ok(html.includes("onclick=\"pickDict(${jsArg(k)})\""), 'dictionary keys must use JS-safe handler encoding');
+assert.ok(html.includes("onclick=\"saveDictItem(${jsArg(dictKey)}, ${idx})\""), 'dictionary save handler must encode its key');
+assert.ok(html.includes('<div class="dn">${esc(names[k] || k)}</div>'), 'dictionary labels must be HTML escaped');
+
 console.log('ERP form validation regression checks passed.');
