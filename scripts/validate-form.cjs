@@ -170,6 +170,14 @@ assert.ok(permissionSource.includes('if(!imported){'),
 assert.ok(!permissionSource.includes('await writeToFile();'),
   'permission renewal must not write browser defaults over an unreadable file');
 
+
+const createStart=html.indexOf('async function createLocalFile(){');
+const createEnd=html.indexOf('\nasync function unbindLocalFile()',createStart);
+const createSource=html.slice(createStart,createEnd);
+assert.ok(createStart>=0 && createEnd>createStart,'new-file creation source must be available');
+assert.ok(createSource.includes('if(storageRecoveryRequired){'),
+  'new ERP files must not be created from untrusted demo defaults while recovery is pending');
+
 console.log('ERP form validation regression checks passed.');
 
 assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
