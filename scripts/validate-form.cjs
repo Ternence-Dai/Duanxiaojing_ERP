@@ -1,7 +1,7 @@
 'use strict';
 const fs = require('node:fs');
 const vm = require('node:vm');
-const html = fs.readFileSync('index.html', 'utf8') + '\n' + fs.readFileSync('assets/js/legacy-app.js', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8') + '\n' + fs.readFileSync('assets/js/demo-seed-data.js', 'utf8') + '\n' + fs.readFileSync('assets/js/legacy-app.js', 'utf8');
 const start = html.indexOf('function saveForm(){');
 const end = html.indexOf('\nfunction genId', start);
 if (start < 0 || end < 0) throw new Error('saveForm source not found');
