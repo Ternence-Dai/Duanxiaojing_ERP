@@ -282,16 +282,16 @@ assert.match(html, /inventorySavePending = false;\s*\}catch\(e\)/, 'inventory sa
 const seedSource = fs.readFileSync('assets/js/demo-seed-data.js', 'utf8');
 const appSource = fs.readFileSync('assets/js/legacy-app.js', 'utf8');
 const schemaStart = appSource.indexOf('const SCHEMAS = {');
-const schemaEnd = appSource.indexOf('\\n};', schemaStart) + 3;
+const schemaEnd = appSource.indexOf('\n};', schemaStart) + 3;
 const shapeStart = appSource.indexOf('function isValidDBShape(d){');
-const shapeEnd = appSource.indexOf('\\nfunction preserveInvalidDB', shapeStart);
+const shapeEnd = appSource.indexOf('\nfunction preserveInvalidDB', shapeStart);
 assert.ok(schemaStart >= 0 && schemaEnd > schemaStart, 'ERP table schemas must be available');
 assert.ok(shapeStart >= 0 && shapeEnd > shapeStart, 'deep ERP backup validator must be available');
 const schemaSource = appSource.slice(schemaStart, schemaEnd);
 const shapeSource = appSource.slice(shapeStart, shapeEnd);
 const shapeContext = {};
-vm.runInNewContext(seedSource + '\\n' + schemaSource + '\\n' + shapeSource +
-  '\\nthis.api={defaultDB,isValidDBShape,SCHEMAS};', shapeContext);
+vm.runInNewContext(seedSource + '\n' + schemaSource + '\n' + shapeSource +
+  '\nthis.api={defaultDB,isValidDBShape,SCHEMAS};', shapeContext);
 const demoDB = shapeContext.api.defaultDB();
 assert.equal(shapeContext.api.isValidDBShape(demoDB), true, 'the shipped demo dataset must pass its own backup validator');
 for (const [table, schema] of Object.entries(shapeContext.api.SCHEMAS)) {
