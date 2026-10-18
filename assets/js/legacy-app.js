@@ -1178,23 +1178,40 @@ async function saveForm(){
     }
     const previousQty = previous ? Number(previous.qty) : 0;
     const nextQty = Number(obj.qty);
-    const delta = Number((nextQty - previousQty).toFixed(3));
-    if(delta !== 0){
-      inventorySavePending = true;
-      try{
-        const domain = await import('../../src/domain/index.js');
-        stockMovement = domain.applyStockMovement(previousQty, {
-          sku: obj.code,
-          quantityDelta: delta,
-          reference: (editingId ? 'INV-ADJUST-' : 'INV-OPEN-') + obj.code + '-' + Date.now(),
-          occurredAt: new Date().toISOString()
-        });
-        inventorySavePending = false;
-      }catch(e){
-        inventorySavePending = false;
-        toast('库存变更未保存：' + (e && e.message ? e.message : '领域校验失败'));
-        return;
+    // A pre-existing legacy balance may have more than three decimals. It may
+    // be retained while editing unrelated fields, but any quantity change
+    // must validate both the opening and closing balances before a ledger row
+    // can be created. New SKUs always go through this check.
+    const quantityChanged = !previous || nextQty !== previousQty;
+    inventorySavePending = true;
+    try{
+      const domain = await import('../../src/domain/index.js');
+      if(quantityChanged){
+        const normalizedPrevious = domain.normalizeStockBalance(previousQty);
+        const normalizedNext = domain.normalizeStockBalance(nextQty);
+        obj.qty = normalizedNext;
+        const delta = normalizedNext - normalizedPrevious;
+        if(delta !== 0){
+          const references = new Set((DB.stockMovements || []).map(row => String(row.reference)));
+          const baseReference = (editingId ? 'INV-ADJUST-' : 'INV-OPEN-') +
+            String(obj.code).trim() + '-' + Date.now();
+          let reference = baseReference, suffix = 1;
+          while(references.has(reference)) reference = baseReference + '-' + suffix++;
+          stockMovement = domain.applyStockMovement(normalizedPrevious, {
+            sku: obj.code,
+            quantityDelta: delta,
+            reference,
+            occurredAt: new Date().toISOString()
+          });
+        }
+      }else{
+        obj.qty = previousQty;
       }
+      inventorySavePending = false;
+    }catch(e){
+      inventorySavePending = false;
+      toast('库存变更未保存：' + (e && e.message ? e.message : '领域校验失败'));
+      return;
     }
   }
 
