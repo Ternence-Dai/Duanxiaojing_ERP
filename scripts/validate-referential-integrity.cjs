@@ -201,8 +201,8 @@ function runSave({table, primaryKey, record, rows, fields, values, editing=true}
     fields:[{k:'no',t:'text'},{k:'cust',t:'ref',ref:'customers'}],
     values:{ff_no:'SO-2',ff_cust:'Unknown customer'},editing:false
   });
-  assert.equal(order.DB.orders[0].cust,'Unknown customer',
-    'invalid user-entered customer references must not be persisted');
+  assert.equal(order.DB.orders.length,0,
+    'invalid user-entered customer references must not create an order');
   assert.equal(order.saved,undefined);
   assert.ok(order.toastMessages.some(message=>message.includes('有效的关联选项')),
     'invalid references must provide a clear validation message');
