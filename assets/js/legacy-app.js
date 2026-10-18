@@ -1144,6 +1144,23 @@ async function saveForm(){
        obj[to] < obj[from] && !err) err = message;
   });
 
+  // Datalist inputs are suggestions, not native constraints. Validate every
+  // changed reference against its master list before creating a relationship.
+  S.fields.filter(f => f.t === 'ref').forEach(f => {
+    const value = obj[f.k];
+    if(value == null || String(value).trim() === '') return;
+    const previous = editingId
+      ? list.find(row => String(row[S.idKey]) === String(editingId))
+      : null;
+    const unchangedHistoricalValue = previous &&
+      String(previous[f.k] == null ? '' : previous[f.k]) === String(value);
+    if(unchangedHistoricalValue) return;
+    const allowed = refValues(f);
+    if(!allowed.some(item => String(item) === String(value)) && !err){
+      err = '「' + f.l + '」必须从有效的关联选项中选择';
+    }
+  });
+
   if(err){ toast(err); return; }
 
   // Inventory edits are posted through the domain ledger before the master
