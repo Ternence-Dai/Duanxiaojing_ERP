@@ -154,7 +154,7 @@ function isValidDBShape(d){
          receipt.inspectionResult !== '合格' || typeof receipt.note !== 'string' ||
          receipt.stockMovementReference !== receipt.receiptNo ||
          typeof receipt.receivedAt !== 'string' ||
-         !/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\\.\d{1,3})?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(receipt.receivedAt) ||
+         !/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d{1,3})?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(receipt.receivedAt) ||
          !Number.isFinite(Date.parse(receipt.receivedAt))) return false;
       const receiptDateMatch = /^(\d{4})-(\d{2})-(\d{2})T/.exec(receipt.receivedAt);
       const receiptDate = new Date(0);
@@ -201,6 +201,8 @@ function isValidDBShape(d){
       if(movement && movement.sourceType === 'purchase-receipt' &&
          !receiptReferences.has(String(movement.reference))) return false;
     }
+  }else if((d.stockMovements || []).some(movement => movement && movement.sourceType === 'purchase-receipt')){
+    return false;
   }
   return true;
 }
