@@ -35,6 +35,12 @@ function toMilliunits(value, name, { allowZero = true } = {}) {
   return scaled;
 }
 
+export function normalizeStockBalance(balance) {
+  const milliunits = toMilliunits(balance, "balance");
+  if (milliunits < 0) throw new RangeError("balance must be non-negative");
+  return milliunits / 1000;
+}
+
 export function applyStockMovement(balance, movement) {
   const balanceMilliunits = toMilliunits(balance, "balance");
   if (balanceMilliunits < 0) throw new RangeError("balance must be non-negative");
