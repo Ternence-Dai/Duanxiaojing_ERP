@@ -26,8 +26,8 @@ Use transactional data integrity, explicit workflow states, immutable stock move
 
 ## Delivery status
 
-The modernization work is being applied directly to `main`. The current baseline includes a domain-core module, automated domain tests, standalone-app validation, and a GitHub Pages deployment workflow. These checks passing confirms the current baseline is buildable; it does **not** mean the full product rebuild is complete.
+The modernization work is being applied directly to `main`. The verified inventory slice posts stock changes through a pure ledger transition with a SKU, signed quantity delta, business reference, timestamp, before/after balances, three-decimal milliunit precision, and negative-stock rejection. The UI prevents in-place SKU identity changes, writes ledger and master-balance changes together, and rolls back failed persistence. Referential-integrity, storage-recovery, import and workflow regression checks are in CI; the current build, tests, and Pages deployment pass.
 
-Remaining delivery work includes validating the existing application workflows and data, extracting maintainable modules from the legacy entry point, adding migration-safe persistence and import/export checks, and documenting verified domain rules. Existing user data and the legacy application must be preserved while these changes are introduced.
+Remaining delivery work includes broader purchase-to-receipt and production material-consumption workflows, role/permission enforcement, database-backed concurrent transactions, finance integration and reconciliation, and migration verification using real business backups. The current browser persistence is not a substitute for a transactional production database.
 
 See [the rebuild plan](docs/REBUILD_PLAN.md) and [domain rules, units and validation boundaries](docs/DOMAIN_CORE.md).
