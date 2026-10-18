@@ -1,6 +1,6 @@
 # ERP stock movement domain core
 
-`applyStockMovement(balance, movement)` is the pure domain boundary for one auditable stock-ledger transition.
+`normalizeStockBalance(balance)` validates a non-negative master balance and returns its canonical three-decimal quantity. `applyStockMovement(balance, movement)` is the pure domain boundary for one auditable stock-ledger transition.
 
 ## Units and input contract
 
@@ -10,7 +10,7 @@
 - `movement.reference` is a required business reference (for example, a receipt, issue, or adjustment number).
 - `movement.occurredAt` must be an ISO timestamp with an explicit timezone and no more than millisecond precision.
 
-Quantities are accepted only when representable to at most three decimal places and when their milliunit integer representation remains a safe JavaScript integer. A zero movement is rejected. The resulting balance must remain non-negative.
+Master balances and movement quantities are accepted only when representable to at most three decimal places and when their milliunit integer representation remains a safe JavaScript integer. The UI validates both opening and closing balances before recording a changed quantity; an unchanged legacy balance is retained while unrelated fields are edited, rather than silently rounded. A zero movement is rejected. The resulting balance must remain non-negative.
 
 ## Output and invariants
 
