@@ -72,7 +72,8 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
     toast:message=>context.toastMessages.push(message)
   });
   vm.runInContext(saveSource + '\nthis.__saveForm=saveForm;',context);
-  return context.__saveForm();
+  context.__saveForm();
+  return context;
 }
 
 {
