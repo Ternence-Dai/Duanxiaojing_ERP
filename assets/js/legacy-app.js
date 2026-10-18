@@ -41,9 +41,45 @@ let fileHandle = null;
 let fileReady = false;
 
 function isValidDBShape(d){
-  if(!d || typeof d !== 'object' || !d.settings || typeof d.settings !== 'object' ||
-     !d.dict || typeof d.dict !== 'object') return false;
-  return Object.keys(SCHEMAS).every(key => Array.isArray(d[key]));
+  const isRecord = value => !!value && typeof value === 'object' && !Array.isArray(value);
+  if(!isRecord(d) || !isRecord(d.settings) || !isRecord(d.dict)) return false;
+  if(!Object.values(d.dict).every(items => Array.isArray(items) &&
+      items.every(item => typeof item === 'string' || isRecord(item)))) return false;
+
+  for(const [key, schema] of Object.entries(SCHEMAS)){
+    const rows = d[schema.key || key];
+    if(!Array.isArray(rows)) return false;
+    const ids = new Set();
+    for(const row of rows){
+      if(!isRecord(row)) return false;
+      const id = row[schema.idKey];
+      if(!((typeof id === 'string' && id.trim()) || Number.isSafeInteger(id))) return false;
+      const identity = String(id);
+      if(ids.has(identity)) return false;
+      ids.add(identity);
+    }
+  }
+
+  if(d.stockMovements !== undefined){
+    if(!Array.isArray(d.stockMovements)) return false;
+    const references = new Set();
+    for(const movement of d.stockMovements){
+      if(!isRecord(movement) || typeof movement.sku !== 'string' || !movement.sku.trim() ||
+         typeof movement.reference !== 'string' || !movement.reference.trim() ||
+         typeof movement.occurredAt !== 'string' || !Number.isFinite(Date.parse(movement.occurredAt)) ||
+         !Number.isFinite(movement.quantityDelta) || movement.quantityDelta === 0 ||
+         !Number.isFinite(movement.previousBalance) || movement.previousBalance < 0 ||
+         !Number.isFinite(movement.nextBalance) || movement.nextBalance < 0) return false;
+      if(references.has(movement.reference)) return false;
+      references.add(movement.reference);
+      const previous = Math.round(movement.previousBalance * 1000);
+      const delta = Math.round(movement.quantityDelta * 1000);
+      const next = Math.round(movement.nextBalance * 1000);
+      if(!Number.isSafeInteger(previous) || !Number.isSafeInteger(delta) ||
+         !Number.isSafeInteger(next) || previous + delta !== next) return false;
+    }
+  }
+  return true;
 }
 function preserveInvalidDB(raw){
   if(!raw) return false;
