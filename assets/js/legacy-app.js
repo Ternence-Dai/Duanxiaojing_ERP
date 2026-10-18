@@ -1095,7 +1095,12 @@ function renderPurchaseReceiptWorkspace(){
     getPurchaseReceivedMilliunits(order.no) < Math.round(Number(order.qty) * 1000)
   );
   const selectable = candidates.find(order => getPurchaseReceiptMatches(order).length > 0) || null;
-  const initialMatch = selectable ? getPurchaseReceiptMatches(selectable)[0] : null;
+  const initialMatches = selectable ? getPurchaseReceiptMatches(selectable) : [];
+  const initialMatch = initialMatches[0] || null;
+  const skuOptions = initialMatches.map(item =>
+    '<option value="' + esc(item.code) + '" selected>' + esc(item.code) + ' · ' + esc(item.name) +
+    ' · 批次 ' + esc(item.batch) + ' · 库位 ' + esc(item.loc) + '</option>'
+  ).join('');
   const initialRemaining = selectable
     ? Math.max(0, Number(selectable.qty) - getPurchaseReceivedMilliunits(selectable.no) / 1000)
     : 0;
@@ -1129,7 +1134,7 @@ function renderPurchaseReceiptWorkspace(){
       '<div class="receipt-form-grid">' +
         '<label>采购单<select id="receipt-purchase-order" class="form-control" required onchange="renderPurchaseReceiptSkuOptions()">' +
           '<option value="">请选择可收货采购单</option>' + orderOptions + '</select></label>' +
-        '<label>对应库存 SKU<select id="receipt-sku" class="form-control" required onchange="renderPurchaseReceiptSkuOptions()"></select></label>' +
+        '<label>对应库存 SKU<select id="receipt-sku" class="form-control" required onchange="renderPurchaseReceiptSkuOptions()"><option value="">请选择精确匹配的库存 SKU</option>' + skuOptions + '</select></label>' +
         '<label>本次合格收货数量<input id="receipt-quantity" class="form-control" type="number" min="0.001" step="0.001" required placeholder="输入实收且检验合格数量"></label>' +
         '<label>库存批次<input id="receipt-batch" class="form-control" readonly required value="' + esc(initialMatch ? initialMatch.batch : '') + '"></label>' +
         '<label>入库库位<input id="receipt-location" class="form-control" readonly required value="' + esc(initialMatch ? initialMatch.loc : '') + '"></label>' +
@@ -1147,7 +1152,7 @@ function renderPurchaseReceiptWorkspace(){
           ' 个 SKU。批次与库位沿用库存主档。' : '请先选择一张可收货采购单。') + '</div>' +
       '<label class="receipt-note-label">检验说明 / 单据备注<textarea id="receipt-note" class="form-control" rows="2" maxlength="1000" placeholder="可填写供应商送货单号、检验报告号、包装/外观检查说明等；不要录入未经核实的结论。"></textarea></label>' +
       '<div class="receipt-submit-row"><span>每张收货单生成独立库存流水；重复单号、超订单数量及不匹配 SKU 会被拒绝。</span>' +
-      '<button id="receipt-submit" type="button" class="btn btn-primary" onclick="postPurchaseReceipt()">确认检验合格并入库</button></div>' +
+      '<button id="receipt-submit" type="button" class="btn btn-primary"' + (!initialMatch || storageRecoveryRequired ? ' disabled' : '') + ' onclick="postPurchaseReceipt()">确认检验合格并入库</button></div>' +
     '</form>' +
     '<div class="purchase-receipt-history"><div class="card-head"><div class="card-title">采购收货流水</div><div class="card-sub">最近 ' + Math.min(totalReceipts,20) + ' 条 · 共 ' + totalReceipts + ' 条</div></div>' +
     (receiptHistory ? '<div class="table-scroll"><table><thead><tr><th>收货单号</th><th>采购单</th><th>物料 / SKU</th><th>入库数量</th><th>批次 / 库位</th><th>经办 / 质检</th><th>收货时间</th></tr></thead><tbody>' + receiptHistory + '</tbody></table></div>' :
