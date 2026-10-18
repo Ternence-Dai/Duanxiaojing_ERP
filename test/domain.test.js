@@ -125,6 +125,35 @@ test("supports multiple receipts but never exceeds ordered quantity",()=>{
   inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance}
  }),/exceeds the outstanding/);
 });
+test("rejects historical receipts that do not match the selected purchase SKU and lot",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const wrongLot={...first.receipt,batch:"LOT-OTHER"};
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-LOT-002",
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  existingReceipts:[wrongLot],
+  existingMovementReferences:["GRN-TEST-001"]
+ }),/existing receipts for this purchase order must match/);
+ const wrongSku={...first.receipt,sku:"Y-OTHER"};
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-SKU-002",
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  existingReceipts:[wrongSku],
+  existingMovementReferences:["GRN-TEST-001"]
+ }),/existing receipts for this purchase order must match/);
+});
+test("requires every historical receipt to have a unique matching stock movement reference",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-MISSING-002",
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:[]
+ }),/no matching stock movement reference/);
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,existingMovementReferences:["MOVE-1","MOVE-1"]
+ }),/references must be non-empty and unique/);
+});
 test("requires exact material, supplier, unit, batch and warehouse mapping",()=>{
  assert.throws(()=>createPurchaseReceipt({
   ...receiptBase,inventoryItem:{...inventoryItem,name:"Different material"}
