@@ -15,7 +15,12 @@ function parseOccurredAt(value) {
   }
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) throw new TypeError("occurredAt must be a valid date");
-  return new Date(timestamp).toISOString();
+  const normalizedDate = new Date(timestamp);
+  const normalizedYear = normalizedDate.getUTCFullYear();
+  if (normalizedYear < 0 || normalizedYear > 9999) {
+    throw new RangeError("occurredAt timezone normalization must remain within four-digit UTC years");
+  }
+  return normalizedDate.toISOString();
 }
 
 function toMilliunits(value, name, { allowZero = true } = {}) {
