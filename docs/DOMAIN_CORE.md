@@ -50,3 +50,9 @@ This domain function validates one movement; it does not itself check user permi
 ## Verification boundary
 
 `test/domain.test.js` covers ledger arithmetic, negative-stock rejection, reference requirements, three-decimal precision, timezone normalization, and safe-integer limits. Repository validators separately exercise application-level reference integrity, rollback, and backup shape checks. These checks do not replace a production database transaction or authorization layer.
+
+## Open-source ERP references
+
+- [ERPNext](https://github.com/frappe/erpnext) is the principal architecture benchmark for connected sales, procurement, inventory, manufacturing, quality, and accounting workflows. Its document/workflow organization is a reference for module boundaries and traceability, not a source of textile-specific master data.
+- The stock-ledger approach is intentionally append-oriented: receipts and issues should be represented as business-referenced movements, not silent edits to an on-hand quantity. Purchase receipts must reconcile with the purchase order, SKU, unit, lot, location, inspection, and resulting balance.
+- ERPNext's role and permission model is a reference for the future authorization layer. The current static browser application does not provide production-grade server-side authorization, concurrent transactions, or accounting posting.
