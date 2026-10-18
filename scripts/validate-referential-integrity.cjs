@@ -176,7 +176,7 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
       render:()=>{},initNav:()=>{},closeModal:()=>{},
       toast:message=>ctx.toastMessages.push(message)
     });
-    vm.runInNewContext(deleteSource+'\\nthis.__delRow=delRow;',ctx);
+    vm.runInNewContext(deleteSource+'\nthis.__delRow=delRow;',ctx);
     ctx.__delRow(item.table,item.id,false);
     assert.equal(ctx.DB[item.table].length,1,
       item.table+' referenced master records must not be deleted');
