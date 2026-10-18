@@ -30,7 +30,7 @@ The input timestamp must contain an explicit timezone. Invalid calendar dates, i
 
 `createPurchaseReceipt(input)` creates one immutable receiving record and its corresponding positive stock movement. The business contract is deliberately narrow:
 
-- The purchase line must be eligible for receiving (`已下单`, `在途`, `已到货`, or a traceable `部分到货` order).
+- The purchase line must be eligible for receiving (`已下单`, `在途`, or a `部分到货` order that already has a validated receipt ledger). Old `已到货`, `检验中`, or `部分到货` statuses without receipt history are quarantined for reconciliation; reposting them could double-count legacy stock.
 - The selected inventory SKU must exactly match the purchase material name, supplier, and base unit. Its batch and warehouse location must also match the existing stock master. Different lots or locations require separate inventory SKUs; the current master-data model does not combine lots into one SKU.
 - The received quantity must be positive, exactly representable to three decimals, and no greater than the purchase order's unreceived balance.
 - A non-empty receiver and incoming inspector are required. This posting route accepts only an explicit `合格` inspection result; pending, failed, or rejected material must not be included in available stock.
