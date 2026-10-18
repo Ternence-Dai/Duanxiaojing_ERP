@@ -1,10 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyStockMovement } from "../src/domain/index.js";
+import { applyStockMovement, normalizeStockBalance } from "../src/domain/index.js";
 const movement={sku:"FABRIC-001",quantityDelta:-3,reference:"ISSUE-0001",occurredAt:"2026-02-01T08:00:00Z"};
 test("records a traceable stock ledger transition",()=>{
  const row=applyStockMovement(10,movement);
  assert.equal(row.previousBalance,10); assert.equal(row.nextBalance,7);
+});
+test("normalizes only safe non-negative stock balances to three decimal places",()=>{
+ assert.equal(normalizeStockBalance(1.125),1.125);
+ assert.equal(normalizeStockBalance(0),0);
+ assert.equal(normalizeStockBalance(1000000),1000000);
+ assert.throws(()=>normalizeStockBalance(-0.001),RangeError);
+ assert.throws(()=>normalizeStockBalance(1.0001),RangeError);
+ assert.throws(()=>normalizeStockBalance(Number.MAX_VALUE),RangeError);
+ assert.throws(()=>normalizeStockBalance(Infinity),RangeError);
 });
 test("prevents negative stock",()=>assert.throws(()=>applyStockMovement(2,movement),RangeError));
 test("requires a traceable reference and non-zero quantity",()=>{
