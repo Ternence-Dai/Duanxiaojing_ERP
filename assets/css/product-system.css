@@ -225,6 +225,9 @@ body{
 .kpi.c3{border-top:3px solid #d39a3b}
 .kpi.c4{border-top:3px solid #8870b7}
 .grid-2,.grid-2b,.grid-3{gap:15px;margin-bottom:16px}
+.grid-2{grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);align-items:stretch}
+.grid-2b{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 .card{
   padding:19px;
   border:1px solid #dfe8ee;
