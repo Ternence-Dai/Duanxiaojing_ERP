@@ -250,6 +250,8 @@ function runDelete(quantity, confirmResult=true){
   const context={
     storageRecoveryRequired:false,
     SCHEMAS:{inventory:{key:'inventory',idKey:'code'}},
+    ENTITY_REFERENCE_RULES:{},
+    findEntityReferences:()=>[],
     DB:db,
     snapshotDB:()=>JSON.parse(JSON.stringify(db)),
     commitDBMutation:()=>true,
