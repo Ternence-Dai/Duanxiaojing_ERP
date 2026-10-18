@@ -125,6 +125,83 @@ function isValidDBShape(d){
       }
     }
   }
+  if(d.purchaseReceipts !== undefined){
+    if(!Array.isArray(d.purchaseReceipts)) return false;
+    if(d.purchaseReceipts.length && !Array.isArray(d.stockMovements)) return false;
+    const orders = new Map(d.purchase.map(row => [String(row.no), row]));
+    const inventory = new Map(d.inventory.map(row => [String(row.code), row]));
+    const movements = new Map((d.stockMovements || []).map(row => [String(row.reference), row]));
+    const receiptIds = new Set();
+    const receivedByOrder = new Map();
+    const receiptReferences = new Set();
+    const toMilliunits = value => {
+      if(!Number.isFinite(value) || Number(value.toFixed(3)) !== value) return null;
+      const scaled = Math.round(value * 1000);
+      return Number.isSafeInteger(scaled) ? scaled : null;
+    };
+    for(const receipt of d.purchaseReceipts){
+      if(!isRecord(receipt) ||
+         typeof receipt.receiptNo !== 'string' || !receipt.receiptNo.trim() ||
+         typeof receipt.purchaseNo !== 'string' || !receipt.purchaseNo.trim() ||
+         typeof receipt.sku !== 'string' || !receipt.sku.trim() ||
+         typeof receipt.material !== 'string' || !receipt.material.trim() ||
+         typeof receipt.supplier !== 'string' || !receipt.supplier.trim() ||
+         typeof receipt.unit !== 'string' || !receipt.unit.trim() ||
+         typeof receipt.batch !== 'string' || !receipt.batch.trim() ||
+         typeof receipt.location !== 'string' || !receipt.location.trim() ||
+         typeof receipt.receivedBy !== 'string' || !receipt.receivedBy.trim() ||
+         typeof receipt.inspectedBy !== 'string' || !receipt.inspectedBy.trim() ||
+         receipt.inspectionResult !== '合格' || typeof receipt.note !== 'string' ||
+         receipt.stockMovementReference !== receipt.receiptNo ||
+         typeof receipt.receivedAt !== 'string' ||
+         !/^(\\d{4})-(\\d{2})-(\\d{2})T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)(?:\\.\\d{1,3})?(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.test(receipt.receivedAt) ||
+         !Number.isFinite(Date.parse(receipt.receivedAt))) return false;
+      const receiptDateMatch = /^(\\d{4})-(\\d{2})-(\\d{2})T/.exec(receipt.receivedAt);
+      const receiptDate = new Date(0);
+      receiptDate.setUTCFullYear(Number(receiptDateMatch[1]), Number(receiptDateMatch[2]) - 1, Number(receiptDateMatch[3]));
+      receiptDate.setUTCHours(0,0,0,0);
+      if(receiptDate.getUTCFullYear() !== Number(receiptDateMatch[1]) ||
+         receiptDate.getUTCMonth() !== Number(receiptDateMatch[2]) - 1 ||
+         receiptDate.getUTCDate() !== Number(receiptDateMatch[3])) return false;
+      const utcYear = new Date(Date.parse(receipt.receivedAt)).getUTCFullYear();
+      if(utcYear < 0 || utcYear > 9999) return false;
+      if(receiptIds.has(receipt.receiptNo) || receiptReferences.has(receipt.stockMovementReference)) return false;
+      receiptIds.add(receipt.receiptNo);
+      receiptReferences.add(receipt.stockMovementReference);
+      const order = orders.get(receipt.purchaseNo);
+      const item = inventory.get(receipt.sku);
+      const movement = movements.get(receipt.stockMovementReference);
+      if(!order || !item || !movement ||
+         receipt.material !== order.mat || receipt.material !== item.name ||
+         receipt.supplier !== order.sup || receipt.supplier !== item.supplier ||
+         receipt.unit !== order.unit || receipt.unit !== item.unit ||
+         receipt.batch !== item.batch || receipt.location !== item.loc ||
+         movement.sku !== receipt.sku || movement.quantityDelta !== receipt.quantity ||
+         movement.previousBalance !== receipt.previousBalance ||
+         movement.nextBalance !== receipt.nextBalance ||
+         movement.occurredAt !== receipt.receivedAt ||
+         movement.sourceType !== 'purchase-receipt' || movement.sourceNo !== receipt.purchaseNo) return false;
+      const quantity = toMilliunits(receipt.quantity);
+      const previous = toMilliunits(receipt.previousBalance);
+      const next = toMilliunits(receipt.nextBalance);
+      if(quantity === null || quantity <= 0 || previous === null || previous < 0 ||
+         next === null || next !== previous + quantity || !Number.isSafeInteger(previous + quantity)) return false;
+      const total = (receivedByOrder.get(receipt.purchaseNo) || 0) + quantity;
+      if(!Number.isSafeInteger(total)) return false;
+      receivedByOrder.set(receipt.purchaseNo, total);
+    }
+    for(const [purchaseNo, total] of receivedByOrder){
+      const order = orders.get(purchaseNo);
+      const ordered = order && toMilliunits(order.qty);
+      if(ordered === null || ordered <= 0 || total > ordered) return false;
+      const expectedStatus = total === ordered ? '已入库' : '部分到货';
+      if(order.status !== expectedStatus) return false;
+    }
+    for(const movement of d.stockMovements || []){
+      if(movement && movement.sourceType === 'purchase-receipt' &&
+         !receiptReferences.has(String(movement.reference))) return false;
+    }
+  }
   return true;
 }
 function preserveInvalidDB(raw){
@@ -534,6 +611,8 @@ const SCHEMAS = {
 };
 
 DB = loadDB();
+if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
 
 /* ==================================================================
    4. 字典 / 引用
