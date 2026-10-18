@@ -63,20 +63,66 @@ function isValidDBShape(d){
   if(d.stockMovements !== undefined){
     if(!Array.isArray(d.stockMovements)) return false;
     const references = new Set();
+    const chains = new Map();
+    const inventoryBalances = new Map();
+    const toMilliunits = value => {
+      if(!Number.isFinite(value) || Number(value.toFixed(3)) !== value) return null;
+      const scaled = Math.round(value * 1000);
+      return Number.isSafeInteger(scaled) ? scaled : null;
+    };
+    for(const item of d.inventory){
+      if(typeof item.code !== 'string' || !item.code.trim()) return false;
+      const balance = toMilliunits(item.qty);
+      if(balance === null || balance < 0) return false;
+      inventoryBalances.set(item.code.trim(), balance);
+    }
     for(const movement of d.stockMovements){
       if(!isRecord(movement) || typeof movement.sku !== 'string' || !movement.sku.trim() ||
          typeof movement.reference !== 'string' || !movement.reference.trim() ||
-         typeof movement.occurredAt !== 'string' || !Number.isFinite(Date.parse(movement.occurredAt)) ||
+         typeof movement.occurredAt !== 'string' ||
+         !/^(\\d{4})-(\\d{2})-(\\d{2})T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)(?:\\.\\d{1,3})?(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.test(movement.occurredAt) ||
+         !Number.isFinite(Date.parse(movement.occurredAt)) ||
          !Number.isFinite(movement.quantityDelta) || movement.quantityDelta === 0 ||
          !Number.isFinite(movement.previousBalance) || movement.previousBalance < 0 ||
          !Number.isFinite(movement.nextBalance) || movement.nextBalance < 0) return false;
+      const timeParts = /^(\\d{4})-(\\d{2})-(\\d{2})T.*(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.exec(movement.occurredAt);
+      if(!timeParts) return false;
+      const year = Number(timeParts[1]), month = Number(timeParts[2]), day = Number(timeParts[3]);
+      const date = new Date(0);
+      date.setUTCFullYear(year, month - 1, day);
+      date.setUTCHours(0, 0, 0, 0);
+      if(date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return false;
+      if(timeParts[4] !== 'Z' && timeParts[4].slice(1,3) === '14' && timeParts[4].slice(4,6) !== '00') return false;
+      const utcYear = new Date(Date.parse(movement.occurredAt)).getUTCFullYear();
+      if(utcYear < 0 || utcYear > 9999) return false;
+
       if(references.has(movement.reference)) return false;
       references.add(movement.reference);
-      const previous = Math.round(movement.previousBalance * 1000);
-      const delta = Math.round(movement.quantityDelta * 1000);
-      const next = Math.round(movement.nextBalance * 1000);
-      if(!Number.isSafeInteger(previous) || !Number.isSafeInteger(delta) ||
-         !Number.isSafeInteger(next) || previous + delta !== next) return false;
+      const previous = toMilliunits(movement.previousBalance);
+      const delta = toMilliunits(movement.quantityDelta);
+      const next = toMilliunits(movement.nextBalance);
+      if(previous === null || delta === null || delta === 0 || next === null ||
+         previous + delta !== next || !Number.isSafeInteger(previous + delta)) return false;
+
+      const sku = movement.sku.trim();
+      const chain = chains.get(sku);
+      if(!chain){
+        // stockMovements is newest-first (each new movement is unshifted).
+        chains.set(sku, { latestBalance:next, expectedOlderBalance:previous });
+      }else{
+        // The newer movement's opening balance must equal the older
+        // movement's closing balance.
+        if(chain.expectedOlderBalance !== next) return false;
+        chain.expectedOlderBalance = previous;
+      }
+    }
+    for(const [sku, chain] of chains){
+      if(inventoryBalances.has(sku)){
+        if(inventoryBalances.get(sku) !== chain.latestBalance) return false;
+      }else if(chain.latestBalance !== 0){
+        // Zero-balance SKUs may be retired while retaining their audit trail.
+        return false;
+      }
     }
   }
   return true;
