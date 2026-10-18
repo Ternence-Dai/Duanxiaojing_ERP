@@ -18,6 +18,8 @@ jobs:
           node-version: 22
       - name: Validate ERP form business rules
         run: node scripts/validate-form.cjs
+      - name: Validate ERP entity reference integrity
+        run: node scripts/validate-referential-integrity.cjs
       - name: Parse embedded JavaScript
         run: |
           node <<'NODE'
