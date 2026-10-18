@@ -42,6 +42,14 @@ test("uses integer milliunits to avoid floating-point drift across movements",()
  const second=applyStockMovement(first.nextBalance,{...movement,quantityDelta:0.1});
  assert.equal(second.nextBalance,0.4);
 });
+test("normalized decimal balance differences remain exact ledger quantities",()=>{
+ const opening=normalizeStockBalance(0.2);
+ const closing=normalizeStockBalance(0.3);
+ const delta=Number((closing-opening).toFixed(3));
+ const row=applyStockMovement(opening,{...movement,quantityDelta:delta});
+ assert.equal(delta,0.1);
+ assert.equal(row.nextBalance,closing);
+});
 test("rejects quantities whose milliunit representation is unsafe",()=>{
  assert.throws(()=>applyStockMovement(Number.MAX_SAFE_INTEGER,{...movement,quantityDelta:1}),RangeError);
  assert.throws(()=>applyStockMovement(1,{...movement,quantityDelta:0.0001}),RangeError);
