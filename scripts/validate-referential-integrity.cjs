@@ -65,6 +65,12 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
     storageRecoveryRequired:false,
     inventorySavePending:false,
     SCHEMAS:{[table]:{key:table,idKey:primaryKey,fields}},
+    refValues:field=>{
+      if(field.ref === 'customers') return (context.DB.customers || []).map(row=>row.name);
+      if(field.ref === 'suppliers') return (context.DB.suppliers || []).map(row=>row.name);
+      if(field.ref === 'orders') return (context.DB.orders || []).map(row=>row.no);
+      return [];
+    },
     $:id=>({value:values[id] ?? ''}),
     snapshotDB:()=>JSON.parse(JSON.stringify(context.DB)),
     commitDBMutation:()=>{context.saved=true;return true;},
@@ -185,4 +191,41 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
       item.table+' delete rejection must list its dependency');
   }
 }
+
+{
+  const baseRows={customers:[{id:'C-1',name:'Acme'}]};
+  let order=runSave({
+    table:'orders',primaryKey:'no',
+    record:{no:'SO-2',cust:'Unknown customer'},
+    rows:baseRows,
+    fields:[{k:'no',t:'text'},{k:'cust',t:'ref',ref:'customers'}],
+    values:{ff_no:'SO-2',ff_cust:'Unknown customer'}
+  });
+  assert.equal(order.DB.orders[0].cust,'Unknown customer',
+    'invalid user-entered customer references must not be persisted');
+  assert.equal(order.saved,undefined);
+  assert.ok(order.toastMessages.some(message=>message.includes('有效的关联选项')),
+    'invalid references must provide a clear validation message');
+
+  order=runSave({
+    table:'orders',primaryKey:'no',
+    record:{no:'SO-3',cust:'Acme'},
+    rows:baseRows,
+    fields:[{k:'no',t:'text'},{k:'cust',t:'ref',ref:'customers'}],
+    values:{ff_no:'SO-3',ff_cust:'Acme'}
+  });
+  assert.equal(order.saved,true,'a reference matching an existing master record must save');
+
+  order=runSave({
+    table:'orders',primaryKey:'no',
+    record:{no:'SO-4',cust:'Legacy customer'},
+    rows:baseRows,
+    fields:[{k:'no',t:'text'},{k:'cust',t:'ref',ref:'customers'},{k:'note',t:'text'}],
+    values:{ff_no:'SO-4',ff_cust:'Legacy customer',ff_note:'edited historical note'}
+  });
+  assert.equal(order.saved,true,
+    'an unchanged historical reference may be retained when editing an unrelated field');
+  assert.equal(order.DB.orders[0].cust,'Legacy customer');
+}
+
 console.log('ERP entity reference integrity regression checks passed (rename guards, delete guards, valid edits).');
