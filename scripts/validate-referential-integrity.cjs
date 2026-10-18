@@ -57,11 +57,11 @@ function referenceContext(db) {
     'reference checks must use exact identities, not substring matches');
 }
 
-function runSave({table, primaryKey, record, rows, fields, values}) {
-  const db = {...rows, [table]:[record]};
+function runSave({table, primaryKey, record, rows, fields, values, editing=true}) {
+  const db = {...rows, [table]:editing ? [record] : []};
   const context = referenceContext(db);
   Object.assign(context, {
-    formState:{key:table,editingId:String(record[primaryKey])},
+    formState:{key:table,editingId:editing ? String(record[primaryKey]) : null},
     storageRecoveryRequired:false,
     inventorySavePending:false,
     SCHEMAS:{[table]:{key:table,idKey:primaryKey,fields}},
@@ -199,7 +199,7 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
     record:{no:'SO-2',cust:'Unknown customer'},
     rows:baseRows,
     fields:[{k:'no',t:'text'},{k:'cust',t:'ref',ref:'customers'}],
-    values:{ff_no:'SO-2',ff_cust:'Unknown customer'}
+    values:{ff_no:'SO-2',ff_cust:'Unknown customer'},editing:false
   });
   assert.equal(order.DB.orders[0].cust,'Unknown customer',
     'invalid user-entered customer references must not be persisted');
@@ -212,7 +212,7 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
     record:{no:'SO-3',cust:'Acme'},
     rows:baseRows,
     fields:[{k:'no',t:'text'},{k:'cust',t:'ref',ref:'customers'}],
-    values:{ff_no:'SO-3',ff_cust:'Acme'}
+    values:{ff_no:'SO-3',ff_cust:'Acme'},editing:false
   });
   assert.equal(order.saved,true,'a reference matching an existing master record must save');
 
