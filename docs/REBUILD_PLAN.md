@@ -28,6 +28,19 @@ Use transactional data integrity, explicit workflow states, immutable stock move
 6. Validate with reference datasets and document known limitations.
 7. Review deployment, backup, recovery, and release process before production use.
 
+## Delivered vertical slices
+
+- [x] Three-decimal stock ledger with reference, before/after balances and negative-stock protection
+- [x] Purchase receipt records linked to PO, exact inventory SKU, batch, location and stock movement
+- [x] Qualified incoming inspection gate and partial/full receipt quantity calculation
+- [x] Receipt backup validation, legacy-empty migration and referential deletion/edit guards
+- [ ] Rejected-material quarantine, supplier returns and claims
+- [ ] Multi-warehouse lot allocation and production material issue/return workflows
+- [ ] Authenticated roles, approvals and durable concurrent transactions
+- [ ] Financial posting/reconciliation and verification using real company records
+
+The receiving form only posts quantities explicitly recorded as passed incoming inspection. The receiver/inspector fields are user-entered attribution; they do not authenticate a person or enforce permissions. Existing demonstration purchase statuses are not converted into historical receipt transactions.
+
 ## Open-source adoption policy
 
 For each dependency or reference project, record its repository URL, license, maintenance activity, security posture, exact component being reused or adapted, and attribution obligations. Prefer stable standards and small interoperable components over copying whole applications.
