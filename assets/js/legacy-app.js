@@ -134,6 +134,11 @@ function isValidDBShape(d){
     const receiptIds = new Set();
     const receivedByOrder = new Map();
     const receiptReferences = new Set();
+    const receiptFields = new Set([
+      'receiptNo','purchaseNo','sku','material','supplier','quantity','unit',
+      'batch','location','receivedAt','receivedBy','inspectedBy',
+      'inspectionResult','note','stockMovementReference','previousBalance','nextBalance'
+    ]);
     const toMilliunits = value => {
       if(!Number.isFinite(value) || Number(value.toFixed(3)) !== value) return null;
       const scaled = Math.round(value * 1000);
@@ -141,6 +146,7 @@ function isValidDBShape(d){
     };
     for(const receipt of d.purchaseReceipts){
       if(!isRecord(receipt) ||
+         Object.keys(receipt).some(key => !receiptFields.has(key)) ||
          typeof receipt.receiptNo !== 'string' || !receipt.receiptNo.trim() ||
          typeof receipt.purchaseNo !== 'string' || !receipt.purchaseNo.trim() ||
          typeof receipt.sku !== 'string' || !receipt.sku.trim() ||
@@ -163,8 +169,10 @@ function isValidDBShape(d){
       if(receiptDate.getUTCFullYear() !== Number(receiptDateMatch[1]) ||
          receiptDate.getUTCMonth() !== Number(receiptDateMatch[2]) - 1 ||
          receiptDate.getUTCDate() !== Number(receiptDateMatch[3])) return false;
-      const utcYear = new Date(Date.parse(receipt.receivedAt)).getUTCFullYear();
-      if(utcYear < 0 || utcYear > 9999) return false;
+      const parsedReceiptTime = Date.parse(receipt.receivedAt);
+      const utcYear = new Date(parsedReceiptTime).getUTCFullYear();
+      if(utcYear < 0 || utcYear > 9999 ||
+         new Date(parsedReceiptTime).toISOString() !== receipt.receivedAt) return false;
       if(receiptIds.has(receipt.receiptNo) || receiptReferences.has(receipt.stockMovementReference)) return false;
       receiptIds.add(receipt.receiptNo);
       receiptReferences.add(receipt.stockMovementReference);
