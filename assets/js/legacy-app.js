@@ -1190,7 +1190,7 @@ async function saveForm(){
         const normalizedPrevious = domain.normalizeStockBalance(previousQty);
         const normalizedNext = domain.normalizeStockBalance(nextQty);
         obj.qty = normalizedNext;
-        const delta = normalizedNext - normalizedPrevious;
+        const delta = Number((normalizedNext - normalizedPrevious).toFixed(3));
         if(delta !== 0){
           const references = new Set((DB.stockMovements || []).map(row => String(row.reference)));
           const baseReference = (editingId ? 'INV-ADJUST-' : 'INV-OPEN-') +
