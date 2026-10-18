@@ -851,6 +851,7 @@ function renderListPage(key){
    7. 表单
    ================================================================== */
 let formState = { key:null, editingId:null };
+let inventorySavePending = false;
 
 function openForm(key, id){
   const S = SCHEMAS[key];
@@ -943,9 +944,14 @@ function defaultValFor(f){
   }
   return '';
 }
-function closeModal(){ $('modalRoot').innerHTML = ''; formState = { key:null, editingId:null }; }
+function closeModal(){
+  if(inventorySavePending){ toast('库存校验与保存正在进行，请稍候'); return; }
+  $('modalRoot').innerHTML = '';
+  formState = { key:null, editingId:null };
+}
 
 async function saveForm(){
+  if(inventorySavePending){ toast('库存保存正在处理中，请勿重复提交'); return; }
   if(storageRecoveryRequired){
     toast('检测到原 ERP 缓存异常，已阻止编辑；请先恢复数据或明确重置演示数据');
     return;
@@ -1032,6 +1038,7 @@ async function saveForm(){
     const nextQty = Number(obj.qty);
     const delta = Number((nextQty - previousQty).toFixed(3));
     if(delta !== 0){
+      inventorySavePending = true;
       try{
         const domain = await import('../../src/domain/index.js');
         stockMovement = domain.applyStockMovement(previousQty, {
@@ -1040,7 +1047,9 @@ async function saveForm(){
           reference: (editingId ? 'INV-ADJUST-' : 'INV-OPEN-') + obj.code + '-' + Date.now(),
           occurredAt: new Date().toISOString()
         });
+        inventorySavePending = false;
       }catch(e){
+        inventorySavePending = false;
         toast('库存变更未保存：' + (e && e.message ? e.message : '领域校验失败'));
         return;
       }
