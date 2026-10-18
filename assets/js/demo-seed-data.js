@@ -297,5 +297,8 @@ function defaultDB(){
       {no:'QC2406012', so:'SO2406001', roll:'R-2406-0062', len:99.2, width:150.4, gsm:190.8, defect:'无',          grade:'一等品', by:'王强',   date:'2024-06-12', method:'抽检',    note:''},
       {no:'QC2406011', so:'SO2406001', roll:'R-2406-0061', len:98.4, width:149.8, gsm:191.2, defect:'1 处跳纱',     grade:'二等品', by:'王强',   date:'2024-06-12', method:'抽检',    note:''},
     ],
+    // Legacy demo orders have no verified receipt or incoming-inspection history.
+    stockMovements: [],
+    purchaseReceipts: [],
   };
 }
