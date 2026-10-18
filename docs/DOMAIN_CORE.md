@@ -26,6 +26,23 @@ The transition is rejected if the integer-milliunit result is unsafe or negative
 
 The input timestamp must contain an explicit timezone. Invalid calendar dates, invalid timezone offsets, missing offsets, and excess fractional-second precision are rejected. Accepted timestamps are normalized to UTC. The resulting UTC year must remain within the supported four-digit year range.
 
+## Purchase receipts and qualified stock-in
+
+`createPurchaseReceipt(input)` creates one immutable receiving record and its corresponding positive stock movement. The business contract is deliberately narrow:
+
+- The purchase line must be eligible for receiving (`已下单`, `在途`, `已到货`, or a traceable `部分到货` order).
+- The selected inventory SKU must exactly match the purchase material name, supplier, and base unit. Its batch and warehouse location must also match the existing stock master. Different lots or locations require separate inventory SKUs; the current master-data model does not combine lots into one SKU.
+- The received quantity must be positive, exactly representable to three decimals, and no greater than the purchase order's unreceived balance.
+- A non-empty receiver and incoming inspector are required. This posting route accepts only an explicit `合格` inspection result; pending, failed, or rejected material must not be included in available stock.
+- The receipt number is also the stock-movement reference. The receipt stores the purchase order, SKU, supplier, material, unit, batch, location, receiver, inspector, inspection outcome, timestamp, and before/after stock balances.
+- The purchase status is derived from the cumulative receipt ledger: `部分到货` until the ordered quantity is received, then `已入库`. It is not a free-form status edit after receipts exist.
+
+The application appends the receipt and movement, increases the inventory balance, and updates the purchase status in one snapshot/commit/rollback operation. Backup validation checks the PO/SKU identities, inspection result, receipt/movement reference, before/after arithmetic, cumulative quantity, and derived PO status. Deleting a referenced PO or SKU, or editing the material/supplier/unit/batch/location identity, is blocked.
+
+Legacy databases and backups without receipt tables migrate to empty arrays. Existing demo purchase statuses are not converted into invented receipts. A legacy `部分到货` order with no traceable receipt history is blocked from further posting until its original documents are reconciled.
+
+The receiver and inspector fields are self-entered attribution, not authenticated identity or role-based authorization. This slice posts only passed inspection quantities; it does not implement quarantine, rejected-material return, supplier claims, multi-warehouse allocation for one SKU, or a durable multi-user inventory transaction.
+
 ## Application-level controls
 
 This domain function validates one movement; it does not itself check user permissions, SKU existence, duplicate business references, or database concurrency. Those remain application/persistence responsibilities. The UI and import validator must retain historical stock movements and must not allow direct stock edits to bypass the ledger.
