@@ -80,12 +80,12 @@ function isValidDBShape(d){
       if(!isRecord(movement) || typeof movement.sku !== 'string' || !movement.sku.trim() ||
          typeof movement.reference !== 'string' || !movement.reference.trim() ||
          typeof movement.occurredAt !== 'string' ||
-         !/^(\\d{4})-(\\d{2})-(\\d{2})T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)(?:\\.\\d{1,3})?(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.test(movement.occurredAt) ||
+         !/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d{1,3})?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(movement.occurredAt) ||
          !Number.isFinite(Date.parse(movement.occurredAt)) ||
          !Number.isFinite(movement.quantityDelta) || movement.quantityDelta === 0 ||
          !Number.isFinite(movement.previousBalance) || movement.previousBalance < 0 ||
          !Number.isFinite(movement.nextBalance) || movement.nextBalance < 0) return false;
-      const timeParts = /^(\\d{4})-(\\d{2})-(\\d{2})T.*(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.exec(movement.occurredAt);
+      const timeParts = /^(\d{4})-(\d{2})-(\d{2})T.*(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.exec(movement.occurredAt);
       if(!timeParts) return false;
       const year = Number(timeParts[1]), month = Number(timeParts[2]), day = Number(timeParts[3]);
       const date = new Date(0);
