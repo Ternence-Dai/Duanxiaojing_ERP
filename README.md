@@ -30,4 +30,4 @@ The modernization work is being applied directly to `main`. The current baseline
 
 Remaining delivery work includes validating the existing application workflows and data, extracting maintainable modules from the legacy entry point, adding migration-safe persistence and import/export checks, and documenting verified domain rules. Existing user data and the legacy application must be preserved while these changes are introduced.
 
-See [the rebuild plan](docs/REBUILD_PLAN.md).
+See [the rebuild plan](docs/REBUILD_PLAN.md) and [domain rules, units and validation boundaries](docs/DOMAIN_CORE.md).
