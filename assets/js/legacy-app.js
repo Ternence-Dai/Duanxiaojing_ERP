@@ -1091,9 +1091,9 @@ function renderPurchaseReceiptSkuOptions(){
 
 function renderPurchaseReceiptWorkspace(){
   if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
-  const eligibleStatuses = new Set(['已下单','在途','已到货','部分到货']);
+  const eligibleStatuses = new Set(['已下单','在途','部分到货']);
   const legacyPartial = (DB.purchase || []).filter(order =>
-    order.status === '部分到货' &&
+    ['部分到货','已到货','检验中'].includes(order.status) &&
     !(DB.purchaseReceipts || []).some(row => String(row.purchaseNo) === String(order.no))
   );
   const candidates = (DB.purchase || []).filter(order =>
@@ -1137,7 +1137,7 @@ function renderPurchaseReceiptWorkspace(){
     '<h3>采购收货与检验入库</h3><p>只将完成实物清点、批次核对并经来料检验判定合格的数量过账到可用库存。待检、不合格或拒收物料不能从此入口入库。</p></div>' +
     '<div class="receipt-count"><b>' + totalReceipts + '</b><span>条已过账收货记录</span></div></div>' +
     (legacyPartial.length ? '<div class="receipt-warning"><b>历史待核对：</b>' + legacyPartial.length +
-      ' 张采购单标记为“部分到货”，但没有可核验收货流水。系统不会估算历史收货数量；请先核对原始收货单并在库存主档中完成必要的数据整理。</div>' : '') +
+      ' 张旧采购单标记为“部分到货 / 已到货 / 检验中”，但没有可核验收货流水。系统不会估算历史收货数量或再次增加库存；请先核对原始收货单和库存期初余额。</div>' : '') +
     '<form id="purchase-receipt-form" onsubmit="return false;">' +
       '<div class="receipt-form-grid">' +
         '<label>采购单<select id="receipt-purchase-order" class="form-control" required onchange="renderPurchaseReceiptSkuOptions()">' +
