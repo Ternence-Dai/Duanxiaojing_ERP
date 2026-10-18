@@ -311,3 +311,59 @@ const badMovement = JSON.parse(JSON.stringify(demoDB));
 badMovement.stockMovements = [{sku:'SKU-1',quantityDelta:1,reference:'DUP',occurredAt:'2026-10-17T09:00:00Z',previousBalance:0,nextBalance:1}];
 badMovement.stockMovements.push({...badMovement.stockMovements[0]});
 assert.equal(shapeContext.api.isValidDBShape(badMovement), false, 'duplicate stock movement references must be rejected');
+
+{
+  const ledgerDB = JSON.parse(JSON.stringify(demoDB));
+  const inventory = ledgerDB.inventory[0];
+  const originalBalance = inventory.qty;
+  inventory.qty = originalBalance - 50;
+  ledgerDB.stockMovements = [
+    {sku:inventory.code,quantityDelta:-50,reference:'TEST-NEW',occurredAt:'2026-10-18T08:00:02Z',
+      previousBalance:originalBalance,nextBalance:originalBalance-50},
+    {sku:inventory.code,quantityDelta:200,reference:'TEST-OLD',occurredAt:'2026-10-18T08:00:01Z',
+      previousBalance:originalBalance-200,nextBalance:originalBalance}
+  ];
+  assert.equal(shapeContext.api.isValidDBShape(ledgerDB),true,
+    'newest-first movements with continuous balances must agree with current inventory');
+
+  const mismatchedMaster = JSON.parse(JSON.stringify(ledgerDB));
+  mismatchedMaster.inventory[0].qty += 0.001;
+  assert.equal(shapeContext.api.isValidDBShape(mismatchedMaster),false,
+    'latest stock ledger balance must equal the inventory master quantity');
+
+  const brokenChain = JSON.parse(JSON.stringify(ledgerDB));
+  brokenChain.stockMovements[0].previousBalance += 0.001;
+  brokenChain.stockMovements[0].nextBalance += 0.001;
+  assert.equal(shapeContext.api.isValidDBShape(brokenChain),false,
+    'adjacent stock movements must reconcile exactly');
+
+  const reversed = JSON.parse(JSON.stringify(ledgerDB));
+  reversed.stockMovements.reverse();
+  assert.equal(shapeContext.api.isValidDBShape(reversed),false,
+    'stock movements must retain their newest-first chain order');
+
+  const duplicateReference = JSON.parse(JSON.stringify(ledgerDB));
+  duplicateReference.stockMovements[0].reference = duplicateReference.stockMovements[1].reference;
+  assert.equal(shapeContext.api.isValidDBShape(duplicateReference),false,
+    'stock movement references must be unique');
+
+  const orphanedNonzero = JSON.parse(JSON.stringify(ledgerDB));
+  orphanedNonzero.inventory = orphanedNonzero.inventory.filter(row => row.code !== inventory.code);
+  assert.equal(shapeContext.api.isValidDBShape(orphanedNonzero),false,
+    'a retired SKU must have a zero closing ledger balance');
+
+  const retired = JSON.parse(JSON.stringify(demoDB));
+  const retiredInventory = retired.inventory[0];
+  retired.inventory = retired.inventory.filter(row => row.code !== retiredInventory.code);
+  retired.stockMovements = [{
+    sku:retiredInventory.code,quantityDelta:-retiredInventory.qty,reference:'TEST-RETIRE',
+    occurredAt:'2026-10-18T08:00:03Z',previousBalance:retiredInventory.qty,nextBalance:0
+  }];
+  assert.equal(shapeContext.api.isValidDBShape(retired),true,
+    'zero-balance retired SKUs may keep immutable ledger history');
+
+  const invalidDate = JSON.parse(JSON.stringify(ledgerDB));
+  invalidDate.stockMovements[0].occurredAt = '2026-02-30T08:00:02Z';
+  assert.equal(shapeContext.api.isValidDBShape(invalidDate),false,
+    'stock movement timestamps must contain real calendar dates');
+}
