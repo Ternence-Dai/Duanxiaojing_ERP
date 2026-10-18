@@ -19,6 +19,7 @@ function run(values, initialRows = [], editingId = null) {
   const context = {
     formState:{key:'orders',editingId},
     storageRecoveryRequired:false,
+    inventorySavePending:false,
     SCHEMAS:{orders:{key:'orders',idKey:'no',fields}},
     DB:{orders:initialRows},
     $:id=>elements[id] || null,
