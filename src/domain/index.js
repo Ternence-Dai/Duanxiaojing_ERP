@@ -1,6 +1,6 @@
 function parseOccurredAt(value) {
   if (typeof value !== "string") throw new TypeError("occurredAt must be an ISO-8601 timestamp with an explicit timezone");
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)(?:\\.\\d+)?(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d+)?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.exec(value);
   if (!match) throw new TypeError("occurredAt must be an ISO-8601 timestamp with an explicit timezone");
   const [, yearText, monthText, dayText, hourText, minuteText, secondText, zone] = match;
   const year = Number(yearText), month = Number(monthText), day = Number(dayText);
