@@ -224,7 +224,7 @@ assert.ok(html.includes("key === 'inventory' ? renderStockMovementHistory() : ''
 
 console.log('ERP form validation and persistence rollback regression checks passed.');
 
-assert.ok(html.includes("async function saveForm(){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
+assert.ok(html.includes("async function saveForm(){\n  if(inventorySavePending){ toast('库存保存正在处理中，请勿重复提交'); return; }\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record editing must stop before mutating memory when cache recovery is required');
 assert.ok(html.includes("function delRow(key, id, fromModal){\n  if(storageRecoveryRequired){\n    toast('检测到原 ERP 缓存异常"), 'record deletion must stop before mutating memory when cache recovery is required');
 
 
