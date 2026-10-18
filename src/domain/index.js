@@ -20,7 +20,10 @@ function parseOccurredAt(value) {
 
 function toMilliunits(value, name, { allowZero = true } = {}) {
   if (!Number.isFinite(value)) throw new RangeError(`${name} must be a finite quantity`);
-  const scaled = value * 1000;
+  if (Number(value.toFixed(3)) !== value) {
+    throw new RangeError(`${name} must be an exactly representable quantity with at most 3 decimals`);
+  }
+  const scaled = Math.round(value * 1000);
   if (!Number.isSafeInteger(scaled) || (!allowZero && scaled === 0)) {
     throw new RangeError(`${name} must be an exactly representable quantity with at most 3 decimals`);
   }
