@@ -146,6 +146,8 @@ const inventorySaveSource = html.slice(inventorySaveStart, inventorySaveEnd);
 assert.ok(inventorySaveSource.includes('domain.normalizeStockBalance(previousQty)') &&
   inventorySaveSource.includes('domain.normalizeStockBalance(nextQty)'),
   'changed inventory quantities must validate both the previous and next three-decimal balances');
+assert.ok(inventorySaveSource.includes('Number((normalizedNext - normalizedPrevious).toFixed(3))'),
+  'the difference between normalized milliunit balances must be canonicalized before domain validation');
 assert.ok(inventorySaveSource.includes('const quantityChanged = !previous || nextQty !== previousQty'),
   'unchanged legacy quantities may be retained while unrelated inventory fields are edited');
 assert.ok(inventorySaveSource.includes('while(references.has(reference))'),
