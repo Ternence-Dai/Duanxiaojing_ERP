@@ -1013,6 +1013,206 @@ function renderStockMovementHistory(){
   </div>`;
 }
 
+
+let purchaseReceiptPending = false;
+
+function getPurchaseReceiptMatches(order){
+  if(!order) return [];
+  return (DB.inventory || []).filter(item =>
+    String(item.name || '') === String(order.mat || '') &&
+    String(item.unit || '') === String(order.unit || '') &&
+    String(item.supplier || '') === String(order.sup || '') &&
+    typeof item.batch === 'string' && item.batch.trim() &&
+    typeof item.loc === 'string' && item.loc.trim()
+  );
+}
+
+function getPurchaseReceivedMilliunits(purchaseNo){
+  return (DB.purchaseReceipts || [])
+    .filter(row => String(row.purchaseNo) === String(purchaseNo))
+    .reduce((sum, row) => sum + Math.round(Number(row.quantity) * 1000), 0);
+}
+
+function renderPurchaseReceiptSkuOptions(){
+  const orderSelect = document.getElementById('receipt-purchase-order');
+  const skuSelect = document.getElementById('receipt-sku');
+  const quantity = document.getElementById('receipt-quantity');
+  const batch = document.getElementById('receipt-batch');
+  const location = document.getElementById('receipt-location');
+  const remainingLabel = document.getElementById('receipt-remaining');
+  const message = document.getElementById('receipt-match-message');
+  const button = document.getElementById('receipt-submit');
+  if(!orderSelect || !skuSelect) return;
+
+  const order = (DB.purchase || []).find(row => String(row.no) === String(orderSelect.value));
+  const receivedMilliunits = order ? getPurchaseReceivedMilliunits(order.no) : 0;
+  const orderedMilliunits = order ? Math.round(Number(order.qty) * 1000) : 0;
+  const remaining = order ? Math.max(0, (orderedMilliunits - receivedMilliunits) / 1000) : 0;
+  const matches = order ? getPurchaseReceiptMatches(order) : [];
+
+  skuSelect.innerHTML = '<option value="">请选择精确匹配的库存 SKU</option>' + matches.map(item =>
+    '<option value="' + esc(item.code) + '">' + esc(item.code) + ' · ' + esc(item.name) +
+    ' · 批次 ' + esc(item.batch) + ' · 库位 ' + esc(item.loc) + '</option>'
+  ).join('');
+  const selected = matches[0] || null;
+  if(selected) skuSelect.value = selected.code;
+  if(quantity){
+    quantity.max = String(remaining);
+    quantity.value = '';
+    quantity.placeholder = remaining > 0 ? '本单剩余 ' + remaining.toFixed(3) + ' ' + esc(order.unit) : '本单已收齐';
+  }
+  if(batch) batch.value = selected ? selected.batch : '';
+  if(location) location.value = selected ? selected.loc : '';
+  if(remainingLabel) remainingLabel.textContent = order
+    ? '订单 ' + Number(order.qty).toLocaleString() + ' ' + order.unit +
+      ' · 已过账 ' + (receivedMilliunits / 1000).toFixed(3) +
+      ' · 尚可收货 ' + remaining.toFixed(3)
+    : '请选择采购单';
+  if(message){
+    if(!order) message.textContent = '请先选择一张可收货采购单。';
+    else if(!matches.length) message.textContent =
+      '未找到名称、供应商和单位完全匹配的库存 SKU。请先核对采购单与物料主档；不要选择近似物料代替。';
+    else message.textContent =
+      '已匹配 ' + matches.length + ' 个 SKU。批次与库位沿用库存主档，避免把不同批次或仓位合并。';
+  }
+  if(button) button.disabled = !order || !selected || remaining <= 0 || purchaseReceiptPending || storageRecoveryRequired;
+}
+
+function renderPurchaseReceiptWorkspace(){
+  if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+  const eligibleStatuses = new Set(['已下单','在途','已到货','部分到货']);
+  const legacyPartial = (DB.purchase || []).filter(order =>
+    order.status === '部分到货' &&
+    !(DB.purchaseReceipts || []).some(row => String(row.purchaseNo) === String(order.no))
+  );
+  const candidates = (DB.purchase || []).filter(order =>
+    eligibleStatuses.has(order.status) &&
+    (order.status !== '部分到货' ||
+      (DB.purchaseReceipts || []).some(row => String(row.purchaseNo) === String(order.no))) &&
+    getPurchaseReceivedMilliunits(order.no) < Math.round(Number(order.qty) * 1000)
+  );
+  const selectable = candidates.find(order => getPurchaseReceiptMatches(order).length > 0) || null;
+  const orderOptions = candidates.map(order => {
+    const remaining = Math.max(0, Number(order.qty) - getPurchaseReceivedMilliunits(order.no) / 1000);
+    const matching = getPurchaseReceiptMatches(order).length;
+    return '<option value="' + esc(order.no) + '"' +
+      (order === selectable ? ' selected' : '') +
+      (matching ? '' : ' disabled') + '>' +
+      esc(order.no) + ' · ' + esc(order.mat) + ' · 剩余 ' + remaining.toFixed(3) +
+      (matching ? '' : ' · 无精确库存 SKU') + '</option>';
+  }).join('');
+  const totalReceipts = DB.purchaseReceipts.length;
+  const receiptHistory = DB.purchaseReceipts.slice(0, 20).map(row =>
+    '<tr><td class="mono">' + esc(row.receiptNo) + '</td>' +
+    '<td class="mono">' + esc(row.purchaseNo) + '</td>' +
+    '<td>' + esc(row.material) + '<small>' + esc(row.sku) + '</small></td>' +
+    '<td class="num">+' + Number(row.quantity).toFixed(3) + ' ' + esc(row.unit) + '</td>' +
+    '<td>' + esc(row.batch) + '<small>' + esc(row.location) + '</small></td>' +
+    '<td>' + esc(row.receivedBy) + '<small>质检：' + esc(row.inspectedBy) + '</small></td>' +
+    '<td>' + esc(new Date(row.receivedAt).toLocaleString()) + '</td></tr>'
+  ).join('');
+  const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16);
+  return '<section class="purchase-receipt-workspace">' +
+    '<div class="purchase-receipt-head"><div><div class="eyebrow">PURCHASE · RECEIVING · STOCK LEDGER</div>' +
+    '<h3>采购收货与检验入库</h3><p>只将完成实物清点、批次核对并经来料检验判定合格的数量过账到可用库存。待检、不合格或拒收物料不能从此入口入库。</p></div>' +
+    '<div class="receipt-count"><b>' + totalReceipts + '</b><span>条已过账收货记录</span></div></div>' +
+    (legacyPartial.length ? '<div class="receipt-warning"><b>历史待核对：</b>' + legacyPartial.length +
+      ' 张采购单标记为“部分到货”，但没有可核验收货流水。系统不会估算历史收货数量；请先核对原始收货单并在库存主档中完成必要的数据整理。</div>' : '') +
+    '<form id="purchase-receipt-form" onsubmit="return false;">' +
+      '<div class="receipt-form-grid">' +
+        '<label>采购单<select id="receipt-purchase-order" class="form-control" required onchange="renderPurchaseReceiptSkuOptions()">' +
+          '<option value="">请选择可收货采购单</option>' + orderOptions + '</select></label>' +
+        '<label>对应库存 SKU<select id="receipt-sku" class="form-control" required onchange="renderPurchaseReceiptSkuOptions()"></select></label>' +
+        '<label>本次合格收货数量<input id="receipt-quantity" class="form-control" type="number" min="0.001" step="0.001" required placeholder="输入实收且检验合格数量"></label>' +
+        '<label>库存批次<input id="receipt-batch" class="form-control" readonly required></label>' +
+        '<label>入库库位<input id="receipt-location" class="form-control" readonly required></label>' +
+        '<label>实际收货时间<input id="receipt-time" class="form-control" type="datetime-local" value="' + localNow + '" required></label>' +
+        '<label>收货经办人<input id="receipt-receiver" class="form-control" maxlength="120" required placeholder="实际收货人姓名 / 工号"></label>' +
+        '<label>来料检验人<input id="receipt-inspector" class="form-control" maxlength="120" required placeholder="实际检验人姓名 / 工号"></label>' +
+        '<label>来料检验结论<select id="receipt-inspection" class="form-control" required><option value="">请选择检验结论</option><option value="合格">合格 · 允许入库</option></select></label>' +
+      '</div>' +
+      '<div class="receipt-remaining" id="receipt-remaining">请选择采购单</div>' +
+      '<div class="receipt-match-message" id="receipt-match-message"></div>' +
+      '<label class="receipt-note-label">检验说明 / 单据备注<textarea id="receipt-note" class="form-control" rows="2" maxlength="1000" placeholder="可填写供应商送货单号、检验报告号、包装/外观检查说明等；不要录入未经核实的结论。"></textarea></label>' +
+      '<div class="receipt-submit-row"><span>每张收货单生成独立库存流水；重复单号、超订单数量及不匹配 SKU 会被拒绝。</span>' +
+      '<button id="receipt-submit" type="button" class="btn btn-primary" onclick="postPurchaseReceipt()">确认检验合格并入库</button></div>' +
+    '</form>' +
+    '<div class="purchase-receipt-history"><div class="card-head"><div class="card-title">采购收货流水</div><div class="card-sub">最近 ' + Math.min(totalReceipts,20) + ' 条 · 共 ' + totalReceipts + ' 条</div></div>' +
+    (receiptHistory ? '<div class="table-scroll"><table><thead><tr><th>收货单号</th><th>采购单</th><th>物料 / SKU</th><th>入库数量</th><th>批次 / 库位</th><th>经办 / 质检</th><th>收货时间</th></tr></thead><tbody>' + receiptHistory + '</tbody></table></div>' :
+      '<div class="empty">暂无本版本可核验的采购收货流水。旧演示采购单不会自动生成历史收货记录。</div>') +
+    '</div></section>';
+}
+
+async function postPurchaseReceipt(){
+  if(purchaseReceiptPending) return;
+  if(storageRecoveryRequired){
+    toast('检测到 ERP 缓存异常，已暂停收货入库；请先恢复有效备份。');
+    return;
+  }
+  const form = document.getElementById('purchase-receipt-form');
+  const button = document.getElementById('receipt-submit');
+  if(!form || !form.checkValidity()){
+    if(form) form.reportValidity();
+    return;
+  }
+  purchaseReceiptPending = true;
+  if(button) button.disabled = true;
+  try{
+    const purchaseNo = document.getElementById('receipt-purchase-order').value;
+    const sku = document.getElementById('receipt-sku').value;
+    const order = DB.purchase.find(row => String(row.no) === String(purchaseNo));
+    const item = DB.inventory.find(row => String(row.code) === String(sku));
+    if(!order || !item) throw new Error('采购单或库存 SKU 已不存在，请刷新页面后重试');
+    const receivedLocal = document.getElementById('receipt-time').value;
+    const receivedDate = new Date(receivedLocal);
+    if(!Number.isFinite(receivedDate.getTime())) throw new Error('收货时间无效');
+    const receivedAt = receivedDate.toISOString();
+    const baseNo = 'GRN-' + today().replace(/-/g,'') + '-' + Date.now();
+    const domain = await import('../../src/domain/index.js');
+    const result = domain.createPurchaseReceipt({
+      purchaseOrder: order,
+      inventoryItem: item,
+      existingReceipts: DB.purchaseReceipts || [],
+      existingMovementReferences: (DB.stockMovements || []).map(row => row.reference),
+      receiptNo: baseNo,
+      quantity: Number(document.getElementById('receipt-quantity').value),
+      batch: document.getElementById('receipt-batch').value,
+      location: document.getElementById('receipt-location').value,
+      receivedAt,
+      receivedBy: document.getElementById('receipt-receiver').value,
+      inspectedBy: document.getElementById('receipt-inspector').value,
+      inspectionResult: document.getElementById('receipt-inspection').value,
+      note: document.getElementById('receipt-note').value
+    });
+    const previousDB = snapshotDB();
+    const inventoryIndex = DB.inventory.findIndex(row => String(row.code) === String(sku));
+    const purchaseIndex = DB.purchase.findIndex(row => String(row.no) === String(purchaseNo));
+    if(inventoryIndex < 0 || purchaseIndex < 0 ||
+       Number(DB.inventory[inventoryIndex].qty) !== result.stockMovement.previousBalance){
+      throw new Error('库存或采购单已被其他操作修改；本次收货未过账，请刷新后核对');
+    }
+    DB.inventory[inventoryIndex].qty = result.stockMovement.nextBalance;
+    DB.inventory[inventoryIndex].inDate = receivedLocal.slice(0,10);
+    DB.purchase[purchaseIndex].status = result.purchaseStatus;
+    DB.purchaseReceipts.unshift(result.receipt);
+    DB.stockMovements.unshift(result.stockMovement);
+    if(!commitDBMutation(previousDB)){
+      toast('收货入库保存失败，库存、采购状态和收货流水已一并回滚。');
+      return;
+    }
+    render();
+    initNav();
+    toast('收货检验记录已保存；库存增加 ' + result.receipt.quantity.toFixed(3) + ' ' + result.receipt.unit +
+      '，采购单状态：' + result.purchaseStatus);
+  }catch(error){
+    toast('收货入库未执行：' + error.message);
+  }finally{
+    purchaseReceiptPending = false;
+    const currentButton = document.getElementById('receipt-submit');
+    if(currentButton) currentButton.disabled = false;
+  }
+}
+
 function renderListPage(key){
   const S = SCHEMAS[key];
   const st = getState(key);
@@ -1036,7 +1236,7 @@ function renderListPage(key){
       </div>`;
     }
   }
-  return `${tip}
+  return `${tip}${key === 'purchase' ? renderPurchaseReceiptWorkspace() : ''}
   <div class="toolbar">
     <div class="search-box">
       <span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></span>
