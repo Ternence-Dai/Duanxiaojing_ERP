@@ -65,7 +65,7 @@ export function applyStockMovement(balance, movement) {
 }
 
 
-const PURCHASE_RECEIVABLE_STATUSES = new Set(["已下单", "在途", "已到货", "部分到货"]);
+const PURCHASE_RECEIVABLE_STATUSES = new Set(["已下单", "在途", "部分到货"]);
 function requiredPurchaseText(value, field, maxLength = 160) {
   if (typeof value !== "string" || !value.trim()) {
     throw new TypeError(`purchase receipt ${field} is required`);
