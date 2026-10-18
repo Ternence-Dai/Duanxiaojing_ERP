@@ -2244,9 +2244,15 @@ function importAll(input){
       const d = JSON.parse(e.target.result);
       if(!isValidDBShape(d)) throw new Error('数据结构不完整或版本不兼容');
       const previousDB = snapshotDB();
+      const previousRecoveryRequired = storageRecoveryRequired;
       DB = d;
       storageRecoveryRequired = false;
-      if(!commitDBMutation(previousDB)) return;
+      if(!commitDBMutation(previousDB)){
+        // A failed restore write must not unlock a cache that was already
+        // protected before this import began.
+        storageRecoveryRequired = previousRecoveryRequired || storageRecoveryRequired;
+        return;
+      }
       initNav();
       render();
       toast('数据导入成功');
@@ -2261,9 +2267,14 @@ function importAll(input){
 function resetAll(){
   if(!confirm('确定恢复默认演示数据吗？当前所有修改将丢失。')) return;
   const previousDB = snapshotDB();
+  const previousRecoveryRequired = storageRecoveryRequired;
   DB = defaultDB();
   storageRecoveryRequired = false;
-  if(!commitDBMutation(previousDB)) return;
+  if(!commitDBMutation(previousDB)){
+    // Explicit reset is not complete until the new default state is durable.
+    storageRecoveryRequired = previousRecoveryRequired || storageRecoveryRequired;
+    return;
+  }
   initNav();
   render();
   toast('已恢复演示数据');
