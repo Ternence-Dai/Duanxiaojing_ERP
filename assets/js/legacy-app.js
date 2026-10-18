@@ -296,6 +296,8 @@ async function readFromFile(){
     const d = JSON.parse(text);
     if(isValidDBShape(d)){
       DB = d;
+      if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+      if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
       try{
         localStorage.setItem(STORE_KEY, JSON.stringify(DB));
         storageRecoveryRequired = false;
@@ -637,6 +639,20 @@ const ENTITY_REFERENCE_RULES = Object.freeze({
     identityField: 'name',
     identityLabel: '客户名称',
     links: [{ table:'orders', field:'cust', label:'销售订单' }]
+  },
+  inventory: {
+    identityField: 'code',
+    identityLabel: '库存编码',
+    links: [
+      { table:'purchaseReceipts', field:'sku', label:'采购收货记录' }
+    ]
+  },
+  purchase: {
+    identityField: 'no',
+    identityLabel: '采购单号',
+    links: [
+      { table:'purchaseReceipts', field:'purchaseNo', label:'采购收货记录' }
+    ]
   },
   suppliers: {
     identityField: 'name',
@@ -2325,6 +2341,8 @@ function importAll(input){
       const previousDB = snapshotDB();
       const previousRecoveryRequired = storageRecoveryRequired;
       DB = d;
+      if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+      if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
       storageRecoveryRequired = false;
       if(!commitDBMutation(previousDB)){
         // A failed restore write must not unlock a cache that was already
