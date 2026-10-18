@@ -169,10 +169,14 @@ export function createPurchaseReceipt({
   const allReceiptIds = new Set();
   const movementReferenceSet = new Set();
   for (const reference of existingMovementReferences) {
-    if (typeof reference !== "string" || !reference.trim() || movementReferenceSet.has(reference)) {
+    if (typeof reference !== "string" || !reference.trim()) {
       throw new TypeError("existing stock movement references must be non-empty and unique");
     }
-    movementReferenceSet.add(reference);
+    const normalizedReference = reference.trim();
+    if (movementReferenceSet.has(normalizedReference)) {
+      throw new TypeError("existing stock movement references must be non-empty and unique");
+    }
+    movementReferenceSet.add(normalizedReference);
   }
   let previouslyReceived = 0;
   for (const row of existingReceipts) {
@@ -198,7 +202,7 @@ export function createPurchaseReceipt({
     }
   }
   if (allReceiptIds.has(normalizedReceiptNo) ||
-      existingMovementReferences.some(reference => String(reference) === normalizedReceiptNo)) {
+      movementReferenceSet.has(normalizedReceiptNo)) {
     throw new RangeError("receipt number already exists in the stock movement ledger");
   }
   if (previouslyReceived + received > ordered) {
