@@ -154,9 +154,9 @@ function isValidDBShape(d){
          receipt.inspectionResult !== '合格' || typeof receipt.note !== 'string' ||
          receipt.stockMovementReference !== receipt.receiptNo ||
          typeof receipt.receivedAt !== 'string' ||
-         !/^(\\d{4})-(\\d{2})-(\\d{2})T([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)(?:\\.\\d{1,3})?(Z|[+-](?:0\\d|1[0-4]):[0-5]\\d)$/.test(receipt.receivedAt) ||
+         !/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\\.\d{1,3})?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(receipt.receivedAt) ||
          !Number.isFinite(Date.parse(receipt.receivedAt))) return false;
-      const receiptDateMatch = /^(\\d{4})-(\\d{2})-(\\d{2})T/.exec(receipt.receivedAt);
+      const receiptDateMatch = /^(\d{4})-(\d{2})-(\d{2})T/.exec(receipt.receivedAt);
       const receiptDate = new Date(0);
       receiptDate.setUTCFullYear(Number(receiptDateMatch[1]), Number(receiptDateMatch[2]) - 1, Number(receiptDateMatch[3]));
       receiptDate.setUTCHours(0,0,0,0);
@@ -1307,6 +1307,48 @@ async function saveForm(){
       inventorySavePending = false;
       toast('库存变更未保存：' + (e && e.message ? e.message : '领域校验失败'));
       return;
+    }
+  }
+
+  if(key === 'purchase' && editingId){
+    const previous = list.find(row => String(row[S.idKey]) === String(editingId));
+    if(!previous){ toast('原采购单已不存在，请刷新后重试'); return; }
+    const receiptRows = (DB.purchaseReceipts || []).filter(row => String(row.purchaseNo) === String(previous.no));
+    const derivedStatuses = new Set(['部分到货','已到货','检验中','已入库']);
+    if(receiptRows.length){
+      const immutableFields = ['no','sup','mat','qty','unit'];
+      const changed = immutableFields.find(field => String(previous[field] == null ? '' : previous[field]) !== String(obj[field] == null ? '' : obj[field]));
+      if(changed){
+        toast('该采购单已有收货入库记录，采购单号、供应商、物料、数量和单位已锁定；请通过后续业务单据处理差异');
+        return;
+      }
+      if(obj.status !== previous.status){
+        toast('采购收货状态由收货台账自动计算，不能在采购单表单中手动修改');
+        return;
+      }
+    }else{
+      if(derivedStatuses.has(obj.status) && obj.status !== previous.status){
+        toast('到货、部分到货和入库状态不能手动设置；请使用采购收货工作台并保留收货流水');
+        return;
+      }
+      if(derivedStatuses.has(previous.status) && obj.status !== previous.status){
+        toast('该采购单处于旧版到货状态但没有可核验的收货流水，请先核对历史单据；系统不会代造收货记录');
+        return;
+      }
+    }
+  }
+
+  if(key === 'inventory' && editingId){
+    const previous = list.find(row => String(row.code) === String(editingId));
+    if(previous){
+      const receiptRows = (DB.purchaseReceipts || []).filter(row => String(row.sku) === String(previous.code));
+      const immutableFields = ['name','supplier','unit','batch','loc'];
+      const changed = receiptRows.length && immutableFields.find(field =>
+        String(previous[field] == null ? '' : previous[field]) !== String(obj[field] == null ? '' : obj[field]));
+      if(changed){
+        toast('该库存 SKU 已有关联采购收货与批次记录，物料名称、供应商、单位、批次和库位不可直接修改');
+        return;
+      }
     }
   }
 
