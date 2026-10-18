@@ -20,6 +20,8 @@ jobs:
         run: node scripts/validate-form.cjs
       - name: Validate ERP entity reference integrity
         run: node scripts/validate-referential-integrity.cjs
+      - name: Validate purchase receipt and stock-in workflow
+        run: node scripts/validate-purchase-receipts.cjs
       - name: Parse embedded JavaScript
         run: |
           node <<'NODE'
