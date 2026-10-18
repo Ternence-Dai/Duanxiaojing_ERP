@@ -553,6 +553,49 @@ function refLabelOf(f, item){
   return item[f.refLabel || 'name'];
 }
 function refValues(f){ return refList(f.ref).map(it => refLabelOf(f, it)); }
+const ENTITY_REFERENCE_RULES = Object.freeze({
+  customers: {
+    identityField: 'name',
+    identityLabel: '客户名称',
+    links: [{ table:'orders', field:'cust', label:'销售订单' }]
+  },
+  suppliers: {
+    identityField: 'name',
+    identityLabel: '供应商名称',
+    links: [
+      { table:'inventory', field:'supplier', label:'物料库存台账' },
+      { table:'purchase', field:'sup', label:'采购单' }
+    ]
+  },
+  orders: {
+    identityField: 'no',
+    identityLabel: '订单号',
+    links: [
+      { table:'workorders', field:'so', label:'生产工单' },
+      { table:'quality', field:'so', label:'质量检验单' }
+    ]
+  }
+});
+
+// Customer, supplier and order labels are stored as references by other
+// tables. Keep referenced identities stable unless a deliberate cascade
+// migration is implemented.
+function findEntityReferences(table, record){
+  const rule = ENTITY_REFERENCE_RULES[table];
+  if(!rule || !record) return [];
+  const identity = record[rule.identityField];
+  if(identity == null || identity === '') return [];
+  const matches = [];
+  rule.links.forEach(link => {
+    (DB[link.table] || []).forEach(row => {
+      if(String(row[link.field] == null ? '' : row[link.field]) === String(identity)){
+        matches.push({ table:link.table, label:link.label, field:link.field });
+      }
+    });
+  });
+  return matches;
+}
+
 function colorHex(v){
   if(!v) return '#cbd5e1';
   const hit = getDict('colors').find(c => (c.name + ' ' + c.code) === v || c.name === v);
@@ -1138,6 +1181,20 @@ async function saveForm(){
     }
   }
 
+  if(editingId && ENTITY_REFERENCE_RULES[key]){
+    const previous = list.find(row => String(row[S.idKey]) === String(editingId));
+    const rule = ENTITY_REFERENCE_RULES[key];
+    if(previous && String(previous[rule.identityField] == null ? '' : previous[rule.identityField]) !==
+       String(obj[rule.identityField] == null ? '' : obj[rule.identityField])){
+      const references = findEntityReferences(key, previous);
+      if(references.length){
+        toast(rule.identityLabel + '已被' + [...new Set(references.map(item => item.label))].join('、') +
+          '引用，不能直接修改；请先处理关联业务记录');
+        return;
+      }
+    }
+  }
+
   const previousDB = snapshotDB();
   const candidateId = obj[S.idKey];
   if(candidateId && list.some(r => String(r[S.idKey]) === String(candidateId) &&
@@ -1199,6 +1256,12 @@ function delRow(key, id, fromModal){
   const S = SCHEMAS[key];
   const rec = (DB[S.key] || []).find(r => String(r[S.idKey]) === String(id));
   if(!rec){ toast('记录不存在'); return; }
+  const references = findEntityReferences(key, rec);
+  if(references.length){
+    const labels = [...new Set(references.map(item => item.label))];
+    toast('该记录仍被' + labels.join('、') + '引用，不能直接删除；请先处理关联业务记录');
+    return;
+  }
   if(key === 'inventory' && Number(rec.qty) !== 0){
     toast('库存数量不为 0，不能直接删除；请先通过库存调整完成出库，再删除记录');
     return;
