@@ -278,3 +278,36 @@ assert.match(html, /let inventorySavePending = false/, 'inventory async save mus
 assert.match(html, /if\(inventorySavePending\)/, 'concurrent inventory submissions must be rejected');
 assert.match(html, /库存校验与保存正在进行/, 'modal must not close while inventory validation is pending');
 assert.match(html, /inventorySavePending = false;\s*\}catch\(e\)/, 'inventory save guard must reset after domain validation failure');
+
+const seedSource = fs.readFileSync('assets/js/demo-seed-data.js', 'utf8');
+const appSource = fs.readFileSync('assets/js/legacy-app.js', 'utf8');
+const schemaStart = appSource.indexOf('const SCHEMAS = {');
+const schemaEnd = appSource.indexOf('\\n};', schemaStart) + 3;
+const shapeStart = appSource.indexOf('function isValidDBShape(d){');
+const shapeEnd = appSource.indexOf('\\nfunction preserveInvalidDB', shapeStart);
+assert.ok(schemaStart >= 0 && schemaEnd > schemaStart, 'ERP table schemas must be available');
+assert.ok(shapeStart >= 0 && shapeEnd > shapeStart, 'deep ERP backup validator must be available');
+const schemaSource = appSource.slice(schemaStart, schemaEnd);
+const shapeSource = appSource.slice(shapeStart, shapeEnd);
+const shapeContext = {};
+vm.runInNewContext(seedSource + '\\n' + schemaSource + '\\n' + shapeSource +
+  '\\nthis.api={defaultDB,isValidDBShape,SCHEMAS};', shapeContext);
+const demoDB = shapeContext.api.defaultDB();
+assert.equal(shapeContext.api.isValidDBShape(demoDB), true, 'the shipped demo dataset must pass its own backup validator');
+for (const [table, schema] of Object.entries(shapeContext.api.SCHEMAS)) {
+  const malformed = JSON.parse(JSON.stringify(demoDB));
+  malformed[schema.key || table][0] = null;
+  assert.equal(shapeContext.api.isValidDBShape(malformed), false, table + ' must reject null rows');
+  const duplicate = JSON.parse(JSON.stringify(demoDB));
+  if (duplicate[schema.key || table].length > 1) {
+    duplicate[schema.key || table][1][schema.idKey] = duplicate[schema.key || table][0][schema.idKey];
+    assert.equal(shapeContext.api.isValidDBShape(duplicate), false, table + ' must reject duplicate primary keys');
+  }
+}
+const badDict = JSON.parse(JSON.stringify(demoDB));
+badDict.dict.broken = {not:'an array'};
+assert.equal(shapeContext.api.isValidDBShape(badDict), false, 'dictionary collections must be arrays');
+const badMovement = JSON.parse(JSON.stringify(demoDB));
+badMovement.stockMovements = [{sku:'SKU-1',quantityDelta:1,reference:'DUP',occurredAt:'2026-10-17T09:00:00Z',previousBalance:0,nextBalance:1}];
+badMovement.stockMovements.push({...badMovement.stockMovements[0]});
+assert.equal(shapeContext.api.isValidDBShape(badMovement), false, 'duplicate stock movement references must be rejected');
