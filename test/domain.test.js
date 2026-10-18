@@ -39,3 +39,7 @@ test("normalizes millisecond timestamps and timezone offsets",()=>{
  const row=applyStockMovement(1,{...movement,quantityDelta:0.25,occurredAt:"2026-02-01T16:00:00.125+08:00"});
  assert.equal(row.nextBalance,1.25); assert.equal(row.occurredAt,"2026-02-01T08:00:00.125Z");
 });
+test("rejects timezone normalization outside the four-digit UTC year range",()=>{
+ assert.throws(()=>applyStockMovement(1,{...movement,occurredAt:"0000-01-01T00:00:00+14:00"}),RangeError);
+ assert.throws(()=>applyStockMovement(1,{...movement,occurredAt:"9999-12-31T23:59:59-14:00"}),RangeError);
+});
