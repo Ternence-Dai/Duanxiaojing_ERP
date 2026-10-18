@@ -11,6 +11,11 @@ test("requires a traceable reference and non-zero quantity",()=>{
  assert.throws(()=>applyStockMovement(2,{...movement,reference:""}),TypeError);
  assert.throws(()=>applyStockMovement(2,{...movement,quantityDelta:0}),RangeError);
 });
+test("rejects array-shaped movement containers even when custom fields are attached",()=>{
+ const malformed=[];
+ Object.assign(malformed,movement);
+ assert.throws(()=>applyStockMovement(10,malformed),TypeError);
+});
 test("supports textile stock quantities to three decimal places",()=>{
  const row=applyStockMovement(1.25,{...movement,quantityDelta:-0.125});
  assert.equal(row.nextBalance,1.125);
