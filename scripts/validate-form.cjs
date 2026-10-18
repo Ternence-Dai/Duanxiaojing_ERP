@@ -132,10 +132,29 @@ recovery=testStorageRecovery(JSON.stringify({settings:{},dict:{},orders:[]}));
 assert.equal(recovery.locked,false,'valid persisted data must not activate recovery lock');
 assert.equal(recovery.saved,true,'valid persisted data may be saved normally');
 assert.equal(recovery.writes,1,'normal save must persist valid data exactly once');
-assert.ok(html.includes('storageRecoveryRequired = false;\n      if(!commitDBMutation(previousDB)) return;'),
-  'valid JSON import must release the recovery lock before saving');
-assert.ok(html.includes('storageRecoveryRequired = false;\n  if(!commitDBMutation(previousDB)) return;'),
-  'explicitly confirmed demo reset must release the recovery lock');
+const importAllStart = html.indexOf('function importAll(input){');
+const importAllEnd = html.indexOf('\\nfunction resetAll()', importAllStart);
+assert.ok(importAllStart >= 0 && importAllEnd > importAllStart, 'ERP JSON import handler must exist');
+const importAllSource = html.slice(importAllStart, importAllEnd);
+assert.ok(importAllSource.includes('const previousRecoveryRequired = storageRecoveryRequired;'),
+  'ERP import must snapshot the pre-import recovery lock');
+assert.ok(importAllSource.indexOf('const previousRecoveryRequired = storageRecoveryRequired;') <
+          importAllSource.indexOf('storageRecoveryRequired = false;'),
+  'ERP import must capture recovery state before attempting to unlock');
+assert.ok(importAllSource.includes('storageRecoveryRequired = previousRecoveryRequired || storageRecoveryRequired;'),
+  'a failed ERP import write must retain either the original or newly raised recovery lock');
+
+const resetAllStart = html.indexOf('function resetAll(){');
+const resetAllEnd = html.indexOf('/* ---------- 字段配置', resetAllStart);
+assert.ok(resetAllStart >= 0 && resetAllEnd > resetAllStart, 'ERP reset handler must exist');
+const resetAllSource = html.slice(resetAllStart, resetAllEnd);
+assert.ok(resetAllSource.includes('const previousRecoveryRequired = storageRecoveryRequired;'),
+  'explicit reset must snapshot the pre-reset recovery lock');
+assert.ok(resetAllSource.indexOf('const previousRecoveryRequired = storageRecoveryRequired;') <
+          resetAllSource.indexOf('storageRecoveryRequired = false;'),
+  'explicit reset must capture recovery state before attempting to unlock');
+assert.ok(resetAllSource.includes('storageRecoveryRequired = previousRecoveryRequired || storageRecoveryRequired;'),
+  'a failed reset write must not clear the original or newly raised recovery lock');
 
 assert.ok(html.includes("if(previous && String(previous.code).trim() !== String(obj.code).trim())"), 'inventory SKU identity must not be renamed in-place');
 const inventorySaveStart = html.indexOf("if(key === 'inventory'){");
