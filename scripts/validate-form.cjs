@@ -272,3 +272,8 @@ assert.equal(deletion.db.stockMovements[1].nextBalance,0,'retained ledger must p
 deletion=runDelete(0,false);
 assert.equal(deletion.db.inventory.length,1,'cancelled deletion must preserve the master record');
 assert.equal(deletion.db.stockMovements.length,2,'cancelled deletion must preserve the ledger');
+
+assert.match(html, /let inventorySavePending = false/, 'inventory async save must have a duplicate-submit guard');
+assert.match(html, /if\(inventorySavePending\)/, 'concurrent inventory submissions must be rejected');
+assert.match(html, /库存校验与保存正在进行/, 'modal must not close while inventory validation is pending');
+assert.match(html, /inventorySavePending = false;\s*\}catch\(e\)/, 'inventory save guard must reset after domain validation failure');
