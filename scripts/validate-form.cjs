@@ -133,7 +133,7 @@ assert.equal(recovery.locked,false,'valid persisted data must not activate recov
 assert.equal(recovery.saved,true,'valid persisted data may be saved normally');
 assert.equal(recovery.writes,1,'normal save must persist valid data exactly once');
 const importAllStart = html.indexOf('function importAll(input){');
-const importAllEnd = html.indexOf('\\nfunction resetAll()', importAllStart);
+const importAllEnd = html.indexOf('function resetAll()', importAllStart);
 assert.ok(importAllStart >= 0 && importAllEnd > importAllStart, 'ERP JSON import handler must exist');
 const importAllSource = html.slice(importAllStart, importAllEnd);
 assert.ok(importAllSource.includes('const previousRecoveryRequired = storageRecoveryRequired;'),
