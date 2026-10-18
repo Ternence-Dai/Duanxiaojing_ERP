@@ -165,6 +165,7 @@ export function createPurchaseReceipt({
 
   const ordered = toMilliunits(purchaseOrder.qty, "purchase order quantity", { allowZero: false });
   const received = toMilliunits(quantity, "receipt quantity", { allowZero: false });
+  const normalizedReceiptNo = requiredPurchaseText(receiptNo, "number", 80);
   const allReceiptIds = new Set();
   const movementReferenceSet = new Set();
   for (const reference of existingMovementReferences) {
@@ -181,6 +182,7 @@ export function createPurchaseReceipt({
     const id = requiredPurchaseText(row.receiptNo, "existing receipt number", 80);
     if (allReceiptIds.has(id)) throw new RangeError("existing purchase receipt numbers must be unique");
     allReceiptIds.add(id);
+    if (id === normalizedReceiptNo) throw new RangeError("receipt number already exists in the stock movement ledger");
     const validated = validatePurchaseReceiptRecord(row);
     if (!movementReferenceSet.has(validated.stockMovementReference)) {
       throw new RangeError("existing purchase receipt has no matching stock movement reference");
@@ -195,7 +197,6 @@ export function createPurchaseReceipt({
       if (!Number.isSafeInteger(previouslyReceived)) throw new RangeError("cumulative received quantity is unsafe");
     }
   }
-  const normalizedReceiptNo = requiredPurchaseText(receiptNo, "number", 80);
   if (allReceiptIds.has(normalizedReceiptNo) ||
       existingMovementReferences.some(reference => String(reference) === normalizedReceiptNo)) {
     throw new RangeError("receipt number already exists in the stock movement ledger");
