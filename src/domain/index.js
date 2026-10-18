@@ -166,6 +166,13 @@ export function createPurchaseReceipt({
   const ordered = toMilliunits(purchaseOrder.qty, "purchase order quantity", { allowZero: false });
   const received = toMilliunits(quantity, "receipt quantity", { allowZero: false });
   const allReceiptIds = new Set();
+  const movementReferenceSet = new Set();
+  for (const reference of existingMovementReferences) {
+    if (typeof reference !== "string" || !reference.trim() || movementReferenceSet.has(reference)) {
+      throw new TypeError("existing stock movement references must be non-empty and unique");
+    }
+    movementReferenceSet.add(reference);
+  }
   let previouslyReceived = 0;
   for (const row of existingReceipts) {
     if (!row || typeof row !== "object" || Array.isArray(row)) {
@@ -174,9 +181,17 @@ export function createPurchaseReceipt({
     const id = requiredPurchaseText(row.receiptNo, "existing receipt number", 80);
     if (allReceiptIds.has(id)) throw new RangeError("existing purchase receipt numbers must be unique");
     allReceiptIds.add(id);
-    if (row.purchaseNo === purchaseNo) {
-      if (row.unit !== unit) throw new RangeError("existing receipts use a different purchase unit");
-      previouslyReceived += toMilliunits(row.quantity, "existing receipt quantity", { allowZero: false });
+    const validated = validatePurchaseReceiptRecord(row);
+    if (!movementReferenceSet.has(validated.stockMovementReference)) {
+      throw new RangeError("existing purchase receipt has no matching stock movement reference");
+    }
+    if (validated.purchaseNo === purchaseNo) {
+      if (validated.sku !== sku || validated.material !== material ||
+          validated.supplier !== supplier || validated.unit !== unit ||
+          validated.batch !== normalizedBatch || validated.location !== normalizedLocation) {
+        throw new RangeError("existing receipts for this purchase order must match the selected SKU, supplier, unit, batch and location");
+      }
+      previouslyReceived += toMilliunits(validated.quantity, "existing receipt quantity", { allowZero: false });
       if (!Number.isSafeInteger(previouslyReceived)) throw new RangeError("cumulative received quantity is unsafe");
     }
   }
