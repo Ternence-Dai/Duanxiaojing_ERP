@@ -38,7 +38,7 @@ function toMilliunits(value, name, { allowZero = true } = {}) {
 export function applyStockMovement(balance, movement) {
   const balanceMilliunits = toMilliunits(balance, "balance");
   if (balanceMilliunits < 0) throw new RangeError("balance must be non-negative");
-  if (!movement || typeof movement !== "object") throw new TypeError("movement is required");
+  if (!movement || typeof movement !== "object" || Array.isArray(movement)) throw new TypeError("movement must be an object");
   const { sku, quantityDelta, reference, occurredAt } = movement;
   if (typeof sku !== "string" || !sku.trim()) throw new TypeError("sku is required");
   const deltaMilliunits = toMilliunits(quantityDelta, "quantityDelta", { allowZero: false });
