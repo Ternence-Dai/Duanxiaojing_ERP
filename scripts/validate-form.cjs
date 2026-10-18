@@ -2,21 +2,6 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync('index.html', 'utf8') + '\n' + fs.readFileSync('assets/js/demo-seed-data.js', 'utf8') + '\n' + fs.readFileSync('assets/js/legacy-app.js', 'utf8');
-const productCss = fs.readFileSync('assets/css/product-system.css', 'utf8');
-assert.ok(html.includes('product-system.css?v=20261018-v3'),
-  'ERP page must load the visible V3 product stylesheet');
-assert.ok(productCss.includes('Zhiyun ERP operations workspace'),
-  'ERP visual system must expose its current product redesign layer');
-for (const selector of [
-  '.sidebar{', '.topbar{', '.erp-intro{', '.kpi-grid{',
-  '.kpi{', '.grid-2{', '.table-wrap{', 'thead th{', '.modal{'
-]) assert.ok(productCss.includes(selector),
-  'ERP product system must style the key operating surface: ' + selector);
-assert.ok(productCss.includes('@media(max-width:900px)') &&
-          productCss.includes('@media(max-width:520px)'),
-  'ERP redesign must preserve tablet and phone layout rules');
-assert.ok(productCss.includes('prefers-reduced-motion:reduce'),
-  'ERP redesign must respect reduced motion preferences');
 const start = html.indexOf('async function saveForm(){');
 const end = html.indexOf('\nfunction genId', start);
 if (start < 0 || end < 0) throw new Error('saveForm source not found');
@@ -49,6 +34,22 @@ function run(values, initialRows = [], editingId = null) {
   return {rows:context.DB.orders,messages};
 }
 const assert = require('node:assert/strict');
+const productCss = fs.readFileSync('assets/css/product-system.css', 'utf8');
+assert.ok(html.includes('product-system.css?v=20261018-v3'),
+  'ERP page must load the visible V3 product stylesheet');
+assert.ok(productCss.includes('Zhiyun ERP operations workspace'),
+  'ERP visual system must expose its current product redesign layer');
+for (const selector of [
+  '.sidebar{', '.topbar{', '.erp-intro{', '.kpi-grid{',
+  '.kpi{', '.grid-2{', '.table-wrap{', 'thead th{', '.modal{'
+]) assert.ok(productCss.includes(selector),
+  'ERP product system must style the key operating surface: ' + selector);
+assert.ok(productCss.includes('@media(max-width:900px)') &&
+          productCss.includes('@media(max-width:520px)'),
+  'ERP redesign must preserve tablet and phone layout rules');
+assert.ok(productCss.includes('prefers-reduced-motion:reduce'),
+  'ERP redesign must respect reduced motion preferences');
+
 assert.ok(html.includes("const today = () => { const d = new Date();"),
   'ERP date helper must use the browser local calendar');
 for (const token of ["d.getFullYear()", "d.getMonth()+1", "d.getDate()"])
