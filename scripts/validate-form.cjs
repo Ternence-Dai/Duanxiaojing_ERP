@@ -21,6 +21,8 @@ function run(values, initialRows = [], editingId = null) {
     storageRecoveryRequired:false,
     inventorySavePending:false,
     SCHEMAS:{orders:{key:'orders',idKey:'no',fields}},
+    ENTITY_REFERENCE_RULES:{orders:null},
+    findEntityReferences:()=>[],
     DB:{orders:initialRows},
     $:id=>elements[id] || null,
     toast:m=>messages.push(m),
