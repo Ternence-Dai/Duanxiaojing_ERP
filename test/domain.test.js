@@ -144,7 +144,7 @@ test("requires completed incoming inspection and attributable receiving staff",(
  assert.throws(()=>createPurchaseReceipt({...receiptBase,inspectedBy:" "}),/inspector is required/);
 });
 test("rejects receipt from unsubmitted, cancelled, already-in-stock or ambiguous legacy orders",()=>{
- for(const status of ["草稿","待审批","待下单","已取消","已入库","检验中","退货"]){
+ for(const status of ["草稿","待审批","待下单","已取消","已到货","已入库","检验中","退货"]){
   assert.throws(()=>createPurchaseReceipt({
    ...receiptBase,purchaseOrder:{...purchaseOrder,status}
   }),/not eligible for receiving/);
