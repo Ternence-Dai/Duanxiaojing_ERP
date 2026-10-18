@@ -36,6 +36,6 @@ test("rejects timestamps with sub-millisecond precision instead of silently trun
  assert.throws(()=>applyStockMovement(1,{...movement,occurredAt:"2026-02-01T08:00:00.1234Z"}),TypeError);
 });
 test("normalizes millisecond timestamps and timezone offsets",()=>{
- const row=applyStockMovement(1,{...movement,occurredAt:"2026-02-01T16:00:00.125+08:00"});
- assert.equal(row.occurredAt,"2026-02-01T08:00:00.125Z");
+ const row=applyStockMovement(1,{...movement,quantityDelta:0.25,occurredAt:"2026-02-01T16:00:00.125+08:00"});
+ assert.equal(row.nextBalance,1.25); assert.equal(row.occurredAt,"2026-02-01T08:00:00.125Z");
 });
