@@ -65,7 +65,7 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
     storageRecoveryRequired:false,
     inventorySavePending:false,
     SCHEMAS:{[table]:{key:table,idKey:primaryKey,fields}},
-    $:id=>({value:values[id.replace('ff_','') ] ?? ''}),
+    $:id=>({value:values[id] ?? ''}),
     snapshotDB:()=>JSON.parse(JSON.stringify(context.DB)),
     commitDBMutation:()=>{context.saved=true;return true;},
     render:()=>{},initNav:()=>{},closeModal:()=>{},
@@ -77,12 +77,12 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
 }
 
 {
-  const fields=[{k:'id',t:'text'},{k:'name',t:'text'}];
+  const fields=[{k:'id',t:'text'},{k:'name',t:'text'},{k:'phone',t:'text'}];
   const rows={orders:[{no:'SO-1',cust:'Acme'}]};
   let context=runSave({
     table:'customers',primaryKey:'id',
     record:{id:'C-1',name:'Acme',phone:'111'},
-    rows,fields,values:{ff_id:'C-1',ff_name:'Acme Ltd'}
+    rows,fields,values:{ff_id:'C-1',ff_name:'Acme Ltd',ff_phone:'222'}
   });
   assert.equal(context.DB.customers[0].name,'Acme',
     'customer identity rename must not orphan an existing order');
@@ -93,10 +93,12 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
   context=runSave({
     table:'customers',primaryKey:'id',
     record:{id:'C-1',name:'Acme',phone:'111'},
-    rows,fields,values:{ff_id:'C-1',ff_name:'Acme'}
+    rows,fields,values:{ff_id:'C-1',ff_name:'Acme',ff_phone:'222'}
   });
   assert.equal(context.saved,true,
     'editing non-identity fields or retaining the current identity must remain possible');
+  assert.equal(context.DB.customers[0].phone,'222',
+    'non-identity customer data must remain editable when references exist');
 }
 
 {
