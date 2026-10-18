@@ -102,6 +102,37 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
 }
 
 {
+  const supplierFields=[{k:'id',t:'text'},{k:'name',t:'text'},{k:'phone',t:'text'}];
+  const supplierContext=runSave({
+    table:'suppliers',primaryKey:'id',
+    record:{id:'S-1',name:'Supplier A',phone:'111'},
+    rows:{inventory:[{code:'M-1',supplier:'Supplier A'}],purchase:[{no:'PO-1',sup:'Supplier A'}]},
+    fields:supplierFields,
+    values:{ff_id:'S-1',ff_name:'Supplier A Ltd',ff_phone:'222'}
+  });
+  assert.equal(supplierContext.DB.suppliers[0].name,'Supplier A',
+    'supplier identity rename must not orphan inventory or purchase records');
+  assert.equal(supplierContext.saved,undefined);
+  assert.ok(supplierContext.toastMessages.some(message=>
+    message.includes('物料库存台账') && message.includes('采购单')),
+    'supplier rename rejection must list each linked business area');
+
+  const orderContext=runSave({
+    table:'orders',primaryKey:'no',
+    record:{no:'SO-1',cust:'Acme'},
+    rows:{workorders:[{no:'WO-1',so:'SO-1'}],quality:[{no:'QC-1',so:'SO-1'}]},
+    fields:[{k:'no',t:'text'},{k:'cust',t:'text'}],
+    values:{ff_no:'SO-2',ff_cust:'Acme'}
+  });
+  assert.equal(orderContext.DB.orders[0].no,'SO-1',
+    'order number rename must not orphan production and quality records');
+  assert.equal(orderContext.saved,undefined);
+  assert.ok(orderContext.toastMessages.some(message=>
+    message.includes('生产工单') && message.includes('质量检验单')),
+    'order rename rejection must explain production and quality dependencies');
+}
+
+{
   const db={customers:[{id:'C-1',name:'Acme'}],orders:[{no:'SO-1',cust:'Acme'}]};
   const context=referenceContext(db);
   Object.assign(context,{
@@ -120,5 +151,38 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
   assert.equal(context.saved,undefined);
   assert.ok(context.toastMessages.some(message=>message.includes('不能直接删除')),
     'blocked master deletion must explain the required relationship handling');
+}
+{
+  const cases=[
+    {
+      table:'suppliers',id:'S-1',schema:{key:'suppliers',idKey:'id'},
+      db:{suppliers:[{id:'S-1',name:'Supplier A'}],inventory:[{code:'M-1',supplier:'Supplier A'}],purchase:[]},
+      expected:'物料库存台账'
+    },
+    {
+      table:'orders',id:'SO-1',schema:{key:'orders',idKey:'no'},
+      db:{orders:[{no:'SO-1',cust:'Acme'}],workorders:[{no:'WO-1',so:'SO-1'}],quality:[]},
+      expected:'生产工单'
+    }
+  ];
+  for(const item of cases){
+    const ctx=referenceContext(item.db);
+    Object.assign(ctx,{
+      storageRecoveryRequired:false,
+      SCHEMAS:{[item.table]:item.schema},
+      confirm:()=>true,
+      snapshotDB:()=>JSON.parse(JSON.stringify(ctx.DB)),
+      commitDBMutation:()=>{ctx.saved=true;return true;},
+      render:()=>{},initNav:()=>{},closeModal:()=>{},
+      toast:message=>ctx.toastMessages.push(message)
+    });
+    vm.runInNewContext(deleteSource+'\\nthis.__delRow=delRow;',ctx);
+    ctx.__delRow(item.table,item.id,false);
+    assert.equal(ctx.DB[item.table].length,1,
+      item.table+' referenced master records must not be deleted');
+    assert.equal(ctx.saved,undefined);
+    assert.ok(ctx.toastMessages.some(message=>message.includes(item.expected)),
+      item.table+' delete rejection must list its dependency');
+  }
 }
 console.log('ERP entity reference integrity regression checks passed (rename guards, delete guards, valid edits).');
