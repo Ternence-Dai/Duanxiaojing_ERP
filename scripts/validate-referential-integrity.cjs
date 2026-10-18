@@ -105,6 +105,7 @@ function runSave({table, primaryKey, record, rows, fields, values}) {
   const db={customers:[{id:'C-1',name:'Acme'}],orders:[{no:'SO-1',cust:'Acme'}]};
   const context=referenceContext(db);
   Object.assign(context,{
+    storageRecoveryRequired:false,
     SCHEMAS:{customers:{key:'customers',idKey:'id'}},
     confirm:()=>true,
     snapshotDB:()=>JSON.parse(JSON.stringify(context.DB)),
