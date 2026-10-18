@@ -142,6 +142,14 @@ test("rejects historical receipts that do not match the selected purchase SKU an
   existingMovementReferences:["GRN-TEST-001"]
  }),/existing receipts for this purchase order must match/);
 });
+test("normalizes stock movement references before duplicate checks",()=>{
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,existingMovementReferences:[" GRN-TEST-001 "]
+ }),/already exists/);
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,existingMovementReferences:["GRN-TEST-009"," GRN-TEST-009 "]
+ }),/references must be non-empty and unique/);
+});
 test("requires every historical receipt to have a unique matching stock movement reference",()=>{
  const first=createPurchaseReceipt(receiptBase);
  assert.throws(()=>createPurchaseReceipt({
