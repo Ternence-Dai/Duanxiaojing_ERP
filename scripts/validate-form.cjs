@@ -35,8 +35,8 @@ function run(values, initialRows = [], editingId = null) {
 }
 const assert = require('node:assert/strict');
 const productCss = fs.readFileSync('assets/css/product-system.css', 'utf8');
-assert.ok(html.includes('product-system.css?v=20261019-v7'),
-  'ERP page must load the visible V6 product stylesheet');
+assert.ok(html.includes('product-system.css?v=20261019-v8'),
+  'ERP page must load the visible V8 product stylesheet');
 assert.ok(productCss.includes('Textile ERP operations workspace'),
   'ERP visual system must expose its current product redesign layer');
 for (const selector of [
@@ -47,6 +47,17 @@ for (const selector of [
 assert.ok(productCss.includes('@media(max-width:900px)') &&
           productCss.includes('@media(max-width:520px)'),
   'ERP redesign must preserve tablet and phone layout rules');
+
+assert.ok(productCss.includes('V4 · ZhiYun ERP operations command center') &&
+          productCss.includes('.erp-intro:after{') &&
+          productCss.includes('.product-workflow__grid{') &&
+          productCss.includes('.content .kpi:after{'),
+  'ERP V4 must implement the refreshed operations masthead, workflow cards and KPI treatment');
+assert.ok(productCss.includes('@media(max-width:900px)') &&
+          productCss.includes('@media(max-width:520px)') &&
+          productCss.includes('.product-workflow__item:hover'),
+  'ERP V4 must provide responsive business workflow cards and interactive states');
+
 assert.ok(productCss.includes('prefers-reduced-motion:reduce'),
   'ERP redesign must respect reduced motion preferences');
 
