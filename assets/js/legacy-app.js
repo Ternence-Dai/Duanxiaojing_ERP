@@ -2838,6 +2838,7 @@ function importAll(input){
       const previousRecoveryRequired = storageRecoveryRequired;
       DB = d;
       if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+      if(!Array.isArray(DB.purchaseReceiptReversals)) DB.purchaseReceiptReversals = [];
       if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
       storageRecoveryRequired = false;
       if(!commitDBMutation(previousDB)){
