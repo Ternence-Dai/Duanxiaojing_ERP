@@ -161,5 +161,3 @@ assert.equal(isValid({...posted,stockMovements:[{...movement,sku:'S'.repeat(81)}
   'imported stock movement SKUs must respect the domain length limit');
 
 console.log('ERP purchase receiving integration and legacy/current backup checks passed.');
-
-console.log('ERP purchase receiving integration and legacy/current backup checks passed.');
