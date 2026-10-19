@@ -66,3 +66,26 @@
 - 下一阶段按稳定 ID 贯通订单—工单—采购单—收货—库存流水；名称匹配只用于兼容导入，不能作为永久关联键。
 - 库存至少区分现存、采购在途、生产/销售预留和预计可用；当前预计库存不扣减所有需求，不能称作 ATP/可承诺量。
 - 质量结果需关联批次和订单/工单，KPI 的分母、过滤状态和日期窗口都应回溯到明细。
+
+## 8. 2026-10-19 源码级复核：ERPNext Purchase Receipt 生命周期
+
+本轮直接核查了上游 `frappe/erpnext` 的以下实现（上游分支 `develop`）：
+
+- `erpnext/stock/doctype/purchase_receipt/purchase_receipt.py`：`validate` 会校验过账日期、采购单约束、质检、前序单据关系和计量单位；`on_submit` 在更新前序单据状态后更新 Stock Ledger、GL，并处理后续库存/账务重算；`on_cancel` 会更新前序单据状态、库存账、账务冲销和相关预留。
+- `erpnext/stock/doctype/stock_ledger_entry/stock_ledger_entry.py`：库存流水是独立业务记录，不只是直接改写 SKU 当前数量。
+- 可复核源码：[Purchase Receipt](https://github.com/frappe/erpnext/blob/develop/erpnext/stock/doctype/purchase_receipt/purchase_receipt.py)、[Stock Ledger Entry](https://github.com/frappe/erpnext/blob/develop/erpnext/stock/doctype/stock_ledger_entry/stock_ledger_entry.py)、[Purchase Order](https://github.com/frappe/erpnext/blob/develop/erpnext/buying/doctype/purchase_order/purchase_order.py)。
+
+### 对织云 ERP 当前实现的核对
+
+已核对本项目 `createPurchaseReceipt`、`postPurchaseReceipt` 和 `isValidDBShape`：
+
+- 已具备：采购单/供应商/物料/SKU/单位/批次/库位匹配；质检合格门槛；按 milliunits 防超收；库存流水前后余额核验；同一保存动作失败时回滚库存、采购状态和收货记录。
+- 明确缺口：当前为单浏览器 localStorage 工作流，没有 ERPNext 等价的数据库事务/并发锁、总账分录、预留库存体系、未来日期流水重算或完整的收货撤销/冲销生命周期。
+- 当前收货过账只接受“合格”记录；不合格物料隔离、部分合格拆分、退货/供应商退货、已过账收货单冲销尚未形成完整闭环。不能把现有功能称为完整 ERP 库存账。
+
+### 后续验收顺序
+
+1. 先设计并测试收货撤销/冲销：必须生成反向库存流水，保留原收货记录，不允许直接删除历史。
+2. 再加入不合格/待判定/部分合格的隔离库存状态，禁止隔离库存计入可用量。
+3. 为采购单行建立稳定 ID，避免后续仅靠采购单号和物料文本关联。
+4. 最后才考虑预留库存、应付/总账和多仓库批次维度；这些功能需要持久化与权限架构支撑，不能只用前端模拟。
