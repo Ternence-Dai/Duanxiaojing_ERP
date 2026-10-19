@@ -1335,7 +1335,7 @@ async function postPurchaseReceipt(){
     if(!Number.isFinite(receivedDate.getTime())) throw new Error('收货时间无效');
     const receivedAt = receivedDate.toISOString();
     const baseNo = 'GRN-' + today().replace(/-/g,'') + '-' + Date.now();
-    const domain = await import('../../src/domain/index.js');
+    const domain = await import('../../src/domain/index.js?v=20261019-erp-receipt-v2');
     const result = domain.createPurchaseReceipt({
       purchaseOrder: order,
       inventoryItem: item,
@@ -1406,7 +1406,7 @@ async function reversePurchaseReceipt(receiptNo){
   if(!window.confirm('确认冲销收货单 '+receipt.receiptNo+'？\n\n库存将减少 '+Number(receipt.quantity).toFixed(3)+' '+receipt.unit+'。原收货记录不会删除，冲销将追加反向库存流水。')) return;
   purchaseReceiptReversalPending=true;
   try{
-    const domain=await import('../../src/domain/index.js');
+    const domain=await import('../../src/domain/index.js?v=20261019-erp-receipt-v2');
     const reversalNo='REV-'+String(receipt.receiptNo).slice(0,54)+'-'+Date.now();
     const result=domain.createPurchaseReceiptReversal({
       purchaseOrder:order,
@@ -1714,7 +1714,7 @@ async function saveForm(){
     const quantityChanged = !previous || nextQty !== previousQty;
     inventorySavePending = true;
     try{
-      const domain = await import('../../src/domain/index.js');
+      const domain = await import('../../src/domain/index.js?v=20261019-erp-receipt-v2');
       if(quantityChanged){
         const normalizedPrevious = domain.normalizeStockBalance(previousQty);
         const normalizedNext = domain.normalizeStockBalance(nextQty);
@@ -2982,7 +2982,7 @@ function renderAbout(){
    12. 路由 & 渲染
    ================================================================== */
 let stockDomain = null;
-import('../../src/domain/index.js').then(domain => {
+import('../../src/domain/index.js?v=20261019-erp-receipt-v2').then(domain => {
   stockDomain = domain;
   if (typeof currentPage !== 'undefined' && currentPage === 'inventory') render();
 }).catch(error => console.warn('库存预计位置计算模块不可用，仍可查看原始库存量。', error));
