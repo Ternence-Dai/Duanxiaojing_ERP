@@ -135,11 +135,13 @@ function isValidDBShape(d){
     const movements = new Map((d.stockMovements || []).map(row => [String(row.reference), row]));
     const receiptIds = new Set();
     const receivedByOrder = new Map();
+    const statusBeforeByOrder = new Map();
     const receiptReferences = new Set();
     const receiptFields = new Set([
       'receiptNo','purchaseNo','sku','material','supplier','quantity','unit',
       'batch','location','receivedAt','receivedBy','inspectedBy',
-      'inspectionResult','note','stockMovementReference','previousBalance','nextBalance'
+      'inspectionResult','note','stockMovementReference','previousBalance','nextBalance',
+      'purchaseStatusBefore'
     ]);
     const toMilliunits = value => {
       if(!Number.isFinite(value) || Number(value.toFixed(3)) !== value) return null;
@@ -170,6 +172,12 @@ function isValidDBShape(d){
          !Number.isFinite(Date.parse(receipt.receivedAt))) return false;
       // Imported backups must obey the same canonical text boundary as
       // receipts created through the live receiving workflow.
+      if(receipt.purchaseStatusBefore !== undefined){
+        if(!['已下单','在途'].includes(receipt.purchaseStatusBefore)) return false;
+        const existingBaseline = statusBeforeByOrder.get(receipt.purchaseNo);
+        if(existingBaseline && existingBaseline !== receipt.purchaseStatusBefore) return false;
+        statusBeforeByOrder.set(receipt.purchaseNo, receipt.purchaseStatusBefore);
+      }
       if(!validReceiptText(receipt.receiptNo,80) ||
          !validReceiptText(receipt.purchaseNo,80) ||
          !validReceiptText(receipt.sku,80) ||
@@ -217,18 +225,96 @@ function isValidDBShape(d){
       if(!Number.isSafeInteger(total)) return false;
       receivedByOrder.set(receipt.purchaseNo, total);
     }
+
+    const reversalRows = d.purchaseReceiptReversals === undefined ? [] : d.purchaseReceiptReversals;
+    if(!Array.isArray(reversalRows)) return false;
+    if(reversalRows.length && !Array.isArray(d.stockMovements)) return false;
+    const receiptsById = new Map(d.purchaseReceipts.map(row => [String(row.receiptNo), row]));
+    const reversedReceiptIds = new Set();
+    const reversalReferences = new Set();
+    const reversedByOrder = new Map();
+    const reversalFields = new Set([
+      'reversalNo','receiptNo','purchaseNo','sku','quantity','unit','reason',
+      'reversedBy','reversedAt','stockMovementReference','originalStockMovementReference',
+      'previousBalance','nextBalance'
+    ]);
+    for(const reversal of reversalRows){
+      if(!isRecord(reversal) ||
+         Object.keys(reversal).some(key => !reversalFields.has(key)) ||
+         !validReceiptText(reversal.reversalNo,80) ||
+         !validReceiptText(reversal.receiptNo,80) ||
+         !validReceiptText(reversal.purchaseNo,80) ||
+         !validReceiptText(reversal.sku,80) ||
+         !validReceiptText(reversal.unit,24) ||
+         !validReceiptText(reversal.reason,1000) ||
+         !validReceiptText(reversal.reversedBy,120) ||
+         !validReceiptText(reversal.stockMovementReference,120) ||
+         !validReceiptText(reversal.originalStockMovementReference,80) ||
+         reversal.stockMovementReference !== reversal.reversalNo ||
+         typeof reversal.reversedAt !== 'string' ||
+         !/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d{1,3})?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(reversal.reversedAt) ||
+         !Number.isFinite(Date.parse(reversal.reversedAt)) ||
+         new Date(Date.parse(reversal.reversedAt)).toISOString() !== reversal.reversedAt) return false;
+      const original = receiptsById.get(reversal.receiptNo);
+      const movement = movements.get(reversal.stockMovementReference);
+      const quantity = toMilliunits(reversal.quantity);
+      const previous = toMilliunits(reversal.previousBalance);
+      const next = toMilliunits(reversal.nextBalance);
+      if(!original || !movement ||
+         reversedReceiptIds.has(reversal.receiptNo) ||
+         reversalReferences.has(reversal.reversalNo) ||
+         reversal.purchaseNo !== original.purchaseNo ||
+         reversal.sku !== original.sku ||
+         reversal.quantity !== original.quantity ||
+         reversal.unit !== original.unit ||
+         reversal.originalStockMovementReference !== original.stockMovementReference ||
+         movement.sku !== reversal.sku ||
+         movement.quantityDelta !== -reversal.quantity ||
+         movement.previousBalance !== reversal.previousBalance ||
+         movement.nextBalance !== reversal.nextBalance ||
+         movement.occurredAt !== reversal.reversedAt ||
+         movement.sourceType !== 'purchase-receipt-reversal' ||
+         movement.sourceNo !== original.receiptNo ||
+         movement.purchaseNo !== reversal.purchaseNo ||
+         movement.reversesReference !== original.stockMovementReference ||
+         quantity === null || quantity <= 0 || previous === null ||
+         previous < quantity || next === null || next !== previous - quantity) return false;
+      reversedReceiptIds.add(reversal.receiptNo);
+      reversalReferences.add(reversal.reversalNo);
+      const totalReversed = (reversedByOrder.get(reversal.purchaseNo) || 0) + quantity;
+      if(!Number.isSafeInteger(totalReversed)) return false;
+      reversedByOrder.set(reversal.purchaseNo, totalReversed);
+    }
+
     for(const [purchaseNo, total] of receivedByOrder){
       const order = orders.get(purchaseNo);
       const ordered = order && toMilliunits(order.qty);
-      if(ordered === null || ordered <= 0 || total > ordered) return false;
-      const expectedStatus = total === ordered ? '已入库' : '部分到货';
+      const reversed = reversedByOrder.get(purchaseNo) || 0;
+      const effective = total - reversed;
+      if(ordered === null || ordered <= 0 || reversed > total ||
+         effective < 0 || effective > ordered) return false;
+      let expectedStatus;
+      if(effective === 0){
+        expectedStatus = statusBeforeByOrder.get(purchaseNo);
+        if(!expectedStatus) return false;
+      }else{
+        expectedStatus = effective === ordered ? '已入库' : '部分到货';
+      }
       if(order.status !== expectedStatus) return false;
+    }
+    for(const reversal of reversalRows){
+      if(!receivedByOrder.has(reversal.purchaseNo)) return false;
     }
     for(const movement of d.stockMovements || []){
       if(movement && movement.sourceType === 'purchase-receipt' &&
          !receiptReferences.has(String(movement.reference))) return false;
+      if(movement && movement.sourceType === 'purchase-receipt-reversal' &&
+         !reversalReferences.has(String(movement.reference))) return false;
     }
-  }else if((d.stockMovements || []).some(movement => movement && movement.sourceType === 'purchase-receipt')){
+  }else if((d.stockMovements || []).some(movement =>
+    movement && (movement.sourceType === 'purchase-receipt' ||
+                 movement.sourceType === 'purchase-receipt-reversal')) ||
+    (d.purchaseReceiptReversals || []).length){
     return false;
   }
   return true;
