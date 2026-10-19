@@ -200,6 +200,14 @@ test("rejects duplicate receipt references, malformed dates and quantities",()=>
  assert.throws(()=>createPurchaseReceipt({...receiptBase,quantity:0}),/receipt quantity/);
  assert.throws(()=>createPurchaseReceipt({...receiptBase,quantity:0.0001}),/at most 3 decimals/);
 });
+test("rejects control characters and oversized inventory traceability text",()=>{
+ assert.throws(()=>applyStockMovement(1,{...movement,sku:"FABRIC\\n001"}),RangeError);
+ assert.throws(()=>applyStockMovement(1,{...movement,reference:"ISSUE-\\u0000001"}),RangeError);
+ assert.throws(()=>applyStockMovement(1,{...movement,sku:"S".repeat(81)}),RangeError);
+ assert.throws(()=>createPurchaseReceipt({...receiptBase,receivedBy:"warehouse\\n1"}),TypeError);
+ assert.throws(()=>createPurchaseReceipt({...receiptBase,note:"x".repeat(2001)}),RangeError);
+ assert.throws(()=>createPurchaseReceipt({...receiptBase,note:"bad\\u0000note"}),TypeError);
+});
 test("validates immutable receipt records and stock balance arithmetic",()=>{
  const result=createPurchaseReceipt(receiptBase);
  assert.equal(validatePurchaseReceiptRecord(result.receipt).nextBalance,45);
