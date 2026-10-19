@@ -47,8 +47,10 @@ export function applyStockMovement(balance, movement) {
   if (!movement || typeof movement !== "object" || Array.isArray(movement)) throw new TypeError("movement must be an object");
   const { sku, quantityDelta, reference, occurredAt } = movement;
   if (typeof sku !== "string" || !sku.trim()) throw new TypeError("sku is required");
+  if (sku.trim().length > 80 || /[\\x00-\\x1F\\x7F]/.test(sku)) throw new RangeError("sku must be at most 80 characters and contain no control characters");
   const deltaMilliunits = toMilliunits(quantityDelta, "quantityDelta", { allowZero: false });
   if (typeof reference !== "string" || !reference.trim()) throw new TypeError("reference is required for traceability");
+  if (reference.trim().length > 120 || /[\\x00-\\x1F\\x7F]/.test(reference)) throw new RangeError("reference must be at most 120 characters and contain no control characters");
   const normalizedOccurredAt = parseOccurredAt(occurredAt);
   const nextMilliunits = balanceMilliunits + deltaMilliunits;
   if (!Number.isSafeInteger(nextMilliunits) || nextMilliunits < 0) {
@@ -73,6 +75,9 @@ function requiredPurchaseText(value, field, maxLength = 160) {
   const normalized = value.trim();
   if (normalized.length > maxLength) {
     throw new RangeError(`purchase receipt ${field} exceeds ${maxLength} characters`);
+  }
+  if (/[\\x00-\\x1F\\x7F]/.test(normalized)) {
+    throw new TypeError(`purchase receipt ${field} must not contain control characters`);
   }
   return normalized;
 }
@@ -105,6 +110,8 @@ export function validatePurchaseReceiptRecord(entry) {
     throw new RangeError("only a recorded qualified incoming inspection can be posted into available stock");
   }
   if (typeof entry.note !== "string") throw new TypeError("purchase receipt note must be text");
+  if (entry.note.trim().length > 2000) throw new RangeError("purchase receipt note exceeds 2000 characters");
+  if (/[\\x00-\\x1F\\x7F]/.test(entry.note)) throw new TypeError("purchase receipt note must not contain control characters");
   if (entry.stockMovementReference !== receiptNo) {
     throw new RangeError("purchase receipt must reference its own stock movement");
   }
