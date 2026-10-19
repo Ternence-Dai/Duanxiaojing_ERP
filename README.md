@@ -31,3 +31,8 @@ The modernization work is being applied directly to `main`. The verified invento
 Remaining delivery work includes broader purchase-to-receipt and production material-consumption workflows, role/permission enforcement, database-backed concurrent transactions, finance integration and reconciliation, and migration verification using real business backups. The current browser persistence is not a substitute for a transactional production database.
 
 See [the rebuild plan](docs/REBUILD_PLAN.md) and [domain rules, units and validation boundaries](docs/DOMAIN_CORE.md).
+
+
+## 开源项目深度对标
+
+本项目采用的上游参考、架构借鉴、实现边界与后续验收要求见 [docs/OPEN_SOURCE_BENCHMARKS.md](docs/OPEN_SOURCE_BENCHMARKS.md)。
