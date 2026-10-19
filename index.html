@@ -9,8 +9,9 @@
 <meta name="contact" content="18662613315@163.com">
 <meta name="description" content="织云ERP - 企业级纺织行业全流程管理系统。设计与开发：段小静 18662613315@163.com">
 <link rel="stylesheet" href="./assets/css/legacy-app.css">
-  <link rel="stylesheet" href="./assets/css/product-system.css?v=20261018-v3.2">
-  <link rel="stylesheet" href="./assets/css/product-system.css?v=20261019-v5">
+
+
+  <link rel="stylesheet" href="./assets/css/product-system.css?v=20261019-v6">
 </head>
 <body>
 
@@ -55,6 +56,15 @@
 
     <section class="erp-intro"><div><div class="eyebrow">ZHIYUN · BUSINESS OPERATIONS</div><h2>企业经营协同中心</h2><p>围绕客户、订单、物料、库存与生产协同开展日常经营管理。关键业务变更请核对单据与关联记录，并定期导出备份。</p><div class="erp-modules"><span>客户与订单</span><span>物料与库存</span><span>生产与质量</span><span>经营分析</span><span>数据备份</span></div></div><div class="erp-mark">织云</div></section>
     <div class="erp-demo-note" role="note" style="margin:12px 0;padding:12px 16px;border:1px solid #f0c36d;border-radius:10px;background:#fff8e8;color:#7a4b00;font-size:13px;line-height:1.65"><b>演示数据提醒：</b>系统内置的企业名称、税号、客户、订单、库存、单价、产能与人员等资料属于示例数据，未经真实企业单据核验。不得直接用于开票、报税、财务结算、生产排程或经营决策；请先导入并核验真实业务数据。</div>
+    <section class="product-workflow" aria-label="经营业务流程快捷入口">
+      <div class="product-workflow__head"><div><span class="eyebrow">TEXTILE BUSINESS OPERATIONS</span><h3>经营业务流程</h3><p>按销售订单、生产执行、库存准备和采购补货的业务顺序组织操作。</p></div><span class="product-workflow__mode">ORDER → PRODUCE → STOCK</span></div>
+      <div class="product-workflow__grid">
+        <button class="product-workflow__item" type="button" onclick="go('orders')"><i>01</i><b>销售订单</b><small>客户需求 · 数量 · 交期</small><span>打开订单 ↗</span></button>
+        <button class="product-workflow__item" type="button" onclick="go('workorders')"><i>02</i><b>生产工单</b><small>计划量 · 工序 · 完工状态</small><span>打开工单 ↗</span></button>
+        <button class="product-workflow__item" type="button" onclick="go('inventory')"><i>03</i><b>物料库存</b><small>现存 · 在途 · 安全库存</small><span>打开库存 ↗</span></button>
+        <button class="product-workflow__item" type="button" onclick="go('purchase')"><i>04</i><b>采购协同</b><small>采购单 · 收货 · 入库</small><span>打开采购 ↗</span></button>
+      </div><div class="product-workflow__foot">对标参照：ERPNext 制造工单、Job Card 与库存看板；本应用仍为浏览器本地数据，不具备服务端并发及权限控制。</div>
+    </section>
     <div class="content" id="content"></div>
 
     <footer class="app-footer">
