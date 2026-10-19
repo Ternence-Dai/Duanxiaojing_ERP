@@ -434,3 +434,33 @@ tbody tr:hover{background:#f5fafb!important}
   .receipt-submit-row{align-items:stretch;flex-direction:column}
   .receipt-submit-row .btn{width:100%}
 }
+
+
+/* V4 · Interaction, readability and responsive finishing pass */
+:where(button,[role="button"],a,input,select,textarea){-webkit-tap-highlight-color:transparent}
+:where(button,a,[role="button"]){transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease}
+:where(button:not(:disabled),[role="button"],a):active{transform:translateY(1px)}
+:where(button:disabled){cursor:not-allowed;opacity:.58}
+:where(input,select,textarea){max-width:100%;min-width:0}
+:where(button,input,select,textarea,a,[tabindex]):focus-visible{outline:3px solid color-mix(in srgb,var(--ds-brand,#168b9a) 42%,transparent);outline-offset:2px}
+:where(.card,.kpi,.gcard,.lib-cat,.param-group,.experiment-card,.metric-card,.module-card,.pnl,.score-card,.quick,.mode){transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+@media(hover:hover){:where(.card,.kpi,.gcard,.experiment-card,.metric-card,.module-card,.quick,.mode):hover{transform:translateY(-2px)}}
+:where(table){max-width:100%;font-variant-numeric:tabular-nums}
+:where(th){text-align:left}
+:where(td,th){overflow-wrap:anywhere}
+:where(img,svg,canvas){max-width:100%}
+@media(max-width:760px){
+  :where(.content,.pages,.content-body,.view,.mn){min-width:0;max-width:100%}
+  :where(.hyhub-intro,.health-intro,.erp-intro,.study-intro,.labos-intro,.physchem-intro){gap:14px;padding:18px 16px}
+  :where(.hyhub-intro .mark,.health-intro .health-state,.erp-intro .erp-mark,.study-intro .orbit,.labos-intro .labos-stamp,.physchem-intro .atom){flex-shrink:0}
+  :where(.lib-stats,.metrics-grid){grid-template-columns:repeat(2,minmax(0,1fr))}
+  :where(.lib-categories-grid){grid-template-columns:minmax(0,1fr)}
+  :where(.lib-cat.open){grid-column:auto}
+  :where(.lib-cat.open .lib-cat-body){grid-template-columns:minmax(0,1fr)}
+  :where(table){display:block;max-width:100%;overflow-x:auto;white-space:nowrap}
+}
+@media(max-width:420px){
+  :where(.hyhub-intro .mark,.erp-intro .erp-mark,.study-intro .orbit,.labos-intro .labos-stamp,.physchem-intro .atom){display:none}
+  :where(.lib-stats,.metrics-grid){grid-template-columns:minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce){:where(button,a,[role="button"],.card,.kpi,.gcard,.experiment-card,.metric-card,.module-card,.quick,.mode){transition:none!important;transform:none!important}}
