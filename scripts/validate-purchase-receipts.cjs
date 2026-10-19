@@ -12,13 +12,15 @@ const workflow = fs.readFileSync('.github/workflows/validate.yml', 'utf8');
 const purchaseWorkspace = fs.readFileSync('assets/js/workspace-v5-purchase.js', 'utf8');
 const workspaceCss = fs.readFileSync('assets/css/workspace-v5.css', 'utf8');
 
-assert.ok(html.includes('workspace-v5-purchase.js?v=20261019-v52'),
-  'ERP page must load the V5.2 purchase receiving workspace enhancement');
+assert.ok(html.includes('workspace-v5-purchase.js?v=20261019-v53') &&
+          html.includes('workspace-v5.css?v=20261019-v53'),
+  'ERP page must load the current receiving and reversal workspace assets');
 assert.doesNotThrow(() => new Function(purchaseWorkspace),
   'purchase receiving workspace enhancement must parse as valid JavaScript');
 for (const token of [
   'w5-receipt-dashboard', 'w5-receipt-metrics', 'w5-receipt-progress',
   'w5-receipt-steps', 'w5-receipt-history-tools',
+  'data-reverse-receipt', 'w5-receipt-reversal-log',
   '采购订单到货进度', '检索流水'
 ]) assert.ok(purchaseWorkspace.includes(token),
   'purchase receiving workspace must include the operating surface: ' + token);
@@ -36,7 +38,8 @@ assert.ok(!purchaseWorkspace.includes('.innerHTML'),
 for (const selector of [
   '.w5-receipt-dashboard', '.w5-receipt-metric',
   '.w5-receipt-progress__row', '.w5-receipt-step',
-  '.w5-receipt-history-tools'
+  '.w5-receipt-history-tools', '.w5-receipt-reverse',
+  '.w5-receipt-reversal-log'
 ]) assert.ok(workspaceCss.includes(selector),
   'ERP V5.2 stylesheet must style the purchase workspace: ' + selector);
 
@@ -53,8 +56,9 @@ for (const id of [
 
 assert.ok(app.includes('function renderPurchaseReceiptWorkspace()') &&
           app.includes('function renderPurchaseReceiptSkuOptions()') &&
-          app.includes('async function postPurchaseReceipt()'),
-  'purchase receiving UI, SKU mapping and posting handler must exist');
+          app.includes('async function postPurchaseReceipt()') &&
+          app.includes('async function reversePurchaseReceipt(receiptNo)'),
+  'purchase receiving UI, SKU mapping, posting and reversal handlers must exist');
 assert.ok(app.includes("key === 'purchase' ? renderPurchaseReceiptWorkspace() : ''"),
   'purchase receipt workflow must be visible in the purchase module');
 assert.ok(app.includes("domain.createPurchaseReceipt({") &&
@@ -67,7 +71,9 @@ assert.ok(app.includes("domain.createPurchaseReceipt({") &&
 assert.ok(app.includes('domain.validatePurchaseReceiptRecord') === false,
   'application should not claim it calls a validator it does not actually use');
 assert.ok(domain.includes('export function createPurchaseReceipt(') &&
-          domain.includes('export function validatePurchaseReceiptRecord('),
+          domain.includes('export function validatePurchaseReceiptRecord(') &&
+          domain.includes('export function createPurchaseReceiptReversal(') &&
+          domain.includes('export function validatePurchaseReceiptReversalRecord('),
   'domain core must expose receipt creation and immutable receipt validation');
 assert.ok(domain.includes('purchase order material, unit and supplier must exactly match') &&
           domain.includes('receipt batch must match the selected SKU') &&
@@ -86,8 +92,14 @@ assert.ok(app.includes("const derivedStatuses = new Set(['部分到货','已到�
           app.includes("const immutableFields = ['name','supplier','unit','batch','loc']"),
   'receipt-derived status and source material/lot identity must not be edited around the ledger');
 assert.ok(app.includes("if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];") &&
+          app.includes("if(!Array.isArray(DB.purchaseReceiptReversals)) DB.purchaseReceiptReversals = [];") &&
           app.includes("if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];"),
-  'legacy app data must migrate missing receipt/movement tables to empty lists');
+  'legacy app data must migrate missing receipt/reversal/movement tables to empty lists');
+assert.ok(app.includes('DB.purchaseReceiptReversals.unshift(result.reversal)') &&
+          app.includes('DB.stockMovements.unshift(result.stockMovement)') &&
+          app.includes('sourceType') === false &&
+          app.includes('getPurchaseReceivedMilliunits(purchaseNo)'),
+  'reversal posting must preserve the original receipt and append a movement and reversal record');
 
 const importStart = app.indexOf('function importAll(input)');
 const importEnd = app.indexOf('function resetAll()', importStart);
@@ -97,8 +109,10 @@ const fileEnd = app.indexOf('async function bindLocalFile()', fileStart);
 const fileSource = app.slice(fileStart, fileEnd);
 assert.ok(importSource.includes('isValidDBShape(d)') &&
           importSource.includes('DB.purchaseReceipts = []') &&
+          importSource.includes('DB.purchaseReceiptReversals = []') &&
           fileSource.includes('isValidDBShape(d)') &&
-          fileSource.includes('DB.purchaseReceipts = []'),
+          fileSource.includes('DB.purchaseReceipts = []') &&
+          fileSource.includes('DB.purchaseReceiptReversals = []'),
   'JSON and bound-file restore must support legacy backups without fabricated receipt records');
 assert.ok(seed.includes('purchaseReceipts: []') &&
           seed.includes('stockMovements: []'),
@@ -143,7 +157,7 @@ const receipt = {
   batch:'LOT-1',location:'A-01-01',receivedAt:'2026-10-18T01:00:00.000Z',
   receivedBy:'warehouse-1',inspectedBy:'qc-1',inspectionResult:'合格',
   note:'incoming inspection passed',stockMovementReference:'GRN-1',
-  previousBalance:0,nextBalance:10
+  previousBalance:0,nextBalance:10,purchaseStatusBefore:'在途'
 };
 const movement = {
   sku:'SKU-1',quantityDelta:10,reference:'GRN-1',
@@ -190,4 +204,43 @@ assert.equal(isValid({...posted,stockMovements:[{...movement,reference:' GRN-1'}
 assert.equal(isValid({...posted,stockMovements:[{...movement,sku:'S'.repeat(81)}]}), false,
   'imported stock movement SKUs must respect the domain length limit');
 
-console.log('ERP purchase receiving integration and legacy/current backup checks passed.');
+const reversal = {
+  reversalNo:'REV-GRN-1',receiptNo:'GRN-1',purchaseNo:'PO-1',sku:'SKU-1',
+  quantity:10,unit:'公斤',reason:'Duplicate receipt posting',
+  reversedBy:'warehouse-supervisor',reversedAt:'2026-10-19T10:00:00.000Z',
+  stockMovementReference:'REV-GRN-1',originalStockMovementReference:'GRN-1',
+  previousBalance:10,nextBalance:0
+};
+const reversalMovement = {
+  sku:'SKU-1',quantityDelta:-10,reference:'REV-GRN-1',
+  occurredAt:'2026-10-19T10:00:00.000Z',
+  previousBalance:10,nextBalance:0,
+  sourceType:'purchase-receipt-reversal',sourceNo:'GRN-1',
+  purchaseNo:'PO-1',reversesReference:'GRN-1'
+};
+const postedReversed = {
+  ...posted,
+  purchase:[{...legacy.purchase[0],status:'在途'}],
+  inventory:[{...legacy.inventory[0],qty:0}],
+  purchaseReceipts:[receipt],
+  purchaseReceiptReversals:[reversal],
+  stockMovements:[reversalMovement,movement]
+};
+assert.equal(isValid(postedReversed), true,
+  'a receipt reversal must retain the original receipt and append a linked negative stock movement');
+assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[]}), false,
+  'a reversal-tagged movement without a reversal audit record must be rejected');
+assert.equal(isValid({...postedReversed,purchase:[{...postedReversed.purchase[0],status:'部分到货'}]}), false,
+  'fully reversed receipt quantities must restore the pre-receipt purchase status');
+assert.equal(isValid({...postedReversed,purchaseReceipts:[{...receipt,purchaseStatusBefore:undefined}]}), false,
+  'a full reversal without a trustworthy PO status snapshot must be rejected');
+assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[{...reversal,reason:' ' }]}), false,
+  'reversal reason must be present and canonical');
+assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[{...reversal,quantity:9}]}), false,
+  'reversal quantity must exactly match the original receipt');
+assert.equal(isValid({...postedReversed,stockMovements:[{...reversalMovement,reversesReference:'OTHER'},movement]}), false,
+  'reversal stock movement must link to its exact original movement');
+assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[reversal,{...reversal,reversalNo:'REV-GRN-2'}]}), false,
+  'one receipt cannot be reversed more than once');
+
+console.log('ERP purchase receiving and append-only reversal integration and backup checks passed.');
