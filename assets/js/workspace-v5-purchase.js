@@ -17,12 +17,14 @@
   }
   function eligibleOrders(data) {
     const receipts = Array.isArray(data.purchaseReceipts) ? data.purchaseReceipts : [];
+    const reversed = new Set((Array.isArray(data.purchaseReceiptReversals) ? data.purchaseReceiptReversals : [])
+      .map(row => String(row.receiptNo)));
     const eligible = new Set(["已下单", "在途", "部分到货"]);
     return (Array.isArray(data.purchase) ? data.purchase : [])
       .map(order => {
         const ordered = milli(order.qty);
         const received = receipts
-          .filter(row => String(row.purchaseNo) === String(order.no))
+          .filter(row => String(row.purchaseNo) === String(order.no) && !reversed.has(String(row.receiptNo)))
           .reduce((sum, row) => sum + milli(row.quantity), 0);
         return { order, ordered, received, remaining: Math.max(0, ordered - received) };
       })
@@ -40,6 +42,7 @@
     const open = eligibleOrders(data);
     const today = new Date();
     const todayKey = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-");
+    const reversals = Array.isArray(data.purchaseReceiptReversals) ? data.purchaseReceiptReversals : [];
     const todayCount = receipts.filter(row => {
       const date = new Date(row.receivedAt);
       if (!Number.isFinite(date.getTime())) return false;
@@ -63,8 +66,9 @@
     panel.append(title);
 
     const grid = node("div", "w5-receipt-metrics");
-    grid.append(metric("待收货采购单", open.length, "仍有未收货数量的订单", "accent"));
-    grid.append(metric("已过账收货单", receipts.length, "质检合格并进入库存的记录", ""));
+    grid.append(metric("待收货采购单", open.length, "按已冲销记录重新计算未收数量", "accent"));
+    grid.append(metric("收货原始记录", receipts.length, "保留完整原始入库凭证", ""));
+    grid.append(metric("已冲销记录", reversals.length, "采用独立负向库存流水", reversals.length ? "warning" : ""));
     grid.append(metric("今日收货单", todayCount, "按收货时间统计", ""));
     grid.append(metric("历史待核对", legacyCount, "旧状态缺少可追溯收货记录", legacyCount ? "warning" : ""));
     panel.append(grid);
@@ -165,7 +169,18 @@
     const history = root.querySelector(".purchase-receipt-history");
     const table = history && history.querySelector("table");
     const head = history && history.querySelector(".card-head");
-    if (!history || !table || !head || history.querySelector(".w5-receipt-history-tools")) return;
+    if (!history || !table || !head) return;
+    if (table.dataset.w5ReverseBound !== "true") {
+      table.dataset.w5ReverseBound = "true";
+      table.addEventListener("click", event => {
+        const button = event.target.closest("[data-reverse-receipt]");
+        if (!button || button.disabled) return;
+        event.preventDefault();
+        const handler = window.reversePurchaseReceipt;
+        if (typeof handler === "function") handler(button.getAttribute("data-reverse-receipt"));
+      });
+    }
+    if (history.querySelector(".w5-receipt-history-tools")) return;
     const data = db();
     const receipts = data && Array.isArray(data.purchaseReceipts) ? data.purchaseReceipts : [];
     Array.from(table.querySelectorAll("tbody tr")).forEach((row, index) => {
