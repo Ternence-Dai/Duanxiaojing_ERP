@@ -180,7 +180,7 @@ export function createPurchaseReceipt({
       throw new TypeError("existing stock movement references must be non-empty and unique");
     }
     const normalizedReference = reference.trim();
-    if (normalizedReference.length > 120 || /[\\x00-\\x1F\\x7F]/.test(reference)) {
+    if (normalizedReference.length > 120 || [...reference].some(character => character.charCodeAt(0) <= 31 || character.charCodeAt(0) === 127)) {
       throw new TypeError("existing stock movement references must be at most 120 characters and contain no control characters");
     }
     if (movementReferenceSet.has(normalizedReference)) {
