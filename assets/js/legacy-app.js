@@ -326,6 +326,7 @@ async function readFromFile(){
     if(isValidDBShape(d)){
       DB = d;
       if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+      if(!Array.isArray(DB.purchaseReceiptReversals)) DB.purchaseReceiptReversals = [];
       if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
       try{
         localStorage.setItem(STORE_KEY, JSON.stringify(DB));
@@ -658,6 +659,7 @@ const SCHEMAS = {
 
 DB = loadDB();
 if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
+if(!Array.isArray(DB.purchaseReceiptReversals)) DB.purchaseReceiptReversals = [];
 if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
 
 /* ==================================================================
@@ -1080,8 +1082,9 @@ function getPurchaseReceiptMatches(order){
 }
 
 function getPurchaseReceivedMilliunits(purchaseNo){
+  const reversed = new Set((DB.purchaseReceiptReversals || []).map(row => String(row.receiptNo)));
   return (DB.purchaseReceipts || [])
-    .filter(row => String(row.purchaseNo) === String(purchaseNo))
+    .filter(row => String(row.purchaseNo) === String(purchaseNo) && !reversed.has(String(row.receiptNo)))
     .reduce((sum, row) => sum + Math.round(Number(row.quantity) * 1000), 0);
 }
 
@@ -1164,15 +1167,23 @@ function renderPurchaseReceiptWorkspace(){
       (matching ? '' : ' · 无精确库存 SKU') + '</option>';
   }).join('');
   const totalReceipts = DB.purchaseReceipts.length;
-  const receiptHistory = DB.purchaseReceipts.slice(0, 20).map(row =>
-    '<tr><td class="mono">' + esc(row.receiptNo) + '</td>' +
-    '<td class="mono">' + esc(row.purchaseNo) + '</td>' +
-    '<td>' + esc(row.material) + '<small>' + esc(row.sku) + '</small></td>' +
-    '<td class="num">+' + Number(row.quantity).toFixed(3) + ' ' + esc(row.unit) + '</td>' +
-    '<td>' + esc(row.batch) + '<small>' + esc(row.location) + '</small></td>' +
-    '<td>' + esc(row.receivedBy) + '<small>质检：' + esc(row.inspectedBy) + '</small></td>' +
-    '<td>' + esc(new Date(row.receivedAt).toLocaleString()) + '</td></tr>'
-  ).join('');
+  const receiptReversals = DB.purchaseReceiptReversals || [];
+  const reversalByReceipt = new Map(receiptReversals.map(row => [String(row.receiptNo), row]));
+  const receiptHistory = DB.purchaseReceipts.slice(0, 20).map(row => {
+    const reversal = reversalByReceipt.get(String(row.receiptNo));
+    const state = reversal
+      ? '<span class="w5-receipt-reversed">已冲销<small>' + esc(reversal.reversalNo) + '</small></span>'
+      : '<button type="button" class="w5-receipt-reverse" data-reverse-receipt="' + esc(row.receiptNo) + '"' +
+        (storageRecoveryRequired ? ' disabled' : '') + '>冲销收货</button>';
+    return '<tr><td class="mono">' + esc(row.receiptNo) + '</td>' +
+      '<td class="mono">' + esc(row.purchaseNo) + '</td>' +
+      '<td>' + esc(row.material) + '<small>' + esc(row.sku) + '</small></td>' +
+      '<td class="num">+' + Number(row.quantity).toFixed(3) + ' ' + esc(row.unit) + '</td>' +
+      '<td>' + esc(row.batch) + '<small>' + esc(row.location) + '</small></td>' +
+      '<td>' + esc(row.receivedBy) + '<small>质检：' + esc(row.inspectedBy) + '</small></td>' +
+      '<td>' + esc(new Date(row.receivedAt).toLocaleString()) + '</td>' +
+      '<td>' + state + '</td></tr>';
+  }).join('');
   const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,16);
   return '<section class="purchase-receipt-workspace">' +
     '<div class="purchase-receipt-head"><div><div class="eyebrow">PURCHASE · RECEIVING · STOCK LEDGER</div>' +
@@ -1204,9 +1215,12 @@ function renderPurchaseReceiptWorkspace(){
       '<div class="receipt-submit-row"><span>每张收货单生成独立库存流水；重复单号、超订单数量及不匹配 SKU 会被拒绝。</span>' +
       '<button id="receipt-submit" type="button" class="btn btn-primary"' + (!initialMatch || storageRecoveryRequired ? ' disabled' : '') + ' onclick="postPurchaseReceipt()">确认检验合格并入库</button></div>' +
     '</form>' +
-    '<div class="purchase-receipt-history"><div class="card-head"><div class="card-title">采购收货流水</div><div class="card-sub">最近 ' + Math.min(totalReceipts,20) + ' 条 · 共 ' + totalReceipts + ' 条</div></div>' +
-    (receiptHistory ? '<div class="table-scroll"><table><thead><tr><th>收货单号</th><th>采购单</th><th>物料 / SKU</th><th>入库数量</th><th>批次 / 库位</th><th>经办 / 质检</th><th>收货时间</th></tr></thead><tbody>' + receiptHistory + '</tbody></table></div>' :
+    '<div class="purchase-receipt-history"><div class="card-head"><div class="card-title">采购收货流水</div><div class="card-sub">最近 ' + Math.min(totalReceipts,20) + ' 条 · 共 ' + totalReceipts + ' 条 · 已冲销 ' + receiptReversals.length + ' 条</div></div>' +
+    (receiptHistory ? '<div class="table-scroll"><table><thead><tr><th>收货单号</th><th>采购单</th><th>物料 / SKU</th><th>原入库数量</th><th>批次 / 库位</th><th>经办 / 质检</th><th>收货时间</th><th>状态 / 操作</th></tr></thead><tbody>' + receiptHistory + '</tbody></table></div>' :
       '<div class="empty">暂无本版本可核验的采购收货流水。旧演示采购单不会自动生成历史收货记录。</div>') +
+    (receiptReversals.length ? '<div class="w5-receipt-reversal-log"><strong>冲销审计记录</strong>' + receiptReversals.slice(0,10).map(row =>
+      '<article><span class="mono">' + esc(row.reversalNo) + '</span><b>' + esc(row.receiptNo) + '</b><span>-' + Number(row.quantity).toFixed(3) + ' ' + esc(row.unit) + '</span><small>' + esc(row.reason) + ' · ' + esc(row.reversedBy) + ' · ' + esc(new Date(row.reversedAt).toLocaleString()) + '</small></article>'
+    ).join('') + '</div>' : '') +
     '</div></section>';
 }
 
@@ -1240,6 +1254,7 @@ async function postPurchaseReceipt(){
       purchaseOrder: order,
       inventoryItem: item,
       existingReceipts: DB.purchaseReceipts || [],
+      existingReversals: DB.purchaseReceiptReversals || [],
       existingMovementReferences: (DB.stockMovements || []).map(row => row.reference),
       receiptNo: baseNo,
       quantity: Number(document.getElementById('receipt-quantity').value),
@@ -1277,6 +1292,72 @@ async function postPurchaseReceipt(){
     purchaseReceiptPending = false;
     const currentButton = document.getElementById('receipt-submit');
     if(currentButton) currentButton.disabled = false;
+  }
+}
+
+
+let purchaseReceiptReversalPending = false;
+async function reversePurchaseReceipt(receiptNo){
+  if(purchaseReceiptPending || purchaseReceiptReversalPending) return;
+  if(storageRecoveryRequired){
+    toast('检测到 ERP 缓存异常，已暂停收货冲销；请先恢复有效备份。');
+    return;
+  }
+  const receipt=(DB.purchaseReceipts||[]).find(row=>String(row.receiptNo)===String(receiptNo));
+  if(!receipt){toast('未找到原始收货记录，未执行冲销。');return;}
+  if((DB.purchaseReceiptReversals||[]).some(row=>String(row.receiptNo)===String(receiptNo))){
+    toast('该收货单已经冲销，系统不会重复冲销。');return;
+  }
+  const reason=window.prompt('请填写冲销原因（必填，最多 1000 字）：','');
+  if(reason===null) return;
+  if(!String(reason).trim()){toast('必须填写冲销原因，未执行冲销。');return;}
+  const reversedBy=window.prompt('请填写实际冲销经办人 / 工号：','');
+  if(reversedBy===null) return;
+  if(!String(reversedBy).trim()){toast('必须填写冲销经办人，未执行冲销。');return;}
+  const order=DB.purchase.find(row=>String(row.no)===String(receipt.purchaseNo));
+  const item=DB.inventory.find(row=>String(row.code)===String(receipt.sku));
+  if(!order||!item){toast('原采购单或库存 SKU 已不存在；请人工核对，不会自动改动数据。');return;}
+  if(!window.confirm('确认冲销收货单 '+receipt.receiptNo+'？\n\n库存将减少 '+Number(receipt.quantity).toFixed(3)+' '+receipt.unit+'。原收货记录不会删除，冲销将追加反向库存流水。')) return;
+  purchaseReceiptReversalPending=true;
+  try{
+    const domain=await import('../../src/domain/index.js');
+    const reversalNo='REV-'+String(receipt.receiptNo).slice(0,54)+'-'+Date.now();
+    const result=domain.createPurchaseReceiptReversal({
+      purchaseOrder:order,
+      inventoryItem:item,
+      receipt,
+      existingReceipts:DB.purchaseReceipts||[],
+      existingReversals:DB.purchaseReceiptReversals||[],
+      existingMovementReferences:(DB.stockMovements||[]).map(row=>row.reference),
+      reversalNo,
+      reversedAt:new Date().toISOString(),
+      reversedBy:String(reversedBy).trim(),
+      reason:String(reason).trim()
+    });
+    const previousDB=snapshotDB();
+    const inventoryIndex=DB.inventory.findIndex(row=>String(row.code)===String(receipt.sku));
+    const purchaseIndex=DB.purchase.findIndex(row=>String(row.no)===String(receipt.purchaseNo));
+    if(inventoryIndex<0||purchaseIndex<0||
+       Number(DB.inventory[inventoryIndex].qty)!==result.stockMovement.previousBalance){
+      throw new Error('库存或采购单已被其他操作修改；冲销未过账，请刷新后核对');
+    }
+    DB.inventory[inventoryIndex].qty=result.stockMovement.nextBalance;
+    DB.purchase[purchaseIndex].status=result.purchaseStatus;
+    DB.purchaseReceiptReversals=Array.isArray(DB.purchaseReceiptReversals)?DB.purchaseReceiptReversals:[];
+    DB.purchaseReceiptReversals.unshift(result.reversal);
+    DB.stockMovements.unshift(result.stockMovement);
+    if(!commitDBMutation(previousDB)){
+      toast('冲销保存失败，库存、采购状态和冲销流水已一并回滚。');
+      return;
+    }
+    render();
+    initNav();
+    toast('收货冲销已追加；库存减少 '+result.reversal.quantity.toFixed(3)+' '+result.reversal.unit+
+      '，采购单状态：'+result.purchaseStatus+'。原收货单仍保留在审计记录中。');
+  }catch(error){
+    toast('收货冲销未执行：'+error.message);
+  }finally{
+    purchaseReceiptReversalPending=false;
   }
 }
 
