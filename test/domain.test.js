@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyStockMovement, normalizeStockBalance, createPurchaseReceipt, validatePurchaseReceiptRecord } from "../src/domain/index.js";
+import { applyStockMovement, normalizeStockBalance, calculateStockPosition, createPurchaseReceipt, validatePurchaseReceiptRecord } from "../src/domain/index.js";
 const movement={sku:"FABRIC-001",quantityDelta:-3,reference:"ISSUE-0001",occurredAt:"2026-02-01T08:00:00Z"};
 test("records a traceable stock ledger transition",()=>{
  const row=applyStockMovement(10,movement);
@@ -220,4 +220,28 @@ test("validates immutable receipt records and stock balance arithmetic",()=>{
  assert.throws(()=>validatePurchaseReceiptRecord({...result.receipt,unexpected:"payload"}),/unsupported fields/);
  assert.throws(()=>validatePurchaseReceiptRecord({...result.receipt,nextBalance:46}),/balances are inconsistent/);
  assert.throws(()=>validatePurchaseReceiptRecord({...result.receipt,inspectionResult:"待检"}),/only a recorded qualified/);
+});
+
+
+test("calculates on-hand, inbound and projected stock using exact milliunits",()=>{
+ const position=calculateStockPosition({onHand:12.125,incomingQuantity:8.375,safetyStock:15});
+ assert.equal(position.onHand,12.125);
+ assert.equal(position.incomingQuantity,8.375);
+ assert.equal(position.projectedQuantity,20.5);
+ assert.equal(position.replenishmentQuantity,0);
+ assert.equal(position.status,"sufficient");
+ assert.ok(Object.isFrozen(position));
+});
+test("reports the exact replenishment gap when projected stock is below safety stock",()=>{
+ const position=calculateStockPosition({onHand:3.25,incomingQuantity:2.5,safetyStock:10});
+ assert.equal(position.projectedQuantity,5.75);
+ assert.equal(position.replenishmentQuantity,4.25);
+ assert.equal(position.status,"below-safety");
+});
+test("rejects negative, over-precise and overflowing projected stock positions",()=>{
+ assert.throws(()=>calculateStockPosition({onHand:-1}),RangeError);
+ assert.throws(()=>calculateStockPosition({onHand:1,incomingQuantity:-0.001}),RangeError);
+ assert.throws(()=>calculateStockPosition({onHand:1,safetyStock:-1}),RangeError);
+ assert.throws(()=>calculateStockPosition({onHand:1.0001}),RangeError);
+ assert.throws(()=>calculateStockPosition({onHand:Number.MAX_SAFE_INTEGER,incomingQuantity:1}),RangeError);
 });
