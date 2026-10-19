@@ -1819,7 +1819,7 @@ function renderDashboard(){
   const inProd = DB.workorders.filter(w => w.status === '进行中').length;
   const stockValue = DB.inventory.reduce((s,i) => s + (Number(i.qty)||0)*(Number(i.price)||0), 0);
   const doneOrders = DB.orders.filter(o => o.status === '已完成').length;
-  const onTime = validOrders.length ? (doneOrders / validOrders.length * 100).toFixed(1) : '0.0';
+  const completionRate = validOrders.length ? (doneOrders / validOrders.length * 100).toFixed(1) : '0.0';
   const qcTotal = DB.quality.length;
   const qcFirst = DB.quality.filter(q => q.grade === '特级品' || q.grade === '一等品').length;
   const firstRate = qcTotal ? (qcFirst / qcTotal * 100).toFixed(1) : '0.0';
@@ -1827,9 +1827,13 @@ function renderDashboard(){
   const lowStock = DB.inventory.filter(i => DB.settings.lowStockWarn && Number(i.safe) > 0 && Number(i.qty) < Number(i.safe));
   const pendingOrders = DB.orders.filter(o => o.status === '待确认');
   const warnDays = Number(DB.settings.dueWarnDays) || 3;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const dueSoon = DB.workorders.filter(w => {
     if(w.status === '已完工' || w.status === '已入库' || !w.due) return false;
-    const diff = (new Date(w.due) - new Date('2024-06-20')) / 86400000;
+    const dueDate = new Date(String(w.due) + 'T00:00:00');
+    if(Number.isNaN(dueDate.getTime())) return false;
+    const diff = Math.ceil((dueDate - today) / 86400000);
     return diff >= 0 && diff <= warnDays;
   });
 
@@ -1896,8 +1900,20 @@ function renderDashboard(){
   }).join('') : '<div class="empty" style="padding:26px 0!important">暂无在产工单</div>';
 
   return `
+  <div class="dashboard-command" aria-label="经营快捷操作">
+    <div class="dashboard-command-copy">
+      <div class="eyebrow">BUSINESS WORKSPACE</div>
+      <h3>今日经营工作入口</h3>
+      <p>从订单、生产和库存三个关键环节进入业务台账；页面统计以当前浏览器保存的数据为准。</p>
+    </div>
+    <div class="dashboard-command-actions">
+      <button class="btn btn-primary" onclick="go('orders');setTimeout(()=>openForm('orders'),80)">＋ 新建销售订单</button>
+      <button class="btn" onclick="go('workorders')">查看生产工单</button>
+      <button class="btn" onclick="go('inventory')">查看物料库存</button>
+      <button class="btn" onclick="go('purchase')">进入采购管理</button>
+    </div>
+  </div>
   <div class="kpi-grid">
-    <div class="kpi c1">
       <div class="kpi-label">订单总金额</div>
       <div class="kpi-value">${fmtM0(totalAmount)}</div>
       <div class="kpi-foot">共 ${validOrders.length} 张有效订单 · 含税 ${DB.settings.taxRate}%</div>
@@ -1915,15 +1931,15 @@ function renderDashboard(){
     <div class="kpi c4">
       <div class="kpi-label">一等品率</div>
       <div class="kpi-value">${firstRate}<span style="font-size:15px">%</span></div>
-      <div class="kpi-foot">本期验布 ${qcTotal} 匹 · 准时率 ${onTime}%</div>
+      <div class="kpi-foot">本期验布 ${qcTotal} 匹 · 订单完成率 ${completionRate}%</div>
     </div>
   </div>
 
   <div class="grid-2">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">近 7 日坯布产量</div>
-        <div class="card-sub">单位：米</div>
+        <div class="card-title">产量趋势示意</div>
+        <div class="card-sub">示例值 · 非实时生产数据</div>
       </div>
       <div class="bars">${barsHtml}</div>
     </div>
