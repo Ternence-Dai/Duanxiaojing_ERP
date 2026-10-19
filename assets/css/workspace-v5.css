@@ -95,3 +95,57 @@ body[data-workspace="health"] .w5-module-context__home,body[data-workspace="erp"
 body[data-workspace="health"] .w5-experiment-context,body[data-workspace="erp"] .w5-experiment-context,body[data-workspace="ekpo"] .w5-experiment-context{display:none}
 @media(max-width:640px){.w5-module-context{align-items:flex-start;padding:11px 12px}.w5-module-context__actions{flex-direction:column;align-items:flex-end;gap:5px}.w5-module-context__description{max-width:48ch}.w5-module-context__state{display:none}.w5-experiment-context{align-items:flex-start;flex-direction:column}.w5-experiment-context__tags{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.w5-module-context__home{transition:none}}
+
+/* Workspace V5.2 — ERP purchase receiving cockpit */
+body[data-workspace="erp"] .w5-receipt-dashboard{display:grid;gap:13px;margin:0 0 16px}
+body[data-workspace="erp"] .w5-receipt-dashboard__heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+body[data-workspace="erp"] .w5-receipt-kicker{display:block;color:#53836a;font-size:9px;font-weight:850;letter-spacing:1.7px}
+body[data-workspace="erp"] .w5-receipt-dashboard__heading h4{margin:3px 0;color:#294b3a;font-size:15px;font-weight:850}
+body[data-workspace="erp"] .w5-receipt-dashboard__heading p{margin:0;color:#788a7d;font-size:10px}
+body[data-workspace="erp"] .w5-receipt-dashboard__scope{padding:6px 9px;border:1px solid #dce6da;border-radius:7px;background:#f7faf5;color:#819082;font-size:9px;white-space:nowrap}
+body[data-workspace="erp"] .w5-receipt-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+body[data-workspace="erp"] .w5-receipt-metric{display:flex;flex-direction:column;gap:5px;min-height:94px;padding:13px 14px;border:1px solid #e0e6de;border-radius:12px;background:linear-gradient(145deg,#fff,#f8faf6);box-shadow:0 5px 16px #2d49330a}
+body[data-workspace="erp"] .w5-receipt-metric__label{color:#758477;font-size:10px;font-weight:700}
+body[data-workspace="erp"] .w5-receipt-metric__value{color:#2a513b;font-size:25px;font-weight:850;line-height:1.1;font-variant-numeric:tabular-nums}
+body[data-workspace="erp"] .w5-receipt-metric__note{color:#8b978b;font-size:9px;line-height:1.4}
+body[data-workspace="erp"] .w5-receipt-metric.accent{border-color:#bcd7c1;background:linear-gradient(145deg,#f1f8ee,#fff)}
+body[data-workspace="erp"] .w5-receipt-metric.warning{border-color:#ecdab8;background:linear-gradient(145deg,#fff8e9,#fff)}
+body[data-workspace="erp"] .w5-receipt-metric.warning .w5-receipt-metric__value{color:#a56e29}
+body[data-workspace="erp"] .w5-receipt-progress{padding:14px 15px;border:1px solid #e1e7de;border-radius:13px;background:#fff}
+body[data-workspace="erp"] .w5-receipt-progress__head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+body[data-workspace="erp"] .w5-receipt-progress__head strong{color:#345340;font-size:11px;font-weight:850}
+body[data-workspace="erp"] .w5-receipt-progress__head small{color:#93a095;font-size:9px}
+body[data-workspace="erp"] .w5-receipt-progress__list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+body[data-workspace="erp"] .w5-receipt-progress__row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 12px;padding:9px 10px;border:1px solid #edf1eb;border-radius:9px;background:#fbfcfa}
+body[data-workspace="erp"] .w5-receipt-progress__info{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+body[data-workspace="erp"] .w5-receipt-progress__identity{display:flex;flex-direction:column;min-width:0}
+body[data-workspace="erp"] .w5-receipt-progress__identity strong{overflow:hidden;color:#3c5946;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+body[data-workspace="erp"] .w5-receipt-progress__identity span{overflow:hidden;color:#8a978b;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+body[data-workspace="erp"] .w5-receipt-progress__amount{color:#66816e;font-size:9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+body[data-workspace="erp"] .w5-receipt-progress__track{grid-column:1/-1;height:6px;overflow:hidden;border-radius:99px;background:#e9efe8}
+body[data-workspace="erp"] .w5-receipt-progress__bar{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#498964,#83b987)}
+body[data-workspace="erp"] .w5-receipt-progress__remaining{color:#88968a;font-size:9px;text-align:right;white-space:nowrap}
+body[data-workspace="erp"] .w5-receipt-progress__empty{padding:13px;border-radius:9px;background:#f6faf5;color:#778a7a;font-size:10px}
+body[data-workspace="erp"] .w5-receipt-progress__more{color:#8b998c;font-size:9px}
+body[data-workspace="erp"] .w5-receipt-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+body[data-workspace="erp"] .w5-receipt-step{min-width:0;padding:15px;border:1px solid #e0e7de;border-radius:13px;background:linear-gradient(145deg,#fff,#fafcf9);box-shadow:0 5px 16px #294b3508}
+body[data-workspace="erp"] .w5-receipt-step--post{grid-column:1/-1}
+body[data-workspace="erp"] .w5-receipt-step__heading{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+body[data-workspace="erp"] .w5-receipt-step__number{display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:#eaf3e8;color:#477b55;font-size:10px;font-weight:850}
+body[data-workspace="erp"] .w5-receipt-step__heading strong{display:block;color:#34523f;font-size:12px;font-weight:850}
+body[data-workspace="erp"] .w5-receipt-step__heading small{display:block;margin-top:3px;color:#87958a;font-size:9px;line-height:1.5}
+body[data-workspace="erp"] .w5-receipt-step__fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body[data-workspace="erp"] .w5-receipt-step__fields label{display:grid;align-content:start;gap:5px;min-width:0;color:#637568;font-size:10px;font-weight:750}
+body[data-workspace="erp"] .w5-receipt-step__fields label:has(#receipt-quantity){grid-column:1/-1}
+body[data-workspace="erp"] .w5-receipt-step__fields input,body[data-workspace="erp"] .w5-receipt-step__fields select{width:100%;min-width:0;min-height:37px}
+body[data-workspace="erp"] .w5-receipt-step--post .receipt-note-label{display:grid;gap:6px;margin-bottom:12px;color:#637568;font-size:10px;font-weight:750}
+body[data-workspace="erp"] .w5-receipt-step--post .receipt-submit-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid #edf1eb}
+body[data-workspace="erp"] .w5-receipt-history-tools{display:flex;align-items:flex-end;gap:10px;margin:12px 0;padding:11px;border:1px solid #e3e9e1;border-radius:10px;background:#f8faf7}
+body[data-workspace="erp"] .w5-receipt-history-search,body[data-workspace="erp"] .w5-receipt-history-filter{display:grid;gap:4px;min-width:0;color:#708272;font-size:9px;font-weight:750}
+body[data-workspace="erp"] .w5-receipt-history-search{flex:1}
+body[data-workspace="erp"] .w5-receipt-history-search input,body[data-workspace="erp"] .w5-receipt-history-filter select{min-height:35px;padding:7px 9px;border:1px solid #d9e2d7;border-radius:8px;background:#fff;color:#3d5845;font-size:10px}
+body[data-workspace="erp"] .w5-receipt-history-count{padding:8px 0;color:#819185;font-size:9px;white-space:nowrap}
+body[data-workspace="erp"] .purchase-receipt-history tr[hidden]{display:none}
+body[data-workspace="erp"] .purchase-receipt-history table{min-width:760px}
+@media(max-width:900px){body[data-workspace="erp"] .w5-receipt-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}body[data-workspace="erp"] .w5-receipt-progress__list{grid-template-columns:1fr}}
+@media(max-width:600px){body[data-workspace="erp"] .w5-receipt-dashboard__heading{align-items:flex-start;flex-direction:column;gap:7px}body[data-workspace="erp"] .w5-receipt-steps{grid-template-columns:1fr}body[data-workspace="erp"] .w5-receipt-step--post{grid-column:auto}body[data-workspace="erp"] .w5-receipt-step__fields{grid-template-columns:1fr}body[data-workspace="erp"] .w5-receipt-step__fields label:has(#receipt-quantity){grid-column:auto}body[data-workspace="erp"] .w5-receipt-history-tools{align-items:stretch;flex-direction:column}body[data-workspace="erp"] .w5-receipt-history-count{text-align:right}body[data-workspace="erp"] .w5-receipt-step--post .receipt-submit-row{align-items:stretch;flex-direction:column}body[data-workspace="erp"] .w5-receipt-step--post .receipt-submit-row .btn{width:100%}}
