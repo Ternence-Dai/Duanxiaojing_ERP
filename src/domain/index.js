@@ -112,7 +112,7 @@ export function validatePurchaseReceiptRecord(entry) {
     "receiptNo", "purchaseNo", "sku", "material", "supplier", "quantity",
     "unit", "batch", "location", "receivedAt", "receivedBy", "inspectedBy",
     "inspectionResult", "note", "stockMovementReference", "previousBalance",
-    "nextBalance"
+    "nextBalance", "purchaseStatusBefore"
   ]);
   if (Object.keys(entry).some(key => !allowed.has(key))) {
     throw new TypeError("purchase receipt contains unsupported fields");
@@ -144,17 +144,65 @@ export function validatePurchaseReceiptRecord(entry) {
       !Number.isSafeInteger(previous + quantity)) {
     throw new RangeError("purchase receipt stock balances are inconsistent");
   }
+  let purchaseStatusBefore;
+  if (entry.purchaseStatusBefore !== undefined) {
+    if (!["已下单", "在途"].includes(entry.purchaseStatusBefore)) {
+      throw new RangeError("purchase receipt status snapshot must be 已下单 or 在途");
+    }
+    purchaseStatusBefore = entry.purchaseStatusBefore;
+  }
   return Object.freeze({
     receiptNo, purchaseNo, sku, material, supplier,
     quantity: quantity / 1000, unit, batch, location, receivedAt,
     receivedBy, inspectedBy, inspectionResult: "合格",
     note: entry.note.trim(), stockMovementReference: receiptNo,
+    previousBalance: previous / 1000, nextBalance: next / 1000,
+    purchaseStatusBefore
+  });
+}
+
+export function validatePurchaseReceiptReversalRecord(entry) {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new TypeError("purchase receipt reversal must be an object");
+  }
+  const allowed = new Set([
+    "reversalNo", "receiptNo", "purchaseNo", "sku", "quantity", "unit",
+    "reason", "reversedBy", "reversedAt", "stockMovementReference",
+    "originalStockMovementReference", "previousBalance", "nextBalance"
+  ]);
+  if (Object.keys(entry).some(key => !allowed.has(key))) {
+    throw new TypeError("purchase receipt reversal contains unsupported fields");
+  }
+  const reversalNo = requiredPurchaseText(entry.reversalNo, "reversal number", 80);
+  const receiptNo = requiredPurchaseText(entry.receiptNo, "original receipt number", 80);
+  const purchaseNo = requiredPurchaseText(entry.purchaseNo, "purchase order number", 80);
+  const sku = requiredPurchaseText(entry.sku, "SKU", 80);
+  const unit = requiredPurchaseText(entry.unit, "unit", 24);
+  const reason = requiredPurchaseText(entry.reason, "reversal reason", 1000);
+  const reversedBy = requiredPurchaseText(entry.reversedBy, "reversal actor", 120);
+  const reversedAt = parseOccurredAt(entry.reversedAt);
+  if (entry.stockMovementReference !== reversalNo ||
+      typeof entry.originalStockMovementReference !== "string" ||
+      entry.originalStockMovementReference.trim() !== receiptNo) {
+    throw new RangeError("purchase receipt reversal must link both original and reversal stock movements");
+  }
+  const quantity = toMilliunits(entry.quantity, "reversal quantity", { allowZero: false });
+  const previous = toMilliunits(entry.previousBalance, "previous stock balance");
+  const next = toMilliunits(entry.nextBalance, "next stock balance");
+  if (previous < quantity || next < 0 || previous - quantity !== next ||
+      !Number.isSafeInteger(previous - quantity)) {
+    throw new RangeError("purchase receipt reversal stock balances are inconsistent");
+  }
+  return Object.freeze({
+    reversalNo, receiptNo, purchaseNo, sku, quantity: quantity / 1000, unit,
+    reason, reversedBy, reversedAt, stockMovementReference: reversalNo,
+    originalStockMovementReference: receiptNo,
     previousBalance: previous / 1000, nextBalance: next / 1000
   });
 }
 
 export function createPurchaseReceipt({
-  purchaseOrder, inventoryItem, existingReceipts = [],
+  purchaseOrder, inventoryItem, existingReceipts = [], existingReversals = [],
   existingMovementReferences = [], receiptNo, quantity, batch, location,
   receivedAt, receivedBy, inspectedBy, inspectionResult, note = ""
 } = {}) {
@@ -164,8 +212,9 @@ export function createPurchaseReceipt({
   if (!inventoryItem || typeof inventoryItem !== "object" || Array.isArray(inventoryItem)) {
     throw new TypeError("an existing inventory SKU must be selected");
   }
-  if (!Array.isArray(existingReceipts) || !Array.isArray(existingMovementReferences)) {
-    throw new TypeError("existing receipt and movement references must be arrays");
+  if (!Array.isArray(existingReceipts) || !Array.isArray(existingReversals) ||
+      !Array.isArray(existingMovementReferences)) {
+    throw new TypeError("existing receipt, reversal and movement references must be arrays");
   }
   const purchaseNo = requiredPurchaseText(purchaseOrder.no, "purchase order number", 80);
   const supplier = requiredPurchaseText(purchaseOrder.sup, "supplier", 180);
@@ -211,6 +260,7 @@ export function createPurchaseReceipt({
     movementReferenceSet.add(normalizedReference);
   }
   let previouslyReceived = 0;
+  const existingReceiptById = new Map();
   for (const row of existingReceipts) {
     if (!row || typeof row !== "object" || Array.isArray(row)) {
       throw new TypeError("existing purchase receipt records are malformed");
@@ -220,6 +270,7 @@ export function createPurchaseReceipt({
     allReceiptIds.add(id);
     if (id === normalizedReceiptNo) throw new RangeError("receipt number already exists in the stock movement ledger");
     const validated = validatePurchaseReceiptRecord(row);
+    existingReceiptById.set(validated.receiptNo, validated);
     if (!movementReferenceSet.has(validated.stockMovementReference)) {
       throw new RangeError("existing purchase receipt has no matching stock movement reference");
     }
@@ -232,6 +283,26 @@ export function createPurchaseReceipt({
       previouslyReceived += toMilliunits(validated.quantity, "existing receipt quantity", { allowZero: false });
       if (!Number.isSafeInteger(previouslyReceived)) throw new RangeError("cumulative received quantity is unsafe");
     }
+  }
+  const reversedReceiptIds = new Set();
+  for (const row of existingReversals) {
+    const reversal = validatePurchaseReceiptReversalRecord(row);
+    const original = existingReceiptById.get(reversal.receiptNo);
+    if (!original || original.purchaseNo !== reversal.purchaseNo ||
+        original.sku !== reversal.sku || original.quantity !== reversal.quantity ||
+        original.unit !== reversal.unit ||
+        !movementReferenceSet.has(reversal.stockMovementReference) ||
+        !movementReferenceSet.has(reversal.originalStockMovementReference) ||
+        reversedReceiptIds.has(reversal.receiptNo)) {
+      throw new RangeError("existing purchase receipt reversals must uniquely match their original receipt and stock movements");
+    }
+    reversedReceiptIds.add(reversal.receiptNo);
+    if (reversal.purchaseNo === purchaseNo) {
+      previouslyReceived -= toMilliunits(reversal.quantity, "reversed receipt quantity", { allowZero: false });
+    }
+  }
+  if (previouslyReceived < 0 || !Number.isSafeInteger(previouslyReceived)) {
+    throw new RangeError("effective received quantity is invalid after reversals");
   }
   if (allReceiptIds.has(normalizedReceiptNo) ||
       movementReferenceSet.has(normalizedReceiptNo)) {
@@ -254,6 +325,12 @@ export function createPurchaseReceipt({
     sku, quantityDelta: received / 1000, reference: normalizedReceiptNo,
     occurredAt: normalizedReceivedAt
   });
+  const orderReceipts = [...existingReceiptById.values()]
+    .filter(row => row.purchaseNo === purchaseNo)
+    .sort((left, right) => Date.parse(left.receivedAt) - Date.parse(right.receivedAt));
+  const purchaseStatusBefore = orderReceipts.length
+    ? orderReceipts[0].purchaseStatusBefore
+    : purchaseOrder.status;
   const receipt = validatePurchaseReceiptRecord({
     receiptNo: normalizedReceiptNo,
     purchaseNo,
@@ -271,7 +348,8 @@ export function createPurchaseReceipt({
     note: note.trim(),
     stockMovementReference: normalizedReceiptNo,
     previousBalance: movement.previousBalance,
-    nextBalance: movement.nextBalance
+    nextBalance: movement.nextBalance,
+    purchaseStatusBefore
   });
   const stockMovement = Object.freeze({
     ...movement,
@@ -287,5 +365,142 @@ export function createPurchaseReceipt({
     totalReceived: totalReceived / 1000,
     remainingQuantity: (ordered - totalReceived) / 1000,
     purchaseStatus: totalReceived === ordered ? "已入库" : "部分到货"
+  });
+}
+
+
+export function createPurchaseReceiptReversal({
+  purchaseOrder, inventoryItem, receipt, existingReceipts = [],
+  existingReversals = [], existingMovementReferences = [],
+  reversalNo, reversedAt, reversedBy, reason
+} = {}) {
+  if (!purchaseOrder || typeof purchaseOrder !== "object" || Array.isArray(purchaseOrder)) {
+    throw new TypeError("purchase order is required for receipt reversal");
+  }
+  if (!inventoryItem || typeof inventoryItem !== "object" || Array.isArray(inventoryItem)) {
+    throw new TypeError("the original inventory SKU is required for receipt reversal");
+  }
+  if (!Array.isArray(existingReceipts) || !Array.isArray(existingReversals) ||
+      !Array.isArray(existingMovementReferences)) {
+    throw new TypeError("receipt reversal history and movement references must be arrays");
+  }
+  const target = validatePurchaseReceiptRecord(receipt);
+  const purchaseNo = requiredPurchaseText(purchaseOrder.no, "purchase order number", 80);
+  if (target.purchaseNo !== purchaseNo) {
+    throw new RangeError("receipt and purchase order do not match");
+  }
+  if (String(inventoryItem.code || "").trim() !== target.sku) {
+    throw new RangeError("receipt reversal must use its original inventory SKU");
+  }
+  if (inventoryItem.name !== target.material || inventoryItem.supplier !== target.supplier ||
+      inventoryItem.unit !== target.unit || inventoryItem.batch !== target.batch ||
+      inventoryItem.loc !== target.location) {
+    throw new RangeError("current inventory master data no longer matches the original receipt; reconcile before reversal");
+  }
+  const storedReceipts = new Map();
+  for (const row of existingReceipts) {
+    const validated = validatePurchaseReceiptRecord(row);
+    if (storedReceipts.has(validated.receiptNo)) throw new RangeError("stored purchase receipt numbers must be unique");
+    storedReceipts.set(validated.receiptNo, validated);
+  }
+  const storedTarget = storedReceipts.get(target.receiptNo);
+  if (!storedTarget || storedTarget.purchaseNo !== target.purchaseNo ||
+      storedTarget.sku !== target.sku || storedTarget.quantity !== target.quantity ||
+      storedTarget.stockMovementReference !== target.stockMovementReference) {
+    throw new RangeError("original receipt is not present in the saved receipt ledger");
+  }
+  const referenceSet = new Set();
+  for (const reference of existingMovementReferences) {
+    const value = requiredPurchaseText(reference, "existing stock movement reference", 120);
+    if (referenceSet.has(value)) throw new RangeError("existing stock movement references must be unique");
+    referenceSet.add(value);
+  }
+  if (!referenceSet.has(target.stockMovementReference)) {
+    throw new RangeError("original receipt has no matching stock movement");
+  }
+  const normalizedReversalNo = requiredPurchaseText(reversalNo, "reversal number", 80);
+  if (referenceSet.has(normalizedReversalNo)) {
+    throw new RangeError("reversal number already exists in the stock movement ledger");
+  }
+  const priorReversals = existingReversals.map(validatePurchaseReceiptReversalRecord);
+  if (priorReversals.some(row => row.receiptNo === target.receiptNo)) {
+    throw new RangeError("purchase receipt has already been reversed");
+  }
+  if (priorReversals.some(row => row.reversalNo === normalizedReversalNo)) {
+    throw new RangeError("reversal number already exists");
+  }
+  for (const row of priorReversals) {
+    const original = storedReceipts.get(row.receiptNo);
+    if (!original || original.purchaseNo !== row.purchaseNo ||
+        original.sku !== row.sku || original.quantity !== row.quantity ||
+        !referenceSet.has(row.stockMovementReference) ||
+        !referenceSet.has(row.originalStockMovementReference)) {
+      throw new RangeError("existing reversal history does not match the receipt ledger");
+    }
+  }
+  const ordered = toMilliunits(purchaseOrder.qty, "purchase order quantity", { allowZero: false });
+  let effectiveReceived = 0;
+  for (const row of storedReceipts.values()) {
+    if (row.purchaseNo === purchaseNo) {
+      effectiveReceived += toMilliunits(row.quantity, "receipt quantity", { allowZero: false });
+    }
+  }
+  for (const row of priorReversals) {
+    if (row.purchaseNo === purchaseNo) {
+      effectiveReceived -= toMilliunits(row.quantity, "reversed receipt quantity", { allowZero: false });
+    }
+  }
+  const targetQuantity = toMilliunits(target.quantity, "receipt quantity", { allowZero: false });
+  const remaining = effectiveReceived - targetQuantity;
+  if (remaining < 0 || remaining > ordered || !Number.isSafeInteger(remaining)) {
+    throw new RangeError("effective received quantity is inconsistent; reconcile the purchase order before reversal");
+  }
+  const movement = applyStockMovement(inventoryItem.qty, {
+    sku: target.sku,
+    quantityDelta: -targetQuantity / 1000,
+    reference: normalizedReversalNo,
+    occurredAt: reversedAt
+  });
+  const reversal = validatePurchaseReceiptReversalRecord({
+    reversalNo: normalizedReversalNo,
+    receiptNo: target.receiptNo,
+    purchaseNo,
+    sku: target.sku,
+    quantity: target.quantity,
+    unit: target.unit,
+    reason,
+    reversedBy,
+    reversedAt: movement.occurredAt,
+    stockMovementReference: normalizedReversalNo,
+    originalStockMovementReference: target.stockMovementReference,
+    previousBalance: movement.previousBalance,
+    nextBalance: movement.nextBalance
+  });
+  const stockMovement = Object.freeze({
+    ...movement,
+    sourceType: "purchase-receipt-reversal",
+    sourceNo: target.receiptNo,
+    purchaseNo,
+    reversesReference: target.stockMovementReference
+  });
+  let purchaseStatus;
+  if (remaining === 0) {
+    const earliest = [...storedReceipts.values()]
+      .filter(row => row.purchaseNo === purchaseNo)
+      .sort((left, right) => Date.parse(left.receivedAt) - Date.parse(right.receivedAt))[0];
+    const baseline = earliest && earliest.purchaseStatusBefore;
+    if (!["已下单", "在途"].includes(baseline)) {
+      throw new RangeError("legacy receipt has no pre-receipt purchase status snapshot; manual reconciliation is required");
+    }
+    purchaseStatus = baseline;
+  } else {
+    purchaseStatus = remaining === ordered ? "已入库" : "部分到货";
+  }
+  return Object.freeze({
+    reversal,
+    stockMovement,
+    totalReceived: remaining / 1000,
+    remainingQuantity: (ordered - remaining) / 1000,
+    purchaseStatus
   });
 }
