@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyStockMovement, normalizeStockBalance, calculateStockPosition, createPurchaseReceipt, validatePurchaseReceiptRecord } from "../src/domain/index.js";
+import { applyStockMovement, normalizeStockBalance, calculateStockPosition, createPurchaseReceipt, validatePurchaseReceiptRecord, createPurchaseReceiptReversal, validatePurchaseReceiptReversalRecord } from "../src/domain/index.js";
 const movement={sku:"FABRIC-001",quantityDelta:-3,reference:"ISSUE-0001",occurredAt:"2026-02-01T08:00:00Z"};
 test("records a traceable stock ledger transition",()=>{
  const row=applyStockMovement(10,movement);
@@ -125,6 +125,124 @@ test("supports multiple receipts but never exceeds ordered quantity",()=>{
   inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance}
  }),/exceeds the outstanding/);
 });
+
+test("reverses a posted purchase receipt through an append-only negative stock movement",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const result=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-TEST-001",
+  reversedAt:"2026-10-19T10:00:00+08:00",
+  reversedBy:"warehouse-supervisor",
+  reason:"Duplicate receiving posting; physical stock recounted"
+ });
+ assert.equal(result.reversal.receiptNo,"GRN-TEST-001");
+ assert.equal(result.reversal.quantity,35);
+ assert.equal(result.reversal.originalStockMovementReference,"GRN-TEST-001");
+ assert.equal(result.stockMovement.quantityDelta,-35);
+ assert.equal(result.stockMovement.previousBalance,45);
+ assert.equal(result.stockMovement.nextBalance,10);
+ assert.equal(result.stockMovement.sourceType,"purchase-receipt-reversal");
+ assert.equal(result.stockMovement.reversesReference,"GRN-TEST-001");
+ assert.equal(result.purchaseStatus,"在途");
+ assert.equal(result.totalReceived,0);
+ assert.ok(Object.isFrozen(result));
+ assert.ok(Object.isFrozen(result.reversal));
+ assert.ok(Object.isFrozen(result.stockMovement));
+ assert.equal(validatePurchaseReceiptReversalRecord(result.reversal).reversalNo,"REV-GRN-TEST-001");
+});
+
+test("restores the original PO status only after every remaining receipt is reversed",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const second=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-002",quantity:65,
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-TEST-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ const reverseSecond=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"已入库"},
+  inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},
+  receipt:second.receipt,existingReceipts:[second.receipt,first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001","GRN-TEST-002"],
+  reversalNo:"REV-GRN-TEST-002",reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Supplier return"
+ });
+ assert.equal(reverseSecond.totalReceived,35);
+ assert.equal(reverseSecond.purchaseStatus,"部分到货");
+ const reverseFirst=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:reverseSecond.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[second.receipt,first.receipt],
+  existingReversals:[reverseSecond.reversal],
+  existingMovementReferences:["GRN-TEST-001","GRN-TEST-002","REV-GRN-TEST-002"],
+  reversalNo:"REV-GRN-TEST-001",reversedAt:"2026-10-19T11:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Full PO receipt rollback"
+ });
+ assert.equal(reverseFirst.totalReceived,0);
+ assert.equal(reverseFirst.purchaseStatus,"在途");
+ assert.equal(reverseFirst.stockMovement.nextBalance,10);
+});
+
+test("rejects duplicate receipt reversal and prevents a negative stock balance",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const args={
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-TEST-001",reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Correct a duplicate posting"
+ };
+ const reversed=createPurchaseReceiptReversal(args);
+ assert.throws(()=>createPurchaseReceiptReversal({
+  ...args,existingReversals:[reversed.reversal],
+  existingMovementReferences:["GRN-TEST-001","REV-GRN-TEST-001"],
+  reversalNo:"REV-GRN-TEST-002"
+ }),/already been reversed/);
+ assert.throws(()=>createPurchaseReceiptReversal({
+  ...args,inventoryItem:{...inventoryItem,qty:30}
+ }),/negative stock balance/);
+});
+
+test("legacy receipts without a pre-receipt PO status cannot be fully reversed automatically",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const {purchaseStatusBefore,...legacyReceipt}=first.receipt;
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:legacyReceipt,existingReceipts:[legacyReceipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-LEGACY-001",reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Legacy reconciliation attempt"
+ }),/manual reconciliation is required/);
+});
+
+test("new receipts calculate outstanding quantities after prior append-only reversals",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const reversal=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  reversalNo:"REV-GRN-TEST-001",reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Reconcile stock count",
+  existingMovementReferences:["GRN-TEST-001"]
+ });
+ const repost=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-003",quantity:100,
+  purchaseOrder:{...purchaseOrder,status:"在途"},
+  inventoryItem:{...inventoryItem,qty:reversal.stockMovement.nextBalance},
+  existingReceipts:[first.receipt],existingReversals:[reversal.reversal],
+  existingMovementReferences:["GRN-TEST-001","REV-GRN-TEST-001"]
+ });
+ assert.equal(repost.totalReceived,100);
+ assert.equal(repost.purchaseStatus,"已入库");
+});
+
 test("rejects historical receipts that do not match the selected purchase SKU and lot",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const wrongLot={...first.receipt,batch:"LOT-OTHER"};
