@@ -49,3 +49,20 @@
 - `assets/js/legacy-app.js` 在物料库存表新增“采购在途”和“预计库存”列。采购在途仅纳入物料、供应商、单位一致且能够唯一分配到库存 SKU 的未到货采购；拆分到多个批次、无法唯一分配的订单不重复计入。
 - `test/domain.test.js` 覆盖库存充足、低于安全库存、精度超限、负数和整数范围溢出。
 - 当前“预计库存”口径为现存库存 + 可唯一关联的未到货采购，不扣减销售订单占用、生产预留或其他承诺量，因此不应称为“可承诺库存”。
+
+
+## 7. 扩展开源对标：ERP / 制造执行 / 库存流转
+
+> 覆盖说明：纺织 ERP 的专用开源前端样本较少，因此以通用制造 ERP 与生产模块为主，映射到纺织订单、工序、收货和质检语义，不照搬其他行业字段。
+
+| 上游项目 | 可核查入口 | 可迁移模式 | 本项目采用时的约束 |
+|---|---|---|---|
+| [ERPNext](https://github.com/frappe/erpnext) | [Work Order](https://github.com/frappe/erpnext/blob/develop/erpnext/manufacturing/doctype/work_order/work_order.py)、[Job Card](https://github.com/frappe/erpnext/blob/develop/erpnext/manufacturing/doctype/job_card/job_card.py)、[Item Dashboard](https://github.com/frappe/erpnext/blob/develop/erpnext/stock/dashboard/item_dashboard.js) | 工单生命周期、工序级作业卡、物料需求/库存看板、业务记录追溯 | 不虚构当前单机应用具备 Frappe 事务、权限、后台作业或并发锁 |
+| [Odoo](https://github.com/odoo/odoo) | [制造模块源码](https://github.com/odoo/odoo/tree/18.0/addons/mrp)、[库存模块源码](https://github.com/odoo/odoo/tree/18.0/addons/stock) | 制造订单与库存移动关联，按业务对象组织模块；工作流状态与记录操作结合 | 不能只复制 UI；服务端约束、库存预留与会计集成在本项目尚未实现 |
+| [Tryton Production](https://docs.tryton.org/latest/modules-production/) | [生产模块设计](https://docs.tryton.org/latest/modules-production/design.html)、[BOM 源码镜像](https://github.com/tryton/production/blob/develop/bom.py) | BOM 输入/输出、生产位置、输入输出移动、生产状态生命周期 | GitHub 镜像已归档；以官方 Tryton 文档当前版本为准，不把旧镜像当作活跃主仓库 |
+
+### 对本项目的实现映射
+- 首页已增加“销售订单 → 生产工单 → 物料库存 → 采购协同”业务顺序入口。
+- 下一阶段按稳定 ID 贯通订单—工单—采购单—收货—库存流水；名称匹配只用于兼容导入，不能作为永久关联键。
+- 库存至少区分现存、采购在途、生产/销售预留和预计可用；当前预计库存不扣减所有需求，不能称作 ATP/可承诺量。
+- 质量结果需关联批次和订单/工单，KPI 的分母、过滤状态和日期窗口都应回溯到明细。
