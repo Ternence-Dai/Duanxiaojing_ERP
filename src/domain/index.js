@@ -404,10 +404,12 @@ export function createPurchaseReceiptReversal({
     storedReceipts.set(validated.receiptNo, validated);
   }
   const storedTarget = storedReceipts.get(target.receiptNo);
-  if (!storedTarget || storedTarget.purchaseNo !== target.purchaseNo ||
-      storedTarget.sku !== target.sku || storedTarget.quantity !== target.quantity ||
-      storedTarget.stockMovementReference !== target.stockMovementReference) {
-    throw new RangeError("original receipt is not present in the saved receipt ledger");
+  // A reversal must use the exact saved receipt snapshot, not a caller-edited
+  // object that happens to retain the same receipt number and quantity.
+  // Both values have already passed the same canonical validator, so their
+  // serialized field order and normalized values are deterministic.
+  if (!storedTarget || JSON.stringify(storedTarget) !== JSON.stringify(target)) {
+    throw new RangeError("original receipt does not exactly match the saved receipt ledger");
   }
   const referenceSet = new Set();
   for (const reference of existingMovementReferences) {
