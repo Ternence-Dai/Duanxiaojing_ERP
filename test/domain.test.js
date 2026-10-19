@@ -149,6 +149,12 @@ test("normalizes stock movement references before duplicate checks",()=>{
  assert.throws(()=>createPurchaseReceipt({
   ...receiptBase,existingMovementReferences:["GRN-TEST-009"," GRN-TEST-009 "]
  }),/references must be non-empty and unique/);
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,existingMovementReferences:["MOVE"+String.fromCharCode(10)+"FORGED"]
+ }),/contain no control characters/);
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,existingMovementReferences:["M".repeat(121)]
+ }),/at most 120 characters/);
 });
 test("requires every historical receipt to have a unique matching stock movement reference",()=>{
  const first=createPurchaseReceipt(receiptBase);
