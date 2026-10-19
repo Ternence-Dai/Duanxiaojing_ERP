@@ -10,7 +10,7 @@ const seed = fs.readFileSync('assets/js/demo-seed-data.js', 'utf8');
 const domain = fs.readFileSync('src/domain/index.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/validate.yml', 'utf8');
 
-assert.ok(html.includes('product-system.css?v=20261019-v6'),
+assert.ok(html.includes('product-system.css?v=20261019-v7'),
   'ERP must load the receipt-enabled product V6 workflow stylesheet revision');
 
 for (const id of [
