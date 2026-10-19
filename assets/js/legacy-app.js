@@ -78,9 +78,9 @@ function isValidDBShape(d){
     }
     for(const movement of d.stockMovements){
       if(!isRecord(movement) || typeof movement.sku !== 'string' || !movement.sku.trim() ||
-         movement.sku !== movement.sku.trim() || movement.sku.length > 80 || /[\\x00-\\x1F\\x7F]/.test(movement.sku) ||
+         movement.sku !== movement.sku.trim() || movement.sku.length > 80 || /[\x00-\x1F\x7F]/.test(movement.sku) ||
          typeof movement.reference !== 'string' || !movement.reference.trim() ||
-         movement.reference !== movement.reference.trim() || movement.reference.length > 120 || /[\\x00-\\x1F\\x7F]/.test(movement.reference) ||
+         movement.reference !== movement.reference.trim() || movement.reference.length > 120 || /[\x00-\x1F\x7F]/.test(movement.reference) ||
          typeof movement.occurredAt !== 'string' ||
          !/^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d{1,3})?(Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(movement.occurredAt) ||
          !Number.isFinite(Date.parse(movement.occurredAt)) ||
@@ -149,7 +149,7 @@ function isValidDBShape(d){
     const validReceiptText = (value, maxLength, allowEmpty = false) =>
       typeof value === 'string' && value === value.trim() &&
       value.length <= maxLength && (allowEmpty || value.length > 0) &&
-      !/[\\x00-\\x1F\\x7F]/.test(value);
+      !/[\x00-\x1F\x7F]/.test(value);
     for(const receipt of d.purchaseReceipts){
       if(!isRecord(receipt) ||
          Object.keys(receipt).some(key => !receiptFields.has(key)) ||
