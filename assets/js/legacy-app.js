@@ -561,6 +561,21 @@ const SCHEMAS = {
       {k:'supplier',l:'供应商', t:'ref',   ref:'suppliers', refLabel:'name', w:'150px'},
       {k:'inDate',l:'入库日期', t:'date',   w:'104px'},
     ],
+    positionColumns:[
+      {label:'采购在途', render:r=>{
+        const position=getInventoryPosition(r);
+        return position
+          ? '<span class="num" title="只计入可唯一关联到该库存编码的未到货采购">' + fmtStockQty(position.incomingQuantity) + ' ' + esc(r.unit||'') + '</span>'
+          : '<span title="采购批次分配不明确或数量待核对">待核对</span>';
+      }},
+      {label:'预计库存*', render:r=>{
+        const position=getInventoryPosition(r);
+        if(!position) return '<span title="无法安全计算预计库存">待核对</span>';
+        const warning=position.status==='below-safety'
+          ? ' <span class="badge amber">低于安全库存</span>' : '';
+        return '<span class="num strong">' + fmtStockQty(position.projectedQuantity) + ' ' + esc(r.unit||'') + '</span>' + warning;
+      }}
+    ],
     calc:{l:'库存金额', fn:r => (Number(r.qty)||0)*(Number(r.price)||0), money:true}
   },
 
@@ -890,6 +905,9 @@ function renderTableHead(key){
   const S = SCHEMAS[key];
   const cols = visibleFields(key);
   let h = cols.map(f => `<th style="${f.w ? 'width:'+f.w : ''}">${f.l}</th>`).join('');
+  if(S.positionColumns) h += S.positionColumns.map(column =>
+    `<th title="现存库存 + 可唯一关联的未到货采购；不扣销售订单占用">${column.label}</th>`
+  ).join('');
   if(S.calc) h += `<th style="text-align:right">${S.calc.l}</th>`;
   h += `<th class="row-actions">操作</th>`;
   return h;
@@ -899,7 +917,7 @@ function renderTableBody(key){
   const cols = visibleFields(key);
   const rows = filteredRows(key);
   if(!rows.length){
-    return `<tr><td colspan="${cols.length + (S.calc?1:0) + 1}" class="empty">
+    return `<tr><td colspan="${cols.length + (S.positionColumns ? S.positionColumns.length : 0) + (S.calc?1:0) + 1}" class="empty">
       没有匹配的记录 · 点击右上角「新增」添加第一条</td></tr>`;
   }
   return rows.map(r => {
@@ -910,6 +928,11 @@ function renderTableBody(key){
       if(f.mono) extra += ' mono';
       return `<td class="${extra.trim()}">${cellHtml(f, r)}</td>`;
     }).join('');
+
+    let positionTd = '';
+    if(S.positionColumns){
+      positionTd = S.positionColumns.map(column => `<td>${column.render(r)}</td>`).join('');
+    }
 
     let calcTd = '';
     if(S.calc){
@@ -926,7 +949,7 @@ function renderTableBody(key){
       }
     }
 
-    return `<tr>${tds}${calcTd}
+    return `<tr>${tds}${positionTd}${calcTd}
       <td class="row-actions">
         <button class="icon-btn" title="编辑" onclick="openForm(${jsArg(key)},${jsArg(id)})">✎</button>
         <button class="icon-btn danger" title="删除" onclick="delRow(${jsArg(key)},${jsArg(id)})">✕</button>
@@ -2790,6 +2813,60 @@ function renderAbout(){
 /* ==================================================================
    12. 路由 & 渲染
    ================================================================== */
+let stockDomain = null;
+import('../../src/domain/index.js').then(domain => {
+  stockDomain = domain;
+  if (typeof currentPage !== 'undefined' && currentPage === 'inventory') render();
+}).catch(error => console.warn('库存预计位置计算模块不可用，仍可查看原始库存量。', error));
+
+function fmtStockQty(value){
+  return Number(value || 0).toLocaleString('zh-CN',{maximumFractionDigits:3});
+}
+function getInventoryPosition(item){
+  if(!stockDomain || !stockDomain.calculateStockPosition) return null;
+  const openStatuses = new Set(['已下单','在途','部分到货']);
+  const relatedOrders = (DB.purchase || []).filter(order =>
+    openStatuses.has(order.status) &&
+    String(order.mat || '').trim() === String(item.name || '').trim() &&
+    String(order.sup || '').trim() === String(item.supplier || '').trim() &&
+    String(order.unit || '').trim() === String(item.unit || '').trim()
+  );
+  let incomingQuantity = 0;
+  for(const order of relatedOrders){
+    const receipts = (DB.purchaseReceipts || []).filter(row =>
+      String(row.purchaseNo) === String(order.no)
+    );
+    const allocatedSkus = [...new Set(receipts.map(row => String(row.sku || '')).filter(Boolean))];
+    const candidates = (DB.inventory || []).filter(row =>
+      String(row.name || '').trim() === String(order.mat || '').trim() &&
+      String(row.supplier || '').trim() === String(order.sup || '').trim() &&
+      String(row.unit || '').trim() === String(order.unit || '').trim()
+    );
+    const allocationSku = allocatedSkus.length === 1 ? allocatedSkus[0]
+      : allocatedSkus.length === 0 && candidates.length === 1 ? String(candidates[0].code)
+      : null;
+    // If a purchase is split across multiple lots, do not duplicate its
+    // outstanding quantity across several SKU rows.
+    if(allocationSku !== String(item.code)) continue;
+    const received = receipts.reduce((sum,row) => {
+      const quantity=Number(row.quantity);
+      return Number.isFinite(quantity) && quantity > 0 ? sum + quantity : sum;
+    },0);
+    const ordered = Number(order.qty);
+    if(Number.isFinite(ordered) && ordered > received) incomingQuantity += ordered - received;
+  }
+  try{
+    return stockDomain.calculateStockPosition({
+      onHand:Number(item.qty),
+      incomingQuantity:Number(incomingQuantity.toFixed(3)),
+      safetyStock:Number(item.safe || 0)
+    });
+  }catch(error){
+    console.warn('无法计算库存预计位置：' + String(item.code || ''), error);
+    return null;
+  }
+}
+
 let currentPage = 'dashboard';
 
 function go(page){
