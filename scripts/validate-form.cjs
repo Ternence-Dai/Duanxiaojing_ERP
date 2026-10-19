@@ -35,7 +35,7 @@ function run(values, initialRows = [], editingId = null) {
 }
 const assert = require('node:assert/strict');
 const productCss = fs.readFileSync('assets/css/product-system.css', 'utf8');
-assert.ok(html.includes('product-system.css?v=20261019-v6'),
+assert.ok(html.includes('product-system.css?v=20261019-v7'),
   'ERP page must load the visible V6 product stylesheet');
 assert.ok(productCss.includes('Textile ERP operations workspace'),
   'ERP visual system must expose its current product redesign layer');
