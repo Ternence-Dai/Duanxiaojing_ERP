@@ -71,7 +71,7 @@
       const seen = new Set();
       return Array.from(document.querySelectorAll(selector)).map(node => ({
         node,
-        label: (node.getAttribute('aria-label') || node.innerText || node.textContent || '').replace(/\\s+/g, ' ').trim()
+        label: (node.getAttribute('aria-label') || node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim()
       })).filter(item => {
         const key = item.label.toLowerCase();
         if (!key || seen.has(key)) return false;
