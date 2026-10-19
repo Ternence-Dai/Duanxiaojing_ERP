@@ -52,7 +52,7 @@ body[data-workspace="erp"] :where(button,input,select,textarea,a,[tabindex]):foc
 @media(max-width:900px){body[data-workspace="erp"] .sidebar{display:flex}}
 
 /* V5 command palette and universal module launcher */
-.w5-command-trigger{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;margin-left:10px;padding:7px 11px;border:1px solid #58748a;border-radius:9px;background:#102d3d;color:#c8f5f1;font:700 10px/1.2 inherit;white-space:nowrap;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.w5-command-trigger{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;margin-left:10px;padding:7px 11px;border:1px solid #58748a;border-radius:9px;background:#102d3d;color:#c8f5f1;font:inherit;font-size:10px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
 .w5-command-trigger:hover{background:#19465a;border-color:#6bcac7;transform:translateY(-1px)}
 .w5-command-backdrop{position:fixed;inset:0;z-index:10000;display:grid;place-items:start center;padding:14vh 16px 24px;background:rgba(4,11,21,.68);backdrop-filter:blur(8px)}
 .w5-command-backdrop[hidden]{display:none}
