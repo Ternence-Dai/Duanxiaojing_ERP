@@ -181,7 +181,7 @@
     mode.textContent = "本地交互模拟";
     const status = document.createElement("span");
     status.id = "w5ExperimentStatus";
-    status.textContent = document.getElementById("bp")?.textContent?.includes("继续") ? "已暂停" : "可运行";
+    status.textContent = document.getElementById("bp")?.textContent?.includes("继续") ? "已暂停" : "正在运行";
     tags.append(mode, status);
     strip.append(text, tags);
     workflow.insertAdjacentElement("afterend", strip);
@@ -190,7 +190,7 @@
       title.textContent = document.getElementById("et")?.textContent || "当前实验";
       brief.textContent = document.getElementById("eb2")?.textContent || "";
       const control = document.getElementById("bp");
-      status.textContent = control?.textContent?.includes("继续") ? "已暂停" : "运行控制可用";
+      status.textContent = control?.textContent?.includes("继续") ? "已暂停" : "正在运行";
     });
     ["et", "eb2", "bp"].forEach(id => {
       const node = document.getElementById(id);
