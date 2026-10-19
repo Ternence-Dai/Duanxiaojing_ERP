@@ -1,0 +1,49 @@
+/* Zhiyun ERP Workspace V5 — operational cockpit and document workspace */
+:root{--e-bg:#f4f2ed;--e-ink:#24342f;--e-muted:#7a8780;--e-line:#e0e3dc;--e-green:#276b51;--e-gold:#c18a43;--e-dark:#202d29}
+body[data-workspace="erp"]{background:var(--e-bg)!important;color:var(--e-ink)!important;font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif}
+body[data-workspace="erp"] .app{min-height:100vh;background:var(--e-bg)!important}
+body[data-workspace="erp"] .sidebar{width:258px;padding:24px 17px 18px;background:linear-gradient(180deg,#273832,#1d2925);border-right:1px solid #40564c;box-shadow:12px 0 36px #172b2214}
+body[data-workspace="erp"] .brand{padding:7px 10px 27px}
+body[data-workspace="erp"] .brand-name,body[data-workspace="erp"] .sidebar .brand-title{color:#f4f6ef;font-size:16px;font-weight:850}
+body[data-workspace="erp"] .brand-sub,body[data-workspace="erp"] .sidebar .brand-subtitle{color:#a8b8ac}
+body[data-workspace="erp"] .nav{gap:5px}
+body[data-workspace="erp"] .nav-item{border-radius:9px;color:#b0beb3;min-height:43px;padding:10px 12px}
+body[data-workspace="erp"] .nav-item:hover{background:#ffffff0d;color:#fff}
+body[data-workspace="erp"] .nav-item.active{background:#dcebe01c;color:#fff;border-color:#a7cbb42c;box-shadow:inset 3px 0 #d1a66a}
+body[data-workspace="erp"] .nav-item .ico{color:#dfb77b}
+body[data-workspace="erp"] .sidebar-foot,body[data-workspace="erp"] .sidebar-footer{border-top:1px solid #ffffff20;color:#9caea1}
+body[data-workspace="erp"] .main{background:var(--e-bg)!important}
+body[data-workspace="erp"] .topbar{height:72px;min-height:72px;padding:0 clamp(18px,2.8vw,38px);background:#fbfaf7;border-bottom:1px solid #e1e3dd;box-shadow:0 4px 15px #293b3108}
+body[data-workspace="erp"] .topbar h2,body[data-workspace="erp"] .topbar h1{color:#243d33;font-size:18px;font-weight:820}
+body[data-workspace="erp"] .topbar-right{gap:9px}
+body[data-workspace="erp"] .erp-intro{position:relative;isolation:isolate;overflow:hidden;margin:20px clamp(16px,2.5vw,34px) 18px;padding:27px clamp(22px,3vw,38px);border:1px solid #d7dfd3;border-radius:19px;background:radial-gradient(circle at 93% 15%,#b6d4b322,transparent 26%),linear-gradient(115deg,#fffefa,#edf2e9 67%,#e7eee5);box-shadow:0 9px 28px #30483a0c}
+body[data-workspace="erp"] .erp-intro:after{content:"OPERATIONS";position:absolute;right:3%;bottom:-8px;z-index:-1;color:#385c450b;font-size:clamp(45px,7vw,88px);font-weight:950;letter-spacing:-4px}
+body[data-workspace="erp"] .erp-intro .eyebrow{color:#577f60;font-size:10px;letter-spacing:2px;font-weight:850}
+body[data-workspace="erp"] .erp-intro h2{color:#243d32;font-size:clamp(24px,2.5vw,33px);letter-spacing:-.8px}
+body[data-workspace="erp"] .erp-intro p{color:#6d7e73;max-width:780px;font-size:12px;line-height:1.8}
+body[data-workspace="erp"] .erp-modules span{background:#fff;border:1px solid #dce5da;color:#527260;border-radius:7px;padding:6px 9px;font-size:10px}
+body[data-workspace="erp"] .erp-mark{background:linear-gradient(145deg,#355f49,#628363);color:#f9f5e9;border:1px solid #8da98e;border-radius:17px;box-shadow:0 12px 25px #426b4d26}
+body[data-workspace="erp"] .product-workflow{margin:0 clamp(16px,2.5vw,34px) 17px;padding:18px 19px;border:1px solid #e0e3dc;border-radius:16px;background:#fff;box-shadow:0 6px 18px #2b40330a}
+body[data-workspace="erp"] .product-workflow__head h3{color:#284638;font-size:16px}
+body[data-workspace="erp"] .product-workflow__head p,body[data-workspace="erp"] .product-workflow__foot{color:#859187}
+body[data-workspace="erp"] .product-workflow__mode{background:#f4eee3;color:#967142;border:1px solid #eadcc4}
+body[data-workspace="erp"] .product-workflow__item{min-height:108px;border:1px solid #e4e8e1;border-radius:11px;background:linear-gradient(145deg,#fff,#f7f8f3)}
+body[data-workspace="erp"] .product-workflow__item i{background:#edf2e9;color:#4e805f}
+body[data-workspace="erp"] .product-workflow__item b{color:#304d3e}
+body[data-workspace="erp"] .product-workflow__item small{color:#89958b}
+body[data-workspace="erp"] .product-workflow__item span{color:#4d805f}
+body[data-workspace="erp"] .content{padding:0 clamp(16px,2.5vw,34px) 34px;background:transparent!important}
+body[data-workspace="erp"] .card,body[data-workspace="erp"] .panel,body[data-workspace="erp"] .kpi,body[data-workspace="erp"] .metric-card,body[data-workspace="erp"] .stat-card{border:1px solid #e0e4dc!important;border-radius:13px!important;background:#fff!important;box-shadow:0 5px 15px #243d3009!important;color:#2a4337}
+body[data-workspace="erp"] .card h3,body[data-workspace="erp"] .panel h3,body[data-workspace="erp"] .sec-title{color:#355746}
+body[data-workspace="erp"] table{border-collapse:separate;border-spacing:0;width:100%;background:#fff;border:1px solid #e0e5de;border-radius:12px;overflow:hidden}
+body[data-workspace="erp"] th{background:#eff3ed;color:#536c5d;font-weight:800;font-size:11px}
+body[data-workspace="erp"] td{color:#43564b;border-bottom:1px solid #edf0eb;font-size:12px}
+body[data-workspace="erp"] th,body[data-workspace="erp"] td{padding:11px 13px}
+body[data-workspace="erp"] input,body[data-workspace="erp"] select,body[data-workspace="erp"] textarea{background:#fffefa!important;border:1px solid #d9e0d7!important;border-radius:8px;color:#2d4236!important}
+body[data-workspace="erp"] .btn.primary,body[data-workspace="erp"] .btn-primary{background:linear-gradient(110deg,#286b50,#438765);border-color:#286b50;color:#fff;box-shadow:0 6px 15px #276d4e24}
+body[data-workspace="erp"] .btn.ghost,body[data-workspace="erp"] .btn-secondary{background:#fff;border:1px solid #d6dfd5;color:#52695a}
+body[data-workspace="erp"] .tabbar,body[data-workspace="erp"] .mobile-nav{background:#fffefa;border-top:1px solid #e0e4dc;box-shadow:0 -7px 20px #273b300c}
+body[data-workspace="erp"] :where(button,input,select,textarea,a,[tabindex]):focus-visible{outline:3px solid #74a889!important;outline-offset:3px}
+@media(max-width:900px){body[data-workspace="erp"] .sidebar{display:none}body[data-workspace="erp"] .main{min-width:0;width:100%}body[data-workspace="erp"] .content{padding:0 13px 90px}body[data-workspace="erp"] .erp-intro{margin:13px;padding:20px 17px}body[data-workspace="erp"] .product-workflow{margin:0 13px 14px;padding:14px 12px}body[data-workspace="erp"] .product-workflow__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){body[data-workspace="erp"] .erp-intro h2{font-size:22px}body[data-workspace="erp"] .erp-mark{display:none}body[data-workspace="erp"] .topbar{height:60px;min-height:60px;padding:0 13px}body[data-workspace="erp"] .product-workflow__item{min-height:110px;padding:10px}}
+@media(prefers-reduced-motion:reduce){body[data-workspace="erp"] *,body[data-workspace="erp"] *:before,body[data-workspace="erp"] *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
