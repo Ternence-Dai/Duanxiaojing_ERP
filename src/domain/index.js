@@ -41,6 +41,28 @@ export function normalizeStockBalance(balance) {
   return milliunits / 1000;
 }
 
+export function calculateStockPosition({ onHand, incomingQuantity = 0, safetyStock = 0 } = {}) {
+  const onHandMilliunits = toMilliunits(onHand, "onHand");
+  const incomingMilliunits = toMilliunits(incomingQuantity, "incomingQuantity");
+  const safetyMilliunits = toMilliunits(safetyStock, "safetyStock");
+  if (onHandMilliunits < 0 || incomingMilliunits < 0 || safetyMilliunits < 0) {
+    throw new RangeError("on-hand, incoming and safety-stock quantities must be non-negative");
+  }
+  const projectedMilliunits = onHandMilliunits + incomingMilliunits;
+  if (!Number.isSafeInteger(projectedMilliunits)) {
+    throw new RangeError("projected stock position exceeds the safe milliunit range");
+  }
+  const replenishmentMilliunits = Math.max(0, safetyMilliunits - projectedMilliunits);
+  return Object.freeze({
+    onHand:onHandMilliunits / 1000,
+    incomingQuantity:incomingMilliunits / 1000,
+    projectedQuantity:projectedMilliunits / 1000,
+    safetyStock:safetyMilliunits / 1000,
+    replenishmentQuantity:replenishmentMilliunits / 1000,
+    status:projectedMilliunits < safetyMilliunits ? "below-safety" : "sufficient"
+  });
+}
+
 export function applyStockMovement(balance, movement) {
   const balanceMilliunits = toMilliunits(balance, "balance");
   if (balanceMilliunits < 0) throw new RangeError("balance must be non-negative");
