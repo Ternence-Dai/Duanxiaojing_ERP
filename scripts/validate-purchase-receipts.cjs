@@ -9,6 +9,36 @@ const css = fs.readFileSync('assets/css/product-system.css', 'utf8');
 const seed = fs.readFileSync('assets/js/demo-seed-data.js', 'utf8');
 const domain = fs.readFileSync('src/domain/index.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/validate.yml', 'utf8');
+const purchaseWorkspace = fs.readFileSync('assets/js/workspace-v5-purchase.js', 'utf8');
+const workspaceCss = fs.readFileSync('assets/css/workspace-v5.css', 'utf8');
+
+assert.ok(html.includes('workspace-v5-purchase.js?v=20261019-v52'),
+  'ERP page must load the V5.2 purchase receiving workspace enhancement');
+assert.doesNotThrow(() => new Function(purchaseWorkspace),
+  'purchase receiving workspace enhancement must parse as valid JavaScript');
+for (const token of [
+  'w5-receipt-dashboard', 'w5-receipt-metrics', 'w5-receipt-progress',
+  'w5-receipt-steps', 'w5-receipt-history-tools',
+  '采购订单到货进度', '检索流水'
+]) assert.ok(purchaseWorkspace.includes(token),
+  'purchase receiving workspace must include the operating surface: ' + token);
+for (const id of [
+  'receipt-purchase-order', 'receipt-sku', 'receipt-quantity',
+  'receipt-batch', 'receipt-location', 'receipt-time',
+  'receipt-receiver', 'receipt-inspector', 'receipt-inspection'
+]) assert.ok(purchaseWorkspace.includes(id),
+  'purchase receiving UI must retain the required form field: ' + id);
+assert.ok(purchaseWorkspace.includes('按订单与单位独立计算') &&
+          purchaseWorkspace.includes('item.received / item.ordered * 100'),
+  'order progress must be calculated per order and must not mix unlike material units');
+assert.ok(!purchaseWorkspace.includes('.innerHTML'),
+  'workspace enhancement must create text nodes safely instead of injecting data HTML');
+for (const selector of [
+  '.w5-receipt-dashboard', '.w5-receipt-metric',
+  '.w5-receipt-progress__row', '.w5-receipt-step',
+  '.w5-receipt-history-tools'
+]) assert.ok(workspaceCss.includes(selector),
+  'ERP V5.2 stylesheet must style the purchase workspace: ' + selector);
 
 assert.ok(html.includes('product-system.css?v=20261019-v8'),
   'ERP must load the receipt-enabled product V8 workflow stylesheet revision');
