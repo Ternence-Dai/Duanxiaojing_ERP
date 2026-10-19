@@ -79,6 +79,15 @@
         profile: "查看本机保存的学习进度和个人学习设置。"
       }
     },
+    physchem: {
+      title: "PHYSICAL CHEMISTRY LAB",
+      root: () => document.querySelector(".mn"),
+      key: () => "experiment",
+      label: () => document.getElementById("et")?.textContent?.trim() || "当前实验",
+      homeKey: "",
+      home: () => null,
+      descriptions: {}
+    },
     ekpo: {
       title: "EKPO LAB OPERATIONS",
       root: () => {
