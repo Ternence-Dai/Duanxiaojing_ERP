@@ -42,3 +42,10 @@
 - [Work Order 状态与业务字段](https://github.com/frappe/erpnext/blob/develop/erpnext/manufacturing/doctype/work_order/work_order.py)
 - [Job Card 生产工序记录](https://github.com/frappe/erpnext/blob/develop/erpnext/manufacturing/doctype/job_card/job_card.py)
 - [ERPNext 库存仪表盘](https://github.com/frappe/erpnext/blob/develop/erpnext/stock/dashboard/item_dashboard.js)
+
+## 6. 2026-10-19 实施补充：采购在途与预计库存
+
+- `src/domain/index.js` 新增 `calculateStockPosition`，使用整数 milliunits 计算现存数量、采购在途、预计库存、安全库存和补货缺口，避免累计小数漂移。
+- `assets/js/legacy-app.js` 在物料库存表新增“采购在途”和“预计库存”列。采购在途仅纳入物料、供应商、单位一致且能够唯一分配到库存 SKU 的未到货采购；拆分到多个批次、无法唯一分配的订单不重复计入。
+- `test/domain.test.js` 覆盖库存充足、低于安全库存、精度超限、负数和整数范围溢出。
+- 当前“预计库存”口径为现存库存 + 可唯一关联的未到货采购，不扣减销售订单占用、生产预留或其他承诺量，因此不应称为“可承诺库存”。
