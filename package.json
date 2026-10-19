@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/domain/index.js"
+    "check": "node scripts/check-js-syntax.cjs"
   }
 }
