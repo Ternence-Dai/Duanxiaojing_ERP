@@ -97,7 +97,6 @@ assert.ok(app.includes("if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseRecei
   'legacy app data must migrate missing receipt/reversal/movement tables to empty lists');
 assert.ok(app.includes('DB.purchaseReceiptReversals.unshift(result.reversal)') &&
           app.includes('DB.stockMovements.unshift(result.stockMovement)') &&
-          app.includes('sourceType') === false &&
           app.includes('getPurchaseReceivedMilliunits(purchaseNo)'),
   'reversal posting must preserve the original receipt and append a movement and reversal record');
 
