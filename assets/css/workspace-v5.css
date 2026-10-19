@@ -44,6 +44,9 @@ body[data-workspace="erp"] .btn.primary,body[data-workspace="erp"] .btn-primary{
 body[data-workspace="erp"] .btn.ghost,body[data-workspace="erp"] .btn-secondary{background:#fff;border:1px solid #d6dfd5;color:#52695a}
 body[data-workspace="erp"] .tabbar,body[data-workspace="erp"] .mobile-nav{background:#fffefa;border-top:1px solid #e0e4dc;box-shadow:0 -7px 20px #273b300c}
 body[data-workspace="erp"] :where(button,input,select,textarea,a,[tabindex]):focus-visible{outline:3px solid #74a889!important;outline-offset:3px}
-@media(max-width:900px){body[data-workspace="erp"] .sidebar{display:none}body[data-workspace="erp"] .main{min-width:0;width:100%}body[data-workspace="erp"] .content{padding:0 13px 90px}body[data-workspace="erp"] .erp-intro{margin:13px;padding:20px 17px}body[data-workspace="erp"] .product-workflow{margin:0 13px 14px;padding:14px 12px}body[data-workspace="erp"] .product-workflow__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){body[data-workspace="erp"] .main{min-width:0;width:100%}body[data-workspace="erp"] .content{padding:0 13px 90px}body[data-workspace="erp"] .erp-intro{margin:13px;padding:20px 17px}body[data-workspace="erp"] .product-workflow{margin:0 13px 14px;padding:14px 12px}body[data-workspace="erp"] .product-workflow__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){body[data-workspace="erp"] .erp-intro h2{font-size:22px}body[data-workspace="erp"] .erp-mark{display:none}body[data-workspace="erp"] .topbar{height:60px;min-height:60px;padding:0 13px}body[data-workspace="erp"] .product-workflow__item{min-height:110px;padding:10px}}
 @media(prefers-reduced-motion:reduce){body[data-workspace="erp"] *,body[data-workspace="erp"] *:before,body[data-workspace="erp"] *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* V5 responsive correction: preserve the existing slide-out sidebar and hamburger on tablets. */
+@media(max-width:900px){body[data-workspace="erp"] .sidebar{display:flex}}
