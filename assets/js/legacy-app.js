@@ -1929,7 +1929,7 @@ function renderDashboard(){
       <div class="kpi-foot">${lowStock.length} 项低于安全线</div>
     </div>
     <div class="kpi c4">
-      <div class="kpi-label">一等品率</div>
+      <div class="kpi-label">优等品率</div>
       <div class="kpi-value">${firstRate}<span style="font-size:15px">%</span></div>
       <div class="kpi-foot">本期验布 ${qcTotal} 匹 · 订单完成率 ${completionRate}%</div>
     </div>
