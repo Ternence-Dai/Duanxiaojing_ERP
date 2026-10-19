@@ -147,5 +147,19 @@ assert.equal(isValid({...posted,purchaseReceipts:[{...receipt,stockMovementRefer
   'receipt reference must match a stock movement reference');
 assert.equal(isValid({...posted,purchaseReceipts:[receipt,{...receipt,receiptNo:'GRN-2'}]}), false,
   'duplicate movement references cannot be reused for separate receipt records');
+assert.equal(isValid({...posted,purchaseReceipts:[{...receipt,receiptNo:' GRN-1'}]}), false,
+  'imported receipt identifiers must already be canonical and trimmed');
+assert.equal(isValid({...posted,purchaseReceipts:[{...receipt,note:'x'.repeat(2001)}]}), false,
+  'imported receipt notes must respect the 2000-character domain limit');
+assert.equal(isValid({...posted,purchaseReceipts:[{...receipt,note:'bad\u0000note'}]}), false,
+  'imported receipt notes must reject control characters');
+assert.equal(isValid({...posted,purchaseReceipts:[{...receipt,inspectedBy:' qc-1'}]}), false,
+  'imported receipt actors must not contain hidden leading or trailing whitespace');
+assert.equal(isValid({...posted,stockMovements:[{...movement,reference:' GRN-1'}]}), false,
+  'imported stock movement references must be canonical and trimmed');
+assert.equal(isValid({...posted,stockMovements:[{...movement,sku:'S'.repeat(81)}]}), false,
+  'imported stock movement SKUs must respect the domain length limit');
+
+console.log('ERP purchase receiving integration and legacy/current backup checks passed.');
 
 console.log('ERP purchase receiving integration and legacy/current backup checks passed.');
