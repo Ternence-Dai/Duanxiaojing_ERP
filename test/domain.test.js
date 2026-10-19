@@ -188,6 +188,19 @@ test("restores the original PO status only after every remaining receipt is reve
  assert.equal(reverseFirst.stockMovement.nextBalance,10);
 });
 
+test("rejects a modified receipt snapshot before reversing stock",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const modifiedReceipt={...first.receipt,receivedBy:"forged-operator"};
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:modifiedReceipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-FORGED-001",reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Attempted reversal with altered receipt data"
+ }),/does not exactly match the saved receipt ledger/);
+});
+
 test("rejects duplicate receipt reversal and prevents a negative stock balance",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const args={
