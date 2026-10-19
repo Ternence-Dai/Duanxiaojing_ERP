@@ -20,7 +20,7 @@ assert.doesNotThrow(() => new Function(purchaseWorkspace),
 for (const token of [
   'w5-receipt-dashboard', 'w5-receipt-metrics', 'w5-receipt-progress',
   'w5-receipt-steps', 'w5-receipt-history-tools',
-  'data-reverse-receipt', 'w5-receipt-reversal-log',
+  'data-reverse-receipt',
   '采购订单到货进度', '检索流水'
 ]) assert.ok(purchaseWorkspace.includes(token),
   'purchase receiving workspace must include the operating surface: ' + token);
@@ -59,6 +59,10 @@ assert.ok(app.includes('function renderPurchaseReceiptWorkspace()') &&
           app.includes('async function postPurchaseReceipt()') &&
           app.includes('async function reversePurchaseReceipt(receiptNo)'),
   'purchase receiving UI, SKU mapping, posting and reversal handlers must exist');
+assert.ok(app.includes('w5-receipt-reversal-log') &&
+          app.includes('data-reverse-receipt=') &&
+          app.includes('purchaseReceiptReversals.unshift(result.reversal)'),
+  'receipt history must show append-only reversal status and audit history');
 assert.ok(app.includes("key === 'purchase' ? renderPurchaseReceiptWorkspace() : ''"),
   'purchase receipt workflow must be visible in the purchase module');
 assert.ok(app.includes("domain.createPurchaseReceipt({") &&
