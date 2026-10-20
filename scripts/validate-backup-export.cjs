@@ -31,9 +31,12 @@ const writeStart = app.indexOf("async function writeToFile(){");
 const writeEnd = app.indexOf("\nasync function readFromFile()", writeStart);
 assert.ok(writeStart >= 0 && writeEnd > writeStart, "writeToFile must remain present");
 const writeCode = app.slice(writeStart, writeEnd);
-assert.ok(writeCode.indexOf("localStorage.setItem(FILE_SYNC_PENDING_KEY, '1')") <
+assert.ok(writeCode.indexOf("localStorage.setItem(FILE_SYNC_PENDING_KEY, fileSyncFingerprint(") <
           writeCode.indexOf("fileHandle.createWritable()"),
-  "a durable dirty marker must be written before modifying the bound file");
+  "a cache fingerprint marker must be written before modifying the bound file");
+assert.match(app, /function hasMatchingPendingFileSync\(\)/);
+assert.match(app, /fileSyncFingerprint\(cached\) !== marker/);
+assert.match(app, /if\(fileSyncPending === null\)[\s\S]*?拒绝自动导入或覆盖本地文件/);
 assert.match(writeCode, /await fileHandle.getFile\(\)/);
 assert.match(writeCode, /JSON\.stringify\(verified\) !== JSON\.stringify\(JSON\.parse\(snapshot\)\)/);
 assert.match(writeCode, /localStorage.removeItem\(FILE_SYNC_PENDING_KEY\)/);
