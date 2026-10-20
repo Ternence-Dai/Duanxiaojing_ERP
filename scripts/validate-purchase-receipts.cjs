@@ -246,4 +246,12 @@ assert.equal(isValid({...postedReversed,stockMovements:[{...reversalMovement,rev
 assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[reversal,{...reversal,reversalNo:'REV-GRN-2'}]}), false,
   'one receipt cannot be reversed more than once');
 
+const receiptPostStart = app.indexOf('function postPurchaseReceipt()');
+const reversalStateStart = app.indexOf('let purchaseReceiptReversalPending = false;');
+assert.ok(receiptPostStart >= 0 && reversalStateStart > receiptPostStart,
+  'receipt and reversal handlers must remain discoverable');
+const receiptPostHandler = app.slice(receiptPostStart, reversalStateStart);
+assert.ok(receiptPostHandler.includes('if(purchaseReceiptPending || purchaseReceiptReversalPending) return;'),
+  'receipt posting must not start while a reversal is awaiting its commit');
+
 console.log('ERP purchase receiving and append-only reversal integration and backup checks passed.');
