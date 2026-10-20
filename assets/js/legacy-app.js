@@ -408,26 +408,29 @@ async function readFromFile(){
     const file = await fileHandle.getFile();
     const text = await file.text();
     if(!text.trim()) return false;
-    const d = JSON.parse(text);
-    if(isValidDBShape(d)){
-      DB = d;
-      if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
-      if(!Array.isArray(DB.purchaseReceiptReversals)) DB.purchaseReceiptReversals = [];
-      if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
-      try{
-        localStorage.setItem(STORE_KEY, JSON.stringify(DB));
-        storageRecoveryRequired = false;
-      }catch(e){
-        console.error('文件数据已载入内存，但浏览器缓存写入失败。', e);
-        toast('文件已读取，但浏览器缓存写入失败；请检查存储并保留原文件备份');
-      }
-      render(); initNav();
-      return true;
+    const candidate = JSON.parse(text);
+    if(!isValidDBShape(candidate)) return false;
+    if(!Array.isArray(candidate.purchaseReceipts)) candidate.purchaseReceipts = [];
+    if(!Array.isArray(candidate.purchaseReceiptReversals)) candidate.purchaseReceiptReversals = [];
+    if(!Array.isArray(candidate.stockMovements)) candidate.stockMovements = [];
+
+    // Commit the browser copy before changing in-memory state or releasing
+    // the recovery lock. A failed cache write must leave the prior DB intact.
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(candidate));
+    }catch(storageError){
+      console.error('本地文件有效，但浏览器缓存提交失败；内存数据与恢复锁均保持不变。', storageError);
+      toast('文件有效，但浏览器缓存写入失败；未切换当前数据，也未解除恢复保护。请先处理存储空间并保留原文件');
+      return false;
     }
+    DB = candidate;
+    storageRecoveryRequired = false;
+    render(); initNav();
+    return true;
   }catch(e){
-    console.error('读取本地文件失败', e);
+    console.error('读取或验证本地文件失败；当前数据未更改。', e);
+    return false;
   }
-  return false;
 }
 
 async function bindLocalFile(){
