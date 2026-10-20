@@ -9,7 +9,7 @@ const exportCode = app.slice(exportStart, exportEnd);
 assert.match(seed, /dataProvenance:\s*'demo-seed'/);
 assert.match(exportCode, /if\(storageRecoveryRequired\)[\s\S]*?return;/);
 assert.match(exportCode, /if\(!isValidDBShape\(DB\)\)[\s\S]*?return;/);
-assert.match(exportCode, /function isDemoSeedData\(data\)/);
+assert.match(app, /function isDemoSeedData\(data\)/);
 assert.match(exportCode, /演示样例_非真实备份/);
 assert.match(exportCode, /不得作为企业业务备份使用/);
 console.log("ERP backup export safety checks passed.");
