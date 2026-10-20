@@ -245,7 +245,7 @@ test("receipt posting rejects prior reversals linked to a different movement ref
    "GRN-TEST-001","GRN-TEST-LINK-002","REV-GRN-LINK-002","ANOTHER-MOVEMENT"
   ],
   receivedAt:"2026-10-20T10:00:00+08:00"
- }),/uniquely match their original receipt and stock movements/);
+ }),/purchase receipt reversal must link both original and reversal stock movements/);
 });
 
 test("rejects prior reversals whose unit or original movement link no longer matches the receipt",()=>{
