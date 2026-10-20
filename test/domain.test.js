@@ -480,3 +480,176 @@ test("rejects negative, over-precise and overflowing projected stock positions",
  assert.throws(()=>calculateStockPosition({onHand:1.0001}),RangeError);
  assert.throws(()=>calculateStockPosition({onHand:Number.MAX_SAFE_INTEGER,incomingQuantity:1}),RangeError);
 });
+
+
+test("rejects a receipt reversal timestamp earlier than the posted receipt",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-BACKDATED",
+  reversedAt:"2026-10-18T00:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Backdated reversal regression"
+ }),/cannot precede the original receipt/);
+});
+
+
+test("rejects imported receipt reversals dated before the original receipt",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const validReversal=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-IMPORTED-BACKDATE",
+  reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Valid reversal before import mutation"
+ });
+ const imported={...validReversal.reversal,reversedAt:"2026-10-18T00:00:00Z"};
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,purchaseOrder:{...purchaseOrder,status:"在途"},
+  existingReceipts:[first.receipt],existingReversals:[imported],
+  existingMovementReferences:["GRN-TEST-001","REV-GRN-IMPORTED-BACKDATE"],
+  receiptNo:"GRN-TEST-002"
+ }),/must uniquely match their original receipt/);
+});
+
+
+test("rejects imported reversal history backdated before its original receipt during a later reversal",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const second=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-002",quantity:65,
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-TEST-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ const validReversal=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-CHRONOLOGY-001",reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Chronology fixture"
+ });
+ const imported={...validReversal.reversal,reversedAt:"2026-10-18T00:00:00Z"};
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"已入库"},
+  inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},
+  receipt:second.receipt,existingReceipts:[first.receipt,second.receipt],
+  existingReversals:[imported],
+  existingMovementReferences:["GRN-TEST-001","GRN-TEST-002","REV-GRN-CHRONOLOGY-001"],
+  reversalNo:"REV-GRN-CHRONOLOGY-002",reversedAt:"2026-10-20T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Second receipt reversal"
+ }),/existing reversal history does not match the receipt ledger/);
+});
+
+test("rejects duplicate reversal identifiers in imported history before posting another reversal",()=>{
+ const first=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-DUP-001",quantity:30
+ });
+ const second=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-DUP-002",quantity:30,
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-DUP-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ const third=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-DUP-003",quantity:40,
+  inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:second.purchaseStatus},
+  existingReceipts:[first.receipt,second.receipt],
+  existingMovementReferences:["GRN-DUP-001","GRN-DUP-002"],
+  receivedAt:"2026-10-18T11:00:00+08:00"
+ });
+ const makeImportedReversal=(receipt,previousBalance)=>validatePurchaseReceiptReversalRecord({
+  reversalNo:"REV-DUPLICATE-ID",
+  receiptNo:receipt.receiptNo,
+  purchaseNo:receipt.purchaseNo,
+  sku:receipt.sku,
+  quantity:receipt.quantity,
+  unit:receipt.unit,
+  reason:"Imported history collision fixture",
+  reversedBy:"warehouse-supervisor",
+  reversedAt:"2026-10-19T10:00:00Z",
+  stockMovementReference:"REV-DUPLICATE-ID",
+  originalStockMovementReference:receipt.stockMovementReference,
+  previousBalance,
+  nextBalance:previousBalance-receipt.quantity
+ });
+ const duplicateHistory=[
+  makeImportedReversal(first.receipt,110),
+  makeImportedReversal(second.receipt,80)
+ ];
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"已入库"},
+  inventoryItem:{...inventoryItem,qty:50},
+  receipt:third.receipt,
+  existingReceipts:[first.receipt,second.receipt,third.receipt],
+  existingReversals:duplicateHistory,
+  existingMovementReferences:["GRN-DUP-001","GRN-DUP-002","GRN-DUP-003","REV-DUPLICATE-ID"],
+  reversalNo:"REV-GRN-DUP-003",
+  reversedAt:"2026-10-20T10:00:00Z",
+  reversedBy:"warehouse-supervisor",
+  reason:"Validate imported reversal history"
+ }),/existing reversal numbers must be unique/);
+});
+
+test("purchase receipt creation rejects duplicate reversal identifiers in supplied history",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const original=first.receipt;
+ const secondReceipt={...original,receiptNo:"GRN-OTHER",stockMovementReference:"GRN-OTHER"};
+ const movementRefs=[original.stockMovementReference,secondReceipt.stockMovementReference,"REV-DUP-1"];
+ const reversal=validatePurchaseReceiptReversalRecord({
+  reversalNo:"REV-DUP-1",receiptNo:original.receiptNo,purchaseNo:original.purchaseNo,
+  sku:original.sku,quantity:original.quantity,unit:original.unit,reason:"fixture",
+  reversedBy:"operator",reversedAt:"2026-10-19T10:00:00+08:00",
+  stockMovementReference:"REV-DUP-1",originalStockMovementReference:original.receiptNo,
+  previousBalance:45,nextBalance:10
+ });
+ const duplicateReversal={...reversal,receiptNo:secondReceipt.receiptNo,
+  originalStockMovementReference:secondReceipt.receiptNo};
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-002",quantity:1,
+  existingReceipts:[original,secondReceipt],
+  existingReversals:[reversal,duplicateReversal],
+  existingMovementReferences:movementRefs
+ }),/uniquely match/);
+});
+
+
+test("receipt reversal rejects unsafe cumulative quantity before floating-point cancellation",()=>{
+ const huge=5e12;
+ const first=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-HUGE-1",quantity:huge,purchaseOrder:{...purchaseOrder,qty:huge},inventoryItem:{...inventoryItem,qty:0}});
+ const second=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-HUGE-2",quantity:huge,purchaseOrder:{...purchaseOrder,qty:huge},inventoryItem:{...inventoryItem,qty:0}});
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,qty:huge,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:huge},receipt:first.receipt,
+  existingReceipts:[first.receipt,second.receipt],existingReversals:[],
+  existingMovementReferences:["GRN-HUGE-1","GRN-HUGE-2"],reversalNo:"REV-HUGE",
+  reversedAt:"2026-10-20T12:00:00Z",reversedBy:"operator",reason:"boundary regression"
+ }),/cumulative received quantity is unsafe/);
+});
+
+
+
+test("new receipt reversals cannot be backdated before an already recorded reversal on the same purchase order",()=>{
+ const first=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-ORDER-001",quantity:30});
+ const second=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-ORDER-002",quantity:30,inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},existingReceipts:[first.receipt],existingMovementReferences:["GRN-ORDER-001"],receivedAt:"2026-10-18T10:00:00+08:00"});
+ const prior=createPurchaseReceiptReversal({purchaseOrder:{...purchaseOrder,status:"已入库"},inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},receipt:first.receipt,existingReceipts:[first.receipt,second.receipt],existingReversals:[],existingMovementReferences:["GRN-ORDER-001","GRN-ORDER-002"],reversalNo:"REV-ORDER-001",reversedAt:"2026-10-19T10:00:00Z",reversedBy:"operator",reason:"first chronological reversal"});
+ assert.throws(()=>createPurchaseReceiptReversal({purchaseOrder:{...purchaseOrder,status:"部分到货"},inventoryItem:{...inventoryItem,qty:prior.stockMovement.nextBalance},receipt:second.receipt,existingReceipts:[first.receipt,second.receipt],existingReversals:[prior.reversal],existingMovementReferences:["GRN-ORDER-001","GRN-ORDER-002","REV-ORDER-001"],reversalNo:"REV-ORDER-002",reversedAt:"2026-10-18T12:00:00Z",reversedBy:"operator",reason:"backdated reversal"}),/cannot precede an existing reversal/);
+});
+
+
+
+test("bounds imported receipt reversal history before validating individual rows",()=>{
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{},inventoryItem:{},
+  existingReceipts:new Array(50001),existingReversals:[],existingMovementReferences:[]
+ }),/supported validation limit/);
+});

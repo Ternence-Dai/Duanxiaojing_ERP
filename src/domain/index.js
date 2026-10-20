@@ -285,18 +285,22 @@ export function createPurchaseReceipt({
     }
   }
   const reversedReceiptIds = new Set();
+  const reversalNumbers = new Set();
   for (const row of existingReversals) {
     const reversal = validatePurchaseReceiptReversalRecord(row);
     const original = existingReceiptById.get(reversal.receiptNo);
     if (!original || original.purchaseNo !== reversal.purchaseNo ||
         original.sku !== reversal.sku || original.quantity !== reversal.quantity ||
         original.unit !== reversal.unit ||
+        Date.parse(reversal.reversedAt) < Date.parse(original.receivedAt) ||
         !movementReferenceSet.has(reversal.stockMovementReference) ||
         !movementReferenceSet.has(reversal.originalStockMovementReference) ||
-        reversedReceiptIds.has(reversal.receiptNo)) {
+        reversedReceiptIds.has(reversal.receiptNo) ||
+        reversalNumbers.has(reversal.reversalNo)) {
       throw new RangeError("existing purchase receipt reversals must uniquely match their original receipt and stock movements");
     }
     reversedReceiptIds.add(reversal.receiptNo);
+    reversalNumbers.add(reversal.reversalNo);
     if (reversal.purchaseNo === purchaseNo) {
       previouslyReceived -= toMilliunits(reversal.quantity, "reversed receipt quantity", { allowZero: false });
     }
@@ -384,7 +388,15 @@ export function createPurchaseReceiptReversal({
       !Array.isArray(existingMovementReferences)) {
     throw new TypeError("receipt reversal history and movement references must be arrays");
   }
+  if (existingReceipts.length > 50000 || existingReversals.length > 50000 ||
+      existingMovementReferences.length > 100000) {
+    throw new RangeError("receipt reversal history exceeds the supported validation limit");
+  }
   const target = validatePurchaseReceiptRecord(receipt);
+  const normalizedReversedAt = parseOccurredAt(reversedAt);
+  if (Date.parse(normalizedReversedAt) < Date.parse(target.receivedAt)) {
+    throw new RangeError("receipt reversal timestamp cannot precede the original receipt");
+  }
   const purchaseNo = requiredPurchaseText(purchaseOrder.no, "purchase order number", 80);
   if (target.purchaseNo !== purchaseNo) {
     throw new RangeError("receipt and purchase order do not match");
@@ -432,11 +444,27 @@ export function createPurchaseReceiptReversal({
     throw new RangeError("reversal number already exists in the stock movement ledger");
   }
   const priorReversals = existingReversals.map(validatePurchaseReceiptReversalRecord);
+  const priorReversalNumbers = new Set();
+  const priorReversedReceipts = new Set();
+  for (const row of priorReversals) {
+    if (priorReversalNumbers.has(row.reversalNo)) {
+      throw new RangeError("existing reversal numbers must be unique");
+    }
+    if (priorReversedReceipts.has(row.receiptNo)) {
+      throw new RangeError("existing receipt reversal links must be unique");
+    }
+    priorReversalNumbers.add(row.reversalNo);
+    priorReversedReceipts.add(row.receiptNo);
+  }
   if (priorReversals.some(row => row.receiptNo === target.receiptNo)) {
     throw new RangeError("purchase receipt has already been reversed");
   }
   if (priorReversals.some(row => row.reversalNo === normalizedReversalNo)) {
     throw new RangeError("reversal number already exists");
+  }
+  if (priorReversals.some(row => row.purchaseNo === purchaseNo &&
+      Date.parse(row.reversedAt) > Date.parse(normalizedReversedAt))) {
+    throw new RangeError("new reversal timestamp cannot precede an existing reversal for this purchase order");
   }
   for (const row of priorReversals) {
     const original = storedReceipts.get(row.receiptNo);
@@ -444,6 +472,7 @@ export function createPurchaseReceiptReversal({
         original.sku !== row.sku || original.quantity !== row.quantity ||
         original.unit !== row.unit ||
         original.stockMovementReference !== row.originalStockMovementReference ||
+        Date.parse(row.reversedAt) < Date.parse(original.receivedAt) ||
         !referenceSet.has(row.stockMovementReference) ||
         !referenceSet.has(row.originalStockMovementReference)) {
       throw new RangeError("existing reversal history does not match the receipt ledger");
@@ -454,11 +483,13 @@ export function createPurchaseReceiptReversal({
   for (const row of storedReceipts.values()) {
     if (row.purchaseNo === purchaseNo) {
       effectiveReceived += toMilliunits(row.quantity, "receipt quantity", { allowZero: false });
+      if (!Number.isSafeInteger(effectiveReceived)) throw new RangeError("cumulative received quantity is unsafe");
     }
   }
   for (const row of priorReversals) {
     if (row.purchaseNo === purchaseNo) {
       effectiveReceived -= toMilliunits(row.quantity, "reversed receipt quantity", { allowZero: false });
+      if (!Number.isSafeInteger(effectiveReceived)) throw new RangeError("effective received quantity is unsafe after reversals");
     }
   }
   const targetQuantity = toMilliunits(target.quantity, "receipt quantity", { allowZero: false });
