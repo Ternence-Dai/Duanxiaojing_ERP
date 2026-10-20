@@ -435,6 +435,8 @@ export function createPurchaseReceiptReversal({
     const original = storedReceipts.get(row.receiptNo);
     if (!original || original.purchaseNo !== row.purchaseNo ||
         original.sku !== row.sku || original.quantity !== row.quantity ||
+        original.unit !== row.unit ||
+        original.stockMovementReference !== row.originalStockMovementReference ||
         !referenceSet.has(row.stockMovementReference) ||
         !referenceSet.has(row.originalStockMovementReference)) {
       throw new RangeError("existing reversal history does not match the receipt ledger");

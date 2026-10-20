@@ -188,6 +188,50 @@ test("restores the original PO status only after every remaining receipt is reve
  assert.equal(reverseFirst.stockMovement.nextBalance,10);
 });
 
+test("rejects prior reversals whose unit or original movement link no longer matches the receipt",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const second=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-002",quantity:65,
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-TEST-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ const prior=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"已入库"},
+  inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},
+  receipt:second.receipt,
+  existingReceipts:[first.receipt,second.receipt],
+  existingMovementReferences:["GRN-TEST-001","GRN-TEST-002"],
+  reversalNo:"REV-GRN-TEST-002",
+  reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",
+  reason:"Supplier return"
+ });
+ const baseArgs={
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:prior.stockMovement.nextBalance},
+  receipt:first.receipt,
+  existingReceipts:[first.receipt,second.receipt],
+  existingMovementReferences:["GRN-TEST-001","GRN-TEST-002","REV-GRN-TEST-002"],
+  reversalNo:"REV-GRN-TEST-001",
+  reversedAt:"2026-10-19T11:00:00Z",
+  reversedBy:"warehouse-supervisor",
+  reason:"Full PO receipt rollback"
+ };
+ assert.throws(()=>createPurchaseReceiptReversal({
+  ...baseArgs,existingReversals:[{...prior.reversal,unit:"箱"}]
+ }),/existing reversal history does not match the receipt ledger/);
+ assert.throws(()=>createPurchaseReceiptReversal({
+  ...baseArgs,existingReversals:[{
+    ...prior.reversal,originalStockMovementReference:"ANOTHER-MOVEMENT"
+  }],
+  existingMovementReferences:[
+   "GRN-TEST-001","GRN-TEST-002","REV-GRN-TEST-002","ANOTHER-MOVEMENT"
+  ]
+ }),/existing reversal history does not match the receipt ledger/);
+});
 test("rejects a modified receipt snapshot before reversing stock",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const modifiedReceipt={...first.receipt,receivedBy:"forged-operator"};
