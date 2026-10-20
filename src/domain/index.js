@@ -291,7 +291,6 @@ export function createPurchaseReceipt({
     if (!original || original.purchaseNo !== reversal.purchaseNo ||
         original.sku !== reversal.sku || original.quantity !== reversal.quantity ||
         original.unit !== reversal.unit ||
-        original.stockMovementReference !== reversal.originalStockMovementReference ||
         !movementReferenceSet.has(reversal.stockMovementReference) ||
         !movementReferenceSet.has(reversal.originalStockMovementReference) ||
         reversedReceiptIds.has(reversal.receiptNo)) {
