@@ -458,6 +458,10 @@ export function createPurchaseReceiptReversal({
   if (priorReversals.some(row => row.reversalNo === normalizedReversalNo)) {
     throw new RangeError("reversal number already exists");
   }
+  if (priorReversals.some(row => row.purchaseNo === purchaseNo &&
+      Date.parse(row.reversedAt) > Date.parse(normalizedReversedAt))) {
+    throw new RangeError("new reversal timestamp cannot precede an existing reversal for this purchase order");
+  }
   for (const row of priorReversals) {
     const original = storedReceipts.get(row.receiptNo);
     if (!original || original.purchaseNo !== row.purchaseNo ||
