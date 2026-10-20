@@ -27,6 +27,8 @@ jobs:
         run: node scripts/validate-purchase-receipts.cjs
       - name: Validate order-date dashboard trend
         run: node scripts/validate-dashboard-trend.cjs
+      - name: Validate ERP work-order due alerts
+        run: node scripts/validate-dashboard-due.cjs
       - name: Parse embedded JavaScript
         run: |
           node <<'NODE'

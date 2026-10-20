@@ -2034,6 +2034,29 @@ function buildOrderDateTrend(orders, limit = 7) {
     .map(row => ({ ...row, label: row.date.slice(5) }));
 }
 
+function getWorkOrderDueStatus(workOrder, now = new Date(), warnDays = 3) {
+  if (!workOrder || typeof workOrder !== 'object' || Array.isArray(workOrder)) return { status: 'invalid', daysUntil: null };
+  if (workOrder.status === '已完工' || workOrder.status === '已入库') return { status: 'closed', daysUntil: null };
+  const value = String(workOrder.due || '').trim();
+  if (!value) return { status: 'unscheduled', daysUntil: null };
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return { status: 'invalid', daysUntil: null };
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  if (year < 1000 || month < 1 || month > 12 || day < 1 || day > 31) return { status: 'invalid', daysUntil: null };
+  const dueDate = new Date(year, month - 1, day);
+  if (dueDate.getFullYear() !== year || dueDate.getMonth() !== month - 1 || dueDate.getDate() !== day) {
+    return { status: 'invalid', daysUntil: null };
+  }
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new TypeError('now must be a valid Date');
+  const threshold = Number.isSafeInteger(warnDays) && warnDays >= 0 ? warnDays : 3;
+  const dueDay = Date.UTC(year, month - 1, day);
+  const todayDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysUntil = Math.round((dueDay - todayDay) / 86400000);
+  if (daysUntil < 0) return { status: 'overdue', daysUntil, daysLate: -daysUntil };
+  if (daysUntil <= threshold) return { status: 'due-soon', daysUntil, daysLate: 0 };
+  return { status: 'scheduled', daysUntil, daysLate: 0 };
+}
+
 function renderDashboard(){
   const validOrders = DB.orders.filter(o => o.status !== '已取消');
   const totalAmount = validOrders.reduce((s,o) => s + (Number(o.qty)||0)*(Number(o.price)||0), 0);
@@ -2047,16 +2070,20 @@ function renderDashboard(){
 
   const lowStock = DB.inventory.filter(i => DB.settings.lowStockWarn && Number(i.safe) > 0 && Number(i.qty) < Number(i.safe));
   const pendingOrders = DB.orders.filter(o => o.status === '待确认');
-  const warnDays = Number(DB.settings.dueWarnDays) || 3;
+  const configuredWarnDays = Number(DB.settings.dueWarnDays);
+  const warnDays = Number.isSafeInteger(configuredWarnDays) && configuredWarnDays >= 0 ? configuredWarnDays : 3;
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dueSoon = DB.workorders.filter(w => {
-    if(w.status === '已完工' || w.status === '已入库' || !w.due) return false;
-    const dueDate = new Date(String(w.due) + 'T00:00:00');
-    if(Number.isNaN(dueDate.getTime())) return false;
-    const diff = Math.ceil((dueDate - today) / 86400000);
-    return diff >= 0 && diff <= warnDays;
-  });
+  const dueAssessments = DB.workorders.map(workOrder => ({
+    workOrder,
+    due: getWorkOrderDueStatus(workOrder, today, warnDays)
+  }));
+  const overdue = dueAssessments
+    .filter(row => row.due.status === 'overdue')
+    .sort((a,b) => b.due.daysLate - a.due.daysLate);
+  const dueSoon = dueAssessments
+    .filter(row => row.due.status === 'due-soon')
+    .sort((a,b) => a.due.daysUntil - b.due.daysUntil);
+  const invalidDue = dueAssessments.filter(row => row.due.status === 'invalid');
 
   const procCount = {};
   DB.workorders.forEach(w => { procCount[w.process] = (procCount[w.process]||0)+1; });
@@ -2088,25 +2115,39 @@ function renderDashboard(){
   }).join('') : '<div class="empty" style="padding:26px 0!important">暂无有效订单日期数据</div>';
 
   const alerts = [];
+  overdue.slice(0,3).forEach(({workOrder:w,due}) => alerts.push({
+    c:'red', i:'!', page:'workorders', t:`工单 ${w.no} 已逾期 ${due.daysLate} 天`,
+    d:`原交期 ${w.due} · ${w.product} · 完成 ${fmtN(w.done)}/${fmtN(w.plan)} ${w.unit}`
+  }));
   pendingOrders.slice(0,2).forEach(o => alerts.push({
-    c:'blue', i:'!', t:`订单 ${o.no} 待确认`,
+    c:'blue', i:'!', page:'orders', t:`订单 ${o.no} 待确认`,
     d:`${o.cust} · ${o.product} · ${fmtN(o.qty)} ${o.unit}`
   }));
-  dueSoon.slice(0,2).forEach(w => alerts.push({
-    c:'amber', i:'!', t:`工单 ${w.no} 交期临近`,
+  dueSoon.slice(0,2).forEach(({workOrder:w,due}) => alerts.push({
+    c:'amber', i:'!', page:'workorders',
+    t:due.daysUntil === 0 ? `工单 ${w.no} 今天到期` : `工单 ${w.no} ${due.daysUntil} 天后到期`,
     d:`交期 ${w.due} · ${w.product} · 完成 ${fmtN(w.done)}/${fmtN(w.plan)} ${w.unit}`
   }));
+  invalidDue.slice(0,2).forEach(({workOrder:w}) => alerts.push({
+    c:'amber', i:'!', page:'workorders', t:`工单 ${w.no} 交期日期异常`,
+    d:`当前日期值：${String(w.due || '') || '未填写'} · 请核对生产计划`
+  }));
   lowStock.slice(0,3).forEach(i => alerts.push({
-    c:'red', i:'!', t:`${i.name} 低于安全库存`,
+    c:'red', i:'!', page:'inventory', t:`${i.name} 低于安全库存`,
     d:`当前 ${fmtN(i.qty)} ${i.unit} · 安全线 ${fmtN(i.safe)} ${i.unit} · 库位 ${i.loc}`
   }));
   if(!alerts.length) alerts.push({c:'green', i:'✓', t:'暂无预警事项', d:'所有指标运行正常'});
 
-  const alertsHtml = alerts.map(a => `
-    <div class="alert-item">
+  const alertsHtml = alerts.map(a => {
+    const actionAttrs = ['orders','workorders','inventory'].includes(a.page)
+      ? ` role="link" tabindex="0" onclick="go('${a.page}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('${a.page}')}"`
+      : '';
+    return `
+    <div class="alert-item${actionAttrs ? ' alert-item-action' : ''}"${actionAttrs}>
       <div class="alert-ico ${a.c}">${a.i}</div>
       <div class="alert-txt"><div class="t">${esc(a.t)}</div><div class="d">${esc(a.d)}</div></div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const activeWOs = DB.workorders.filter(w => w.status === '进行中').slice(0, 5);
   const woHtml = activeWOs.length ? activeWOs.map(w => {
@@ -2141,7 +2182,7 @@ function renderDashboard(){
     <div class="kpi c2">
       <div class="kpi-label">在产工单</div>
       <div class="kpi-value">${inProd} <span style="font-size:13px;font-weight:400;color:var(--muted)">张</span></div>
-      <div class="kpi-foot">${dueSoon.length} 张临近交期</div>
+      <div class="kpi-foot">${overdue.length} 张逾期 · ${dueSoon.length} 张临近交期</div>
     </div>
     <div class="kpi c3">
       <div class="kpi-label">库存总金额</div>

@@ -12,3 +12,9 @@ body[data-workspace="erp"] .card,body[data-workspace="erp"] .panel,body[data-wor
 body[data-workspace="erp"] .nav-group .nav-item.active{background:rgba(96,155,220,.2);box-shadow:inset 3px 0 #72b4f2}
 body[data-workspace="erp"] .gs-wrap input{border-radius:11px;background:#f5f8fc}
 @media(max-width:760px){body[data-workspace="erp"] .erp-intro{border-radius:18px}}
+
+
+/* Actionable operations alerts: overdue work orders are distinct from upcoming work. */
+body[data-workspace="erp"] .alert-item-action{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+body[data-workspace="erp"] .alert-item-action:hover{transform:translateY(-1px);border-color:#bdcfea;box-shadow:0 8px 18px rgba(24,60,98,.08)}
+body[data-workspace="erp"] .alert-item-action:focus-visible{outline:3px solid rgba(47,111,237,.24);outline-offset:2px}
