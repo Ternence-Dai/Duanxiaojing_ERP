@@ -41,6 +41,32 @@ let storageRecoveryRequired = false;
 let fileHandle = null;
 let fileReady = false;
 
+function fileSyncFingerprint(value){
+  let hash = 2166136261;
+  for(let i = 0; i < value.length; i++){
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16) + ':' + value.length;
+}
+function hasMatchingPendingFileSync(){
+  try{
+    const marker = localStorage.getItem(FILE_SYNC_PENDING_KEY);
+    if(!marker) return false;
+    const cached = localStorage.getItem(STORE_KEY);
+    if(!cached || fileSyncFingerprint(cached) !== marker){
+      storageRecoveryRequired = true;
+      console.error('ERP 文件同步标记与浏览器缓存不匹配；拒绝使用默认数据覆盖本地文件。');
+      return false;
+    }
+    return true;
+  }catch(e){
+    storageRecoveryRequired = true;
+    console.error('无法验证 ERP 文件同步标记；保留恢复保护。', e);
+    return false;
+  }
+}
+
 function isValidDBShape(d){
   const isRecord = value => !!value && typeof value === 'object' && !Array.isArray(value);
   if(!isRecord(d) || !isRecord(d.settings) || !isRecord(d.dict)) return false;
@@ -396,7 +422,7 @@ async function writeToFile(){
   try{
     // Persist the dirty marker before touching the file. After a reload it
     // tells restoreHandle to prefer the browser cache and push it to disk.
-    localStorage.setItem(FILE_SYNC_PENDING_KEY, '1');
+    localStorage.setItem(FILE_SYNC_PENDING_KEY, fileSyncFingerprint(localStorage.getItem(STORE_KEY) || ''));
     const w = await fileHandle.createWritable();
     await w.write(snapshot);
     await w.close();
@@ -540,8 +566,7 @@ async function restoreHandle(){
     }
     fileHandle = handle;
     fileReady = false;
-    let fileSyncPending = false;
-    try{ fileSyncPending = localStorage.getItem(FILE_SYNC_PENDING_KEY) === '1'; }catch(e){}
+    const fileSyncPending = hasMatchingPendingFileSync();
     if(fileSyncPending){
       // The browser cache was committed before the pending marker was set.
       // Never import a possibly stale disk copy over it during recovery.
@@ -576,8 +601,7 @@ async function reRequestPermission(){
     const perm = await fileHandle.requestPermission({ mode:'readwrite' });
     if(perm === 'granted'){
       fileReady = false;
-      let fileSyncPending = false;
-      try{ fileSyncPending = localStorage.getItem(FILE_SYNC_PENDING_KEY) === '1'; }catch(e){}
+      const fileSyncPending = hasMatchingPendingFileSync();
       if(fileSyncPending){
         if(storageRecoveryRequired || !isValidDBShape(DB)){
           updateFileStatus();
