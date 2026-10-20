@@ -546,3 +546,56 @@ test("rejects imported reversal history backdated before its original receipt du
   reversedBy:"warehouse-supervisor",reason:"Second receipt reversal"
  }),/existing reversal history does not match the receipt ledger/);
 });
+
+test("rejects duplicate reversal identifiers in imported history before posting another reversal",()=>{
+ const first=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-DUP-001",quantity:30
+ });
+ const second=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-DUP-002",quantity:30,
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-DUP-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ const third=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-DUP-003",quantity:40,
+  inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:second.purchaseStatus},
+  existingReceipts:[first.receipt,second.receipt],
+  existingMovementReferences:["GRN-DUP-001","GRN-DUP-002"],
+  receivedAt:"2026-10-18T11:00:00+08:00"
+ });
+ const makeImportedReversal=(receipt,previousBalance)=>validatePurchaseReceiptReversalRecord({
+  reversalNo:"REV-DUPLICATE-ID",
+  receiptNo:receipt.receiptNo,
+  purchaseNo:receipt.purchaseNo,
+  sku:receipt.sku,
+  quantity:receipt.quantity,
+  unit:receipt.unit,
+  reason:"Imported history collision fixture",
+  reversedBy:"warehouse-supervisor",
+  reversedAt:"2026-10-19T10:00:00Z",
+  stockMovementReference:"REV-DUPLICATE-ID",
+  originalStockMovementReference:receipt.stockMovementReference,
+  previousBalance,
+  nextBalance:previousBalance-receipt.quantity
+ });
+ const duplicateHistory=[
+  makeImportedReversal(first,110),
+  makeImportedReversal(second,80)
+ ];
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"已入库"},
+  inventoryItem:{...inventoryItem,qty:50},
+  receipt:third.receipt,
+  existingReceipts:[first.receipt,second.receipt,third.receipt],
+  existingReversals:duplicateHistory,
+  existingMovementReferences:["GRN-DUP-001","GRN-DUP-002","GRN-DUP-003","REV-DUPLICATE-ID"],
+  reversalNo:"REV-GRN-DUP-003",
+  reversedAt:"2026-10-20T10:00:00Z",
+  reversedBy:"warehouse-supervisor",
+  reason:"Validate imported reversal history"
+ }),/existing reversal numbers must be unique/);
+});

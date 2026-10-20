@@ -437,6 +437,18 @@ export function createPurchaseReceiptReversal({
     throw new RangeError("reversal number already exists in the stock movement ledger");
   }
   const priorReversals = existingReversals.map(validatePurchaseReceiptReversalRecord);
+  const priorReversalNumbers = new Set();
+  const priorReversedReceipts = new Set();
+  for (const row of priorReversals) {
+    if (priorReversalNumbers.has(row.reversalNo)) {
+      throw new RangeError("existing reversal numbers must be unique");
+    }
+    if (priorReversedReceipts.has(row.receiptNo)) {
+      throw new RangeError("existing receipt reversal links must be unique");
+    }
+    priorReversalNumbers.add(row.reversalNo);
+    priorReversedReceipts.add(row.receiptNo);
+  }
   if (priorReversals.some(row => row.receiptNo === target.receiptNo)) {
     throw new RangeError("purchase receipt has already been reversed");
   }
