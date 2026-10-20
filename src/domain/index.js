@@ -442,6 +442,7 @@ export function createPurchaseReceiptReversal({
   const priorReversals = existingReversals.map(validatePurchaseReceiptReversalRecord);
   const priorReversalNumbers = new Set();
   const priorReversedReceipts = new Set();
+  const priorReversalMovementReferences = new Set();
   for (const row of priorReversals) {
     if (priorReversalNumbers.has(row.reversalNo)) {
       throw new RangeError("existing reversal numbers must be unique");
@@ -449,8 +450,12 @@ export function createPurchaseReceiptReversal({
     if (priorReversedReceipts.has(row.receiptNo)) {
       throw new RangeError("existing receipt reversal links must be unique");
     }
+    if (priorReversalMovementReferences.has(row.stockMovementReference)) {
+      throw new RangeError("existing reversal stock movement references must be unique");
+    }
     priorReversalNumbers.add(row.reversalNo);
     priorReversedReceipts.add(row.receiptNo);
+    priorReversalMovementReferences.add(row.stockMovementReference);
   }
   if (priorReversals.some(row => row.receiptNo === target.receiptNo)) {
     throw new RangeError("purchase receipt has already been reversed");
