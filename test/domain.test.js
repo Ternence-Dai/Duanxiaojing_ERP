@@ -210,6 +210,44 @@ test("restores the original PO status only after every remaining receipt is reve
  assert.equal(reverseFirst.stockMovement.nextBalance,10);
 });
 
+test("receipt posting rejects prior reversals linked to a different movement reference",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const second=createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-LINK-002",quantity:65,
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-TEST-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ const prior=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"已入库"},
+  inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},
+  receipt:second.receipt,
+  existingReceipts:[first.receipt,second.receipt],
+  existingMovementReferences:["GRN-TEST-001","GRN-TEST-LINK-002"],
+  reversalNo:"REV-GRN-LINK-002",
+  reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",
+  reason:"Supplier return"
+ });
+ const tamperedReversal={
+  ...prior.reversal,
+  originalStockMovementReference:"ANOTHER-MOVEMENT"
+ };
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-LINK-003",quantity:1,
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:prior.stockMovement.nextBalance},
+  existingReceipts:[first.receipt,second.receipt],
+  existingReversals:[tamperedReversal],
+  existingMovementReferences:[
+   "GRN-TEST-001","GRN-TEST-LINK-002","REV-GRN-LINK-002","ANOTHER-MOVEMENT"
+  ],
+  receivedAt:"2026-10-20T10:00:00+08:00"
+ }),/uniquely match their original receipt and stock movements/);
+});
+
 test("rejects prior reversals whose unit or original movement link no longer matches the receipt",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const second=createPurchaseReceipt({
