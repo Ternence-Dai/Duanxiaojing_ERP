@@ -449,6 +449,7 @@ export function createPurchaseReceiptReversal({
         original.sku !== row.sku || original.quantity !== row.quantity ||
         original.unit !== row.unit ||
         original.stockMovementReference !== row.originalStockMovementReference ||
+        Date.parse(row.reversedAt) < Date.parse(original.receivedAt) ||
         !referenceSet.has(row.stockMovementReference) ||
         !referenceSet.has(row.originalStockMovementReference)) {
       throw new RangeError("existing reversal history does not match the receipt ledger");
