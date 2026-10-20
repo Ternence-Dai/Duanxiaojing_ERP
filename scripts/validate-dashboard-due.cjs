@@ -36,7 +36,7 @@ assert.equal(classify({status:'进行中',due:'2024-02-29'},today,3).status,'ove
   'valid leap-day due dates must be parsed as calendar dates');
 assert.equal(classify({status:'进行中',due:'2026-10-21'},today,0).status,'scheduled',
   'a zero-day warning window must be respected rather than replaced by the default');
-assert.throws(()=>classify({status:'进行中',due:'2026-10-20'},new Date(NaN),3),TypeError);
+assert.throws(()=>classify({status:'进行中',due:'2026-10-20'},new Date(NaN),3), error => error && error.name === 'TypeError');
 
 const dashboardStart = app.indexOf('function renderDashboard()');
 const dashboardEnd = app.indexOf('\nfunction renderReport',dashboardStart);
