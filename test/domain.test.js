@@ -599,3 +599,9 @@ test("rejects duplicate reversal identifiers in imported history before posting 
   reason:"Validate imported reversal history"
  }),/existing reversal numbers must be unique/);
 });
+
+
+test("rejects reversal timestamps before receipt acceptance",()=>{
+ const receipt={receiptNo:"GR-OLD",purchaseNo:"PO-OLD",sku:"SKU-OLD",quantity:1,unit:"pcs",receivedAt:"2026-03-02T00:00:00Z",stockMovementReference:"MOV-OLD"};
+ assert.throws(()=>createPurchaseReceiptReversal({receipt,purchaseOrder:{no:"PO-OLD"},reversedAt:"2026-03-01T00:00:00Z",reversalNo:"REV-OLD",stockMovementReference:"MOV-REV-OLD",originalStockMovementReference:"MOV-OLD",existingReversals:[],stockMovements:[{reference:"MOV-OLD"},{reference:"MOV-REV-OLD"}]}),RangeError);
+});
