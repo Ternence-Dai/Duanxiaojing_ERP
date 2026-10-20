@@ -285,6 +285,7 @@ export function createPurchaseReceipt({
     }
   }
   const reversedReceiptIds = new Set();
+  const reversalNumbers = new Set();
   for (const row of existingReversals) {
     const reversal = validatePurchaseReceiptReversalRecord(row);
     const original = existingReceiptById.get(reversal.receiptNo);
@@ -294,10 +295,12 @@ export function createPurchaseReceipt({
         Date.parse(reversal.reversedAt) < Date.parse(original.receivedAt) ||
         !movementReferenceSet.has(reversal.stockMovementReference) ||
         !movementReferenceSet.has(reversal.originalStockMovementReference) ||
-        reversedReceiptIds.has(reversal.receiptNo)) {
+        reversedReceiptIds.has(reversal.receiptNo) ||
+        reversalNumbers.has(reversal.reversalNo)) {
       throw new RangeError("existing purchase receipt reversals must uniquely match their original receipt and stock movements");
     }
     reversedReceiptIds.add(reversal.receiptNo);
+    reversalNumbers.add(reversal.reversalNo);
     if (reversal.purchaseNo === purchaseNo) {
       previouslyReceived -= toMilliunits(reversal.quantity, "reversed receipt quantity", { allowZero: false });
     }
