@@ -599,3 +599,21 @@ test("rejects duplicate reversal identifiers in imported history before posting 
   reason:"Validate imported reversal history"
  }),/existing reversal numbers must be unique/);
 });
+
+test("purchase receipt creation rejects duplicate reversal identifiers in supplied history",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const original=first.receipt;
+ const movementRefs=[original.stockMovementReference,"REV-DUP-1"];
+ const reversal=createPurchaseReceiptReversal({
+  purchaseOrder,inventoryItem:{...inventoryItem,qty:45},receipt:original,
+  existingReceipts:[original],existingReversals:[],existingMovementReferences:movementRefs,
+  reversalNo:"REV-DUP-1",reversedAt:"2026-10-19T10:00:00+08:00",
+  reversedBy:"operator",reason:"duplicate identifier fixture"
+ }).reversal;
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,receiptNo:"GRN-TEST-002",
+  existingReceipts:[original],
+  existingReversals:[reversal,{...reversal,receiptNo:"GRN-OTHER"}],
+  existingMovementReferences:movementRefs
+ }),/unique/);
+});
