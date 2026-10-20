@@ -1,7 +1,9 @@
-import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-const app = readFileSync(new URL("../assets/js/legacy-app.js", import.meta.url), "utf8");
-const seed = readFileSync(new URL("../assets/js/demo-seed-data.js", import.meta.url), "utf8");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const root = path.resolve(__dirname, "..");
+const app = fs.readFileSync(path.join(root, "assets/js/legacy-app.js"), "utf8");
+const seed = fs.readFileSync(path.join(root, "assets/js/demo-seed-data.js"), "utf8");
 const exportStart = app.indexOf("function exportAll(){");
 const exportEnd = app.indexOf("\nfunction importAll(", exportStart);
 assert.ok(exportStart >= 0 && exportEnd > exportStart, "exportAll must remain present");
