@@ -230,7 +230,7 @@ test("rejects prior reversals whose unit or original movement link no longer mat
   existingMovementReferences:[
    "GRN-TEST-001","GRN-TEST-002","REV-GRN-TEST-002","ANOTHER-MOVEMENT"
   ]
- }),/existing reversal history does not match the receipt ledger/);
+ }),/purchase receipt reversal must link both original and reversal stock movements/);
 });
 test("rejects a modified receipt snapshot before reversing stock",()=>{
  const first=createPurchaseReceipt(receiptBase);
