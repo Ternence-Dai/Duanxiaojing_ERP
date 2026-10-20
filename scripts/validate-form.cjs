@@ -232,8 +232,11 @@ assert.ok(permissionSource.includes('const imported = await readFromFile();'),
   'permission renewal must reload and validate the selected file');
 assert.ok(permissionSource.includes('if(!imported){'),
   'permission renewal must stop when the file cannot be validated');
-assert.ok(!permissionSource.includes('await writeToFile();'),
-  'permission renewal must not write browser defaults over an unreadable file');
+assert.ok(permissionSource.includes('if(fileSyncPending)') &&
+          permissionSource.includes('if(fileSyncPending === null)') &&
+          permissionSource.includes('const synced = await writeToFile();') &&
+          permissionSource.includes('const imported = await readFromFile();'),
+  'permission renewal must only replay a fingerprint-matched browser snapshot, otherwise validate the file before import');
 
 
 const createStart=html.indexOf('async function createLocalFile(){');
