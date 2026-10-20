@@ -624,8 +624,14 @@ test("purchase receipt creation rejects duplicate reversal identifiers in suppli
 
 
 test("receipt reversal rejects unsafe cumulative quantity before floating-point cancellation",()=>{
- const huge=Number.MAX_SAFE_INTEGER/1000;
- const first={...receiptBase,receiptNo:"GRN-HUGE-1",quantity:huge};
- const second={...receiptBase,receiptNo:"GRN-HUGE-2",quantity:huge};
- assert.throws(()=>createPurchaseReceiptReversal({...receiptBase,receipt:first,existingReceipts:[first,second],existingReversals:[],existingMovementReferences:["GRN-HUGE-1","GRN-HUGE-2"],reversalNo:"REV-HUGE",inventoryItem:{...inventoryItem,qty:huge},purchaseOrder:{...purchaseOrder,status:"部分到货"}}),/cumulative received quantity is unsafe|effective received quantity is unsafe/);
+ const huge=5e12;
+ const first=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-HUGE-1",quantity:huge,purchaseOrder:{...purchaseOrder,qty:huge},inventoryItem:{...inventoryItem,qty:0}});
+ const second=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-HUGE-2",quantity:huge,purchaseOrder:{...purchaseOrder,qty:huge},inventoryItem:{...inventoryItem,qty:0}});
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,qty:huge,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:huge},receipt:first.receipt,
+  existingReceipts:[first.receipt,second.receipt],existingReversals:[],
+  existingMovementReferences:["GRN-HUGE-1","GRN-HUGE-2"],reversalNo:"REV-HUGE",
+  reversedAt:"2026-10-20T12:00:00Z",reversedBy:"operator",reason:"boundary regression"
+ }),/cumulative received quantity is unsafe/);
 });
