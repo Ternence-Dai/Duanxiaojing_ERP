@@ -8,6 +8,7 @@ function defaultDB(){
       companyPhone: '0512-8888 6666',
       companyEmail: 'info@xinghua-textile.com',
       companyTaxNo: '91320509MA1XXXXXXX',
+      dataProvenance: 'demo-seed',
       currency: '¥',
       taxRate: 13,
       lowStockWarn: true,

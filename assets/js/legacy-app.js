@@ -2888,14 +2888,30 @@ function renderDataManager(){
     </div>
   </div>`;
 }
+function isDemoSeedData(data){
+  const settings = data && data.settings || {};
+  return settings.dataProvenance === 'demo-seed' ||
+    (settings.company === '兴华织带有限公司' && settings.companyTaxNo === '91320509MA1XXXXXXX');
+}
 function exportAll(){
+  if(storageRecoveryRequired){
+    toast('原始缓存仍待恢复，已阻止导出演示默认数据；请先导入有效备份或确认重置。');
+    return;
+  }
+  if(!isValidDBShape(DB)){
+    toast('当前数据未通过完整性校验，已阻止导出；请先修复或恢复有效数据。');
+    return;
+  }
+  const demoSeed = isDemoSeedData(DB);
   const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `织云ERP_${AUTHOR.name}_${DB.settings.company||''}_备份_${today()}.json`;
+  a.download = `织云ERP_${AUTHOR.name}_${DB.settings.company||''}_${demoSeed ? '演示样例_非真实备份' : '备份'}_${today()}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('已导出备份文件');
+  toast(demoSeed
+    ? '已导出演示样例文件；文件名已标记“非真实备份”，不得作为企业业务备份使用。'
+    : '已导出通过完整性校验的数据备份。');
 }
 function importAll(input){
   const file = input.files && input.files[0];
