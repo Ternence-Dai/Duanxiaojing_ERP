@@ -403,7 +403,7 @@ async function writeToFile(){
     const verifyFile = await fileHandle.getFile();
     const verifyText = await verifyFile.text();
     const verified = JSON.parse(verifyText);
-    if(!isValidDBShape(verified) || JSON.stringify(verified) !== snapshot){
+    if(!isValidDBShape(verified) || JSON.stringify(verified) !== JSON.stringify(JSON.parse(snapshot))){
       throw new Error('本地文件写入后的回读校验不一致');
     }
     localStorage.removeItem(FILE_SYNC_PENDING_KEY);
@@ -496,8 +496,12 @@ async function createLocalFile(){
     fileHandle = handle;
     fileReady = true;
     await persistHandle(handle);
-    await writeToFile();
-    toast('已新建并绑定：' + handle.name);
+    const written = await writeToFile();
+    if(written){
+      toast('已新建并绑定：' + handle.name);
+    }else{
+      toast('文件已创建并保留绑定，但首次写入未完成；浏览器缓存仍是当前数据副本，重新授权后可继续同步');
+    }
     render();
   }catch(e){
     if(e.name !== 'AbortError') toast('创建失败：' + e.message);
