@@ -107,15 +107,15 @@ assert.ok(app.includes('DB.purchaseReceiptReversals.unshift(result.reversal)') &
 const importStart = app.indexOf('function importAll(input)');
 const importEnd = app.indexOf('function resetAll()', importStart);
 const importSource = app.slice(importStart, importEnd);
-const fileStart = app.indexOf('function readFromFile()');
+const fileStart = app.indexOf('async function readFromFile()');
 const fileEnd = app.indexOf('async function bindLocalFile()', fileStart);
 const fileSource = app.slice(fileStart, fileEnd);
 assert.ok(importSource.includes('isValidDBShape(d)') &&
           importSource.includes('DB.purchaseReceipts = []') &&
           importSource.includes('DB.purchaseReceiptReversals = []') &&
-          fileSource.includes('isValidDBShape(d)') &&
-          fileSource.includes('DB.purchaseReceipts = []') &&
-          fileSource.includes('DB.purchaseReceiptReversals = []'),
+          fileSource.includes('isValidDBShape(candidate)') &&
+          fileSource.includes('candidate.purchaseReceipts = []') &&
+          fileSource.includes('candidate.purchaseReceiptReversals = []'),
   'JSON and bound-file restore must support legacy backups without fabricated receipt records');
 assert.ok(seed.includes('purchaseReceipts: []') &&
           seed.includes('stockMovements: []'),
