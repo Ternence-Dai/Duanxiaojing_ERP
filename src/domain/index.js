@@ -216,6 +216,10 @@ export function createPurchaseReceipt({
       !Array.isArray(existingMovementReferences)) {
     throw new TypeError("existing receipt, reversal and movement references must be arrays");
   }
+  if (existingReceipts.length > 50000 || existingReversals.length > 50000 ||
+      existingMovementReferences.length > 100000) {
+    throw new RangeError("purchase receipt history exceeds the supported validation limit");
+  }
   const purchaseNo = requiredPurchaseText(purchaseOrder.no, "purchase order number", 80);
   const supplier = requiredPurchaseText(purchaseOrder.sup, "supplier", 180);
   const material = requiredPurchaseText(purchaseOrder.mat, "material", 180);
