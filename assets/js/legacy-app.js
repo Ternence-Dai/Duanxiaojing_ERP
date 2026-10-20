@@ -33,6 +33,7 @@ function toast(msg){
    2. 存储：localStorage 缓存 + 本地文件自动写入
    ================================================================== */
 const STORE_KEY = 'textile_erp_v4_enterprise';
+const FILE_SYNC_PENDING_KEY = STORE_KEY + '_file_sync_pending';
 const IDB_NAME  = 'erp_file_handles';
 let DB = null;
 // A malformed or unreadable cache must never be silently replaced by demo defaults.
@@ -388,17 +389,32 @@ function commitDBMutation(previousDB){
 async function writeToFile(){
   if(storageRecoveryRequired){
     console.warn('ERP 缓存仍待恢复，已阻止向绑定文件写入默认演示数据。');
-    return;
+    return false;
   }
-  if(!fileHandle || !fileReady) return;
+  if(!fileHandle || !fileReady) return false;
+  const snapshot = JSON.stringify(DB, null, 2);
   try{
+    // Persist the dirty marker before touching the file. After a reload it
+    // tells restoreHandle to prefer the browser cache and push it to disk.
+    localStorage.setItem(FILE_SYNC_PENDING_KEY, '1');
     const w = await fileHandle.createWritable();
-    await w.write(JSON.stringify(DB, null, 2));
+    await w.write(snapshot);
     await w.close();
+    const verifyFile = await fileHandle.getFile();
+    const verifyText = await verifyFile.text();
+    const verified = JSON.parse(verifyText);
+    if(!isValidDBShape(verified) || JSON.stringify(verified) !== snapshot){
+      throw new Error('本地文件写入后的回读校验不一致');
+    }
+    localStorage.removeItem(FILE_SYNC_PENDING_KEY);
     updateFileStatus();
+    return true;
   }catch(e){
-    console.error('写入本地文件失败', e);
-    toast('写入本地文件失败，请重新绑定');
+    fileReady = false;
+    console.error('写入或回读验证本地文件失败；浏览器缓存保留为当前权威副本。', e);
+    toast('本地文件同步失败；浏览器缓存保留最新数据。重新授权后将以浏览器缓存覆盖同步文件，避免旧文件反向覆盖新数据');
+    updateFileStatus();
+    return false;
   }
 }
 
@@ -520,6 +536,22 @@ async function restoreHandle(){
     }
     fileHandle = handle;
     fileReady = false;
+    let fileSyncPending = false;
+    try{ fileSyncPending = localStorage.getItem(FILE_SYNC_PENDING_KEY) === '1'; }catch(e){}
+    if(fileSyncPending){
+      // The browser cache was committed before the pending marker was set.
+      // Never import a possibly stale disk copy over it during recovery.
+      if(storageRecoveryRequired || !isValidDBShape(DB)){
+        updateFileStatus();
+        console.warn('检测到待同步文件标记，但浏览器缓存不可用；保留恢复保护，不覆盖任一副本。');
+        return;
+      }
+      fileReady = true;
+      const synced = await writeToFile();
+      if(!synced) fileReady = false;
+      updateFileStatus();
+      return;
+    }
     const imported = await readFromFile();
     if(!imported){
       fileReady = false;
@@ -540,16 +572,33 @@ async function reRequestPermission(){
     const perm = await fileHandle.requestPermission({ mode:'readwrite' });
     if(perm === 'granted'){
       fileReady = false;
-      const imported = await readFromFile();
-      if(!imported){
-        fileReady = false;
-        updateFileStatus();
-        toast('文件读取或校验失败，未向原文件写入任何数据');
-        return;
+      let fileSyncPending = false;
+      try{ fileSyncPending = localStorage.getItem(FILE_SYNC_PENDING_KEY) === '1'; }catch(e){}
+      if(fileSyncPending){
+        if(storageRecoveryRequired || !isValidDBShape(DB)){
+          updateFileStatus();
+          toast('浏览器缓存仍处于恢复保护，未读取或覆盖本地文件；请先恢复有效缓存');
+          return;
+        }
+        fileReady = true;
+        const synced = await writeToFile();
+        if(!synced){
+          fileReady = false;
+          updateFileStatus();
+          return;
+        }
+      }else{
+        const imported = await readFromFile();
+        if(!imported){
+          fileReady = false;
+          updateFileStatus();
+          toast('文件读取或校验失败，未向原文件写入任何数据');
+          return;
+        }
+        fileReady = true;
       }
-      fileReady = true;
       updateFileStatus();
-      toast('授权成功，已读取文件并恢复自动保存');
+      toast(fileSyncPending ? '授权成功，已将浏览器最新数据同步至本地文件' : '授权成功，已读取文件并恢复自动保存');
       render();
     } else {
       toast('未授予权限，编辑不会自动保存');
