@@ -220,8 +220,10 @@ assert.ok(restoreSource.includes('const imported = await readFromFile();'),
   'restoring a file handle must validate the existing file first');
 assert.ok(restoreSource.includes('if(!imported){'),
   'failed handle restoration must stop without writing');
-assert.ok(!restoreSource.includes('await writeToFile();'),
-  'failed handle restoration must not overwrite unreadable data');
+assert.ok(restoreSource.includes('if(fileSyncPending)') &&
+          restoreSource.includes('if(fileSyncPending === null)') &&
+          restoreSource.includes('const synced = await writeToFile();'),
+  'handle restoration may only write browser data when a matching pending-sync marker proves it is newer');
 
 const permissionStart=html.indexOf('async function reRequestPermission(){');
 const permissionEnd=html.indexOf('\nfunction openHandleDB()',permissionStart);
