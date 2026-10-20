@@ -494,3 +494,24 @@ test("rejects a receipt reversal timestamp earlier than the posted receipt",()=>
   reversedBy:"warehouse-supervisor",reason:"Backdated reversal regression"
  }),/cannot precede the original receipt/);
 });
+
+
+test("rejects imported receipt reversals dated before the original receipt",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const validReversal=createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-IMPORTED-BACKDATE",
+  reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Valid reversal before import mutation"
+ });
+ const imported={...validReversal.reversal,reversedAt:"2026-10-18T00:00:00Z"};
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,purchaseOrder:{...purchaseOrder,status:"在途"},
+  existingReceipts:[first.receipt],existingReversals:[imported],
+  existingMovementReferences:["GRN-TEST-001","REV-GRN-IMPORTED-BACKDATE"],
+  receiptNo:"GRN-TEST-002"
+ }),/must uniquely match their original receipt/);
+});
