@@ -126,6 +126,28 @@ test("supports multiple receipts but never exceeds ordered quantity",()=>{
  }),/exceeds the outstanding/);
 });
 
+test("refuses receipt reversal when purchase-order commercial identity has drifted",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ const base={
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-DRIFT",
+  reversedAt:"2026-10-19T10:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Master-data reconciliation test"
+ };
+ for (const patch of [
+  {mat:"Different material"},
+  {sup:"Different supplier"},
+  {unit:"吨"}
+ ]) {
+  assert.throws(()=>createPurchaseReceiptReversal({
+   ...base,purchaseOrder:{...base.purchaseOrder,...patch}
+  }),/purchase order material, supplier and unit no longer match/);
+ }
+});
+
 test("reverses a posted purchase receipt through an append-only negative stock movement",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const result=createPurchaseReceiptReversal({
