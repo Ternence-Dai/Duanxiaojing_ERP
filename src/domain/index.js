@@ -388,6 +388,10 @@ export function createPurchaseReceiptReversal({
       !Array.isArray(existingMovementReferences)) {
     throw new TypeError("receipt reversal history and movement references must be arrays");
   }
+  if (existingReceipts.length > 50000 || existingReversals.length > 50000 ||
+      existingMovementReferences.length > 100000) {
+    throw new RangeError("receipt reversal history exceeds the supported validation limit");
+  }
   const target = validatePurchaseReceiptRecord(receipt);
   const normalizedReversedAt = parseOccurredAt(reversedAt);
   if (Date.parse(normalizedReversedAt) < Date.parse(target.receivedAt)) {
