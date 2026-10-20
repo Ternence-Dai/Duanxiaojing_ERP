@@ -57,13 +57,13 @@ function hasMatchingPendingFileSync(){
     if(!cached || fileSyncFingerprint(cached) !== marker){
       storageRecoveryRequired = true;
       console.error('ERP 文件同步标记与浏览器缓存不匹配；拒绝使用默认数据覆盖本地文件。');
-      return false;
+      return null;
     }
     return true;
   }catch(e){
     storageRecoveryRequired = true;
     console.error('无法验证 ERP 文件同步标记；保留恢复保护。', e);
-    return false;
+    return null;
   }
 }
 
@@ -567,6 +567,11 @@ async function restoreHandle(){
     fileHandle = handle;
     fileReady = false;
     const fileSyncPending = hasMatchingPendingFileSync();
+    if(fileSyncPending === null){
+      updateFileStatus();
+      console.warn('浏览器缓存与待同步标记不匹配，拒绝自动导入或覆盖本地文件。');
+      return;
+    }
     if(fileSyncPending){
       // The browser cache was committed before the pending marker was set.
       // Never import a possibly stale disk copy over it during recovery.
@@ -602,6 +607,11 @@ async function reRequestPermission(){
     if(perm === 'granted'){
       fileReady = false;
       const fileSyncPending = hasMatchingPendingFileSync();
+      if(fileSyncPending === null){
+        updateFileStatus();
+        toast('浏览器缓存与待同步标记不匹配；为保护数据，未读取或覆盖本地文件');
+        return;
+      }
       if(fileSyncPending){
         if(storageRecoveryRequired || !isValidDBShape(DB)){
           updateFileStatus();
