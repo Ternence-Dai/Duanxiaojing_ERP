@@ -621,3 +621,11 @@ test("purchase receipt creation rejects duplicate reversal identifiers in suppli
   existingMovementReferences:movementRefs
  }),/uniquely match/);
 });
+
+
+test("receipt reversal rejects unsafe cumulative quantity before floating-point cancellation",()=>{
+ const huge=Number.MAX_SAFE_INTEGER/1000;
+ const first={...receiptBase,receiptNo:"GRN-HUGE-1",quantity:huge};
+ const second={...receiptBase,receiptNo:"GRN-HUGE-2",quantity:huge};
+ assert.throws(()=>createPurchaseReceiptReversal({...receiptBase,receipt:first,existingReceipts:[first,second],existingReversals:[],existingMovementReferences:["GRN-HUGE-1","GRN-HUGE-2"],reversalNo:"REV-HUGE",inventoryItem:{...inventoryItem,qty:huge},purchaseOrder:{...purchaseOrder,status:"部分到货"}}),/cumulative received quantity is unsafe|effective received quantity is unsafe/);
+});
