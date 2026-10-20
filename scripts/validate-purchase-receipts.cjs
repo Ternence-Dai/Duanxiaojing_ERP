@@ -259,7 +259,7 @@ console.log('ERP purchase receiving and append-only reversal integration and bac
 
 const reversalPostStart = app.indexOf('async function reversePurchaseReceipt(');
 assert.ok(reversalPostStart >= 0, 'receipt reversal handler must remain discoverable');
-const reversalPostSource = app.slice(reversalPostStart, reversalPostStart + 3000);
+const reversalPostSource = app.slice(reversalPostStart, reversalPostStart + 5000);
 assert.ok(reversalPostSource.includes('if(purchaseReceiptPending || purchaseReceiptReversalPending) return;'),
   'reversal posting must not start while a receipt is awaiting its commit');
 assert.ok(reversalPostSource.includes('if(storageRecoveryRequired)'),
