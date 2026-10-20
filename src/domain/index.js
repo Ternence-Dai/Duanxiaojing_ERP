@@ -385,6 +385,10 @@ export function createPurchaseReceiptReversal({
     throw new TypeError("receipt reversal history and movement references must be arrays");
   }
   const target = validatePurchaseReceiptRecord(receipt);
+  const normalizedReversedAt = parseOccurredAt(reversedAt);
+  if (Date.parse(normalizedReversedAt) < Date.parse(target.receivedAt)) {
+    throw new RangeError("receipt reversal timestamp cannot precede the original receipt");
+  }
   const purchaseNo = requiredPurchaseText(purchaseOrder.no, "purchase order number", 80);
   if (target.purchaseNo !== purchaseNo) {
     throw new RangeError("receipt and purchase order do not match");
