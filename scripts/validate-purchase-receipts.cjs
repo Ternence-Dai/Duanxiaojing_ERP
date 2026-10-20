@@ -264,3 +264,10 @@ assert.ok(reversalPostSource.includes('if(purchaseReceiptPending || purchaseRece
   'reversal posting must not start while a receipt is awaiting its commit');
 assert.ok(reversalPostSource.includes('if(storageRecoveryRequired)'),
   'reversal posting must remain blocked while storage recovery is required');
+
+
+assert.ok(reversalPostSource.indexOf('purchaseReceiptReversalPending=true') <
+          reversalPostSource.indexOf('await import('),
+  'reversal lock must be acquired before yielding to asynchronous module loading');
+assert.ok(reversalPostSource.includes('finally{\n    purchaseReceiptReversalPending=false;'),
+  'reversal lock must be released in a finally block after success or failure');
