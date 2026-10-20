@@ -475,11 +475,13 @@ export function createPurchaseReceiptReversal({
   for (const row of storedReceipts.values()) {
     if (row.purchaseNo === purchaseNo) {
       effectiveReceived += toMilliunits(row.quantity, "receipt quantity", { allowZero: false });
+      if (!Number.isSafeInteger(effectiveReceived)) throw new RangeError("cumulative received quantity is unsafe");
     }
   }
   for (const row of priorReversals) {
     if (row.purchaseNo === purchaseNo) {
       effectiveReceived -= toMilliunits(row.quantity, "reversed receipt quantity", { allowZero: false });
+      if (!Number.isSafeInteger(effectiveReceived)) throw new RangeError("effective received quantity is unsafe after reversals");
     }
   }
   const targetQuantity = toMilliunits(target.quantity, "receipt quantity", { allowZero: false });
