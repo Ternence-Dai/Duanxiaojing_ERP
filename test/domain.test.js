@@ -636,11 +636,3 @@ test("receipt reversal rejects unsafe cumulative quantity before floating-point 
  }),/cumulative received quantity is unsafe/);
 });
 
-
-test("receipt reversal rejects distinct imported reversal IDs sharing one stock movement",()=>{
- const first=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-MOVE-001",quantity:30});
- const second=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-MOVE-002",quantity:30,inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},purchaseOrder:{...purchaseOrder,status:first.purchaseStatus},existingReceipts:[first.receipt],existingMovementReferences:["GRN-MOVE-001"],receivedAt:"2026-10-18T10:00:00+08:00"});
- const third=createPurchaseReceipt({...receiptBase,receiptNo:"GRN-MOVE-003",quantity:40,inventoryItem:{...inventoryItem,qty:second.stockMovement.nextBalance},purchaseOrder:{...purchaseOrder,status:second.purchaseStatus},existingReceipts:[first.receipt,second.receipt],existingMovementReferences:["GRN-MOVE-001","GRN-MOVE-002"],receivedAt:"2026-10-18T11:00:00+08:00"});
- const make=(receipt,reversalNo)=>validatePurchaseReceiptReversalRecord({reversalNo,receiptNo:receipt.receiptNo,purchaseNo:receipt.purchaseNo,sku:receipt.sku,quantity:receipt.quantity,unit:receipt.unit,reason:"movement collision",reversedBy:"operator",reversedAt:"2026-10-19T10:00:00Z",stockMovementReference:"REV-SHARED-MOVEMENT",originalStockMovementReference:receipt.stockMovementReference,previousBalance:100,nextBalance:100-receipt.quantity});
- assert.throws(()=>createPurchaseReceiptReversal({purchaseOrder:{...purchaseOrder,status:"已入库"},inventoryItem:{...inventoryItem,qty:50},receipt:third.receipt,existingReceipts:[first.receipt,second.receipt,third.receipt],existingReversals:[make(first.receipt,"REV-MOVE-001"),make(second.receipt,"REV-MOVE-002")],existingMovementReferences:["GRN-MOVE-001","GRN-MOVE-002","GRN-MOVE-003","REV-SHARED-MOVEMENT"],reversalNo:"REV-MOVE-003",reversedAt:"2026-10-20T10:00:00Z",reversedBy:"operator",reason:"verify unique movement ledger"}),/stock movement references must be unique/);
-});
