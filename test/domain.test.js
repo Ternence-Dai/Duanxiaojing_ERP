@@ -649,6 +649,7 @@ test("new receipt reversals cannot be backdated before an already recorded rever
 
 test("bounds imported receipt reversal history before validating individual rows",()=>{
  assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{},inventoryItem:{},
   existingReceipts:new Array(50001),existingReversals:[],existingMovementReferences:[]
  }),/supported validation limit/);
 });
