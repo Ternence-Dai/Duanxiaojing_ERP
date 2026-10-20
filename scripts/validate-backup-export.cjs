@@ -26,4 +26,22 @@ assert.ok(readCode.indexOf("localStorage.setItem(STORE_KEY, JSON.stringify(candi
 assert.match(readCode, /浏览器缓存提交失败[\s\S]*?return false/);
 assert.ok(readCode.indexOf("DB = candidate") < readCode.indexOf("storageRecoveryRequired = false"),
   "recovery lock must only clear after the candidate is committed");
-console.log("ERP backup export and atomic file-restore safety checks passed.");
+
+const writeStart = app.indexOf("async function writeToFile(){");
+const writeEnd = app.indexOf("\nasync function readFromFile()", writeStart);
+assert.ok(writeStart >= 0 && writeEnd > writeStart, "writeToFile must remain present");
+const writeCode = app.slice(writeStart, writeEnd);
+assert.ok(writeCode.indexOf("localStorage.setItem(FILE_SYNC_PENDING_KEY, '1')") <
+          writeCode.indexOf("fileHandle.createWritable()"),
+  "a durable dirty marker must be written before modifying the bound file");
+assert.match(writeCode, /await fileHandle.getFile\(\)/);
+assert.match(writeCode, /JSON\.stringify\(verified\) !== JSON\.stringify\(JSON\.parse\(snapshot\)\)/);
+assert.match(writeCode, /localStorage.removeItem\(FILE_SYNC_PENDING_KEY\)/);
+assert.match(writeCode, /fileReady = false/);
+assert.match(app, /if\(fileSyncPending\)[\s\S]*?以浏览器缓存覆盖同步文件|if\(fileSyncPending\)[\s\S]*?writeToFile\(\)/);
+const permissionStart = app.indexOf("async function reRequestPermission()");
+const permissionEnd = app.indexOf("\nfunction openHandleDB()", permissionStart);
+const permissionCode = app.slice(permissionStart, permissionEnd);
+assert.ok(permissionCode.indexOf("if(fileSyncPending)") < permissionCode.indexOf("readFromFile()"),
+  "permission recovery must push the browser copy before considering a file import");
+console.log("ERP backup export, atomic restore, and file-sync recovery checks passed.");
