@@ -255,3 +255,12 @@ assert.ok(receiptPostHandler.includes('if(purchaseReceiptPending || purchaseRece
   'receipt posting must not start while a reversal is awaiting its commit');
 
 console.log('ERP purchase receiving and append-only reversal integration and backup checks passed.');
+
+
+const reversalPostStart = app.indexOf('async function reversePurchaseReceipt(');
+assert.ok(reversalPostStart >= 0, 'receipt reversal handler must remain discoverable');
+const reversalPostSource = app.slice(reversalPostStart, reversalPostStart + 900);
+assert.ok(reversalPostSource.includes('if(purchaseReceiptPending || purchaseReceiptReversalPending) return;'),
+  'reversal posting must not start while a receipt is awaiting its commit');
+assert.ok(reversalPostSource.includes('if(storageRecoveryRequired)'),
+  'reversal posting must remain blocked while storage recovery is required');
