@@ -389,6 +389,13 @@ export function createPurchaseReceiptReversal({
   if (target.purchaseNo !== purchaseNo) {
     throw new RangeError("receipt and purchase order do not match");
   }
+  const orderMaterial = requiredPurchaseText(purchaseOrder.mat, "purchase order material", 180);
+  const orderSupplier = requiredPurchaseText(purchaseOrder.sup, "purchase order supplier", 180);
+  const orderUnit = requiredPurchaseText(purchaseOrder.unit, "purchase order unit", 24);
+  if (orderMaterial !== target.material || orderSupplier !== target.supplier ||
+      orderUnit !== target.unit) {
+    throw new RangeError("current purchase order material, supplier and unit no longer match the original receipt; reconcile before reversal");
+  }
   if (String(inventoryItem.code || "").trim() !== target.sku) {
     throw new RangeError("receipt reversal must use its original inventory SKU");
   }
