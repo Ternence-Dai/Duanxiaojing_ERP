@@ -1401,7 +1401,7 @@ function renderPurchaseReceiptWorkspace(){
 }
 
 async function postPurchaseReceipt(){
-  if(purchaseReceiptPending) return;
+  if(purchaseReceiptPending || purchaseReceiptReversalPending) return;
   if(storageRecoveryRequired){
     toast('检测到 ERP 缓存异常，已暂停收货入库；请先恢复有效备份。');
     return;
