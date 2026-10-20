@@ -480,3 +480,17 @@ test("rejects negative, over-precise and overflowing projected stock positions",
  assert.throws(()=>calculateStockPosition({onHand:1.0001}),RangeError);
  assert.throws(()=>calculateStockPosition({onHand:Number.MAX_SAFE_INTEGER,incomingQuantity:1}),RangeError);
 });
+
+
+test("rejects a receipt reversal timestamp earlier than the posted receipt",()=>{
+ const first=createPurchaseReceipt(receiptBase);
+ assert.throws(()=>createPurchaseReceiptReversal({
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],
+  existingReversals:[],existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-BACKDATED",
+  reversedAt:"2026-10-18T00:00:00Z",
+  reversedBy:"warehouse-supervisor",reason:"Backdated reversal regression"
+ }),/cannot precede the original receipt/);
+});
