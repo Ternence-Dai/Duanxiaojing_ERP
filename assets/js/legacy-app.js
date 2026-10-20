@@ -2012,7 +2012,7 @@ function buildOrderDateTrend(orders, limit = 7) {
   orders.forEach(order => {
     if (!order || order.status === '已取消') return;
     const date = typeof order.orderDate === 'string' ? order.orderDate.trim() : '';
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
     const parsed = new Date(date + 'T00:00:00Z');
     if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return;
     const quantity = Number(order.qty);
