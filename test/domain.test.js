@@ -603,17 +603,21 @@ test("rejects duplicate reversal identifiers in imported history before posting 
 test("purchase receipt creation rejects duplicate reversal identifiers in supplied history",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const original=first.receipt;
- const movementRefs=[original.stockMovementReference,"REV-DUP-1"];
- const reversal=createPurchaseReceiptReversal({
-  purchaseOrder,inventoryItem:{...inventoryItem,qty:45},receipt:original,
-  existingReceipts:[original],existingReversals:[],existingMovementReferences:movementRefs,
-  reversalNo:"REV-DUP-1",reversedAt:"2026-10-19T10:00:00+08:00",
-  reversedBy:"operator",reason:"duplicate identifier fixture"
- }).reversal;
+ const secondReceipt={...original,receiptNo:"GRN-OTHER",stockMovementReference:"GRN-OTHER"};
+ const movementRefs=[original.stockMovementReference,secondReceipt.stockMovementReference,"REV-DUP-1"];
+ const reversal=validatePurchaseReceiptReversalRecord({
+  reversalNo:"REV-DUP-1",receiptNo:original.receiptNo,purchaseNo:original.purchaseNo,
+  sku:original.sku,quantity:original.quantity,unit:original.unit,reason:"fixture",
+  reversedBy:"operator",reversedAt:"2026-10-19T10:00:00+08:00",
+  stockMovementReference:"REV-DUP-1",originalStockMovementReference:original.receiptNo,
+  previousBalance:45,nextBalance:10
+ });
+ const duplicateReversal={...reversal,receiptNo:secondReceipt.receiptNo,
+  originalStockMovementReference:secondReceipt.receiptNo};
  assert.throws(()=>createPurchaseReceipt({
-  ...receiptBase,receiptNo:"GRN-TEST-002",
-  existingReceipts:[original],
-  existingReversals:[reversal,{...reversal,receiptNo:"GRN-OTHER"}],
+  ...receiptBase,receiptNo:"GRN-TEST-002",quantity:1,
+  existingReceipts:[original,secondReceipt],
+  existingReversals:[reversal,duplicateReversal],
   existingMovementReferences:movementRefs
- }),/unique/);
+ }),/uniquely match/);
 });
