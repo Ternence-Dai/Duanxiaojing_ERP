@@ -2003,6 +2003,37 @@ function jumpTo(key, id){
 /* ==================================================================
    9. 经营看板
    ================================================================== */
+function buildOrderDateTrend(orders, limit = 7) {
+  if (!Array.isArray(orders)) return [];
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 31) {
+    throw new RangeError('order trend limit must be an integer from 1 to 31');
+  }
+  const daily = new Map();
+  orders.forEach(order => {
+    if (!order || order.status === '已取消') return;
+    const date = typeof order.orderDate === 'string' ? order.orderDate.trim() : '';
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return;
+    const parsed = new Date(date + 'T00:00:00Z');
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return;
+    const quantity = Number(order.qty);
+    const unitPrice = Number(order.price);
+    if (!Number.isFinite(quantity) || quantity < 0 ||
+        !Number.isFinite(unitPrice) || unitPrice < 0) return;
+    const amount = quantity * unitPrice;
+    if (!Number.isFinite(amount)) return;
+    const row = daily.get(date) || { date, totalAmount: 0, orderCount: 0 };
+    const nextTotal = row.totalAmount + amount;
+    if (!Number.isFinite(nextTotal)) return;
+    row.totalAmount = nextTotal;
+    row.orderCount += 1;
+    daily.set(date, row);
+  });
+  return [...daily.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-limit)
+    .map(row => ({ ...row, label: row.date.slice(5) }));
+}
+
 function renderDashboard(){
   const validOrders = DB.orders.filter(o => o.status !== '已取消');
   const totalAmount = validOrders.reduce((s,o) => s + (Number(o.qty)||0)*(Number(o.price)||0), 0);
@@ -2041,21 +2072,20 @@ function renderDashboard(){
       </div>`;
     }).join('') || '<div class="empty" style="padding:26px 0!important">暂无工单数据</div>';
 
-  const trend = [
-    {label:'06-14', v:8200}, {label:'06-15', v:9400}, {label:'06-16', v:7800},
-    {label:'06-17', v:10600},{label:'06-18', v:11200},{label:'06-19', v:9800},
-    {label:'06-20', v:12400},
-  ];
-  const maxTrend = Math.max(...trend.map(t => t.v));
-  const barsHtml = trend.map((t, i) => {
-    const h = Math.round(t.v / maxTrend * 132);
+  const trend = buildOrderDateTrend(validOrders, 7);
+  const maxTrend = Math.max(...trend.map(t => t.totalAmount), 1);
+  const barsHtml = trend.length ? trend.map((t, i) => {
+    const h = Math.max(4, Math.round(t.totalAmount / maxTrend * 132));
     const hi = i === trend.length - 1;
-    return `<div class="bar-col">
-      <div class="bar-v">${(t.v/1000).toFixed(1)}k</div>
+    const valueLabel = t.totalAmount >= 1000
+      ? (t.totalAmount / 1000).toFixed(1) + 'k'
+      : fmtN(Math.round(t.totalAmount));
+    return `<div class="bar-col" title="${t.date} · ${fmtM0(t.totalAmount)} · ${t.orderCount} 张订单">
+      <div class="bar-v">${valueLabel}</div>
       <div class="bar-track"><div class="bar-fill ${hi?'hi':''}" style="height:${h}px"></div></div>
       <div class="bar-x">${t.label}</div>
     </div>`;
-  }).join('');
+  }).join('') : '<div class="empty" style="padding:26px 0!important">暂无有效订单日期数据</div>';
 
   const alerts = [];
   pendingOrders.slice(0,2).forEach(o => alerts.push({
@@ -2128,8 +2158,8 @@ function renderDashboard(){
   <div class="grid-2">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">产量趋势示意</div>
-        <div class="card-sub">示例值 · 非实时生产数据</div>
+        <div class="card-title">销售金额趋势</div>
+        <div class="card-sub">最近 7 个有订单日期 · 按订单日期汇总 · 排除已取消订单</div>
       </div>
       <div class="bars">${barsHtml}</div>
     </div>
