@@ -38,6 +38,9 @@ const IDB_NAME  = 'erp_file_handles';
 let DB = null;
 // A malformed or unreadable cache must never be silently replaced by demo defaults.
 let storageRecoveryRequired = false;
+// Best-effort stale-tab detection only; localStorage has no atomic compare-and-swap.
+let lastKnownStorageValue = null;
+let storageConflictDetected = false;
 let fileHandle = null;
 let fileReady = false;
 
@@ -362,6 +365,7 @@ function loadDB(){
   let raw = null;
   try{
     raw = localStorage.getItem(STORE_KEY);
+    lastKnownStorageValue = raw;
     if(raw){
       const d = JSON.parse(raw);
       if(isValidDBShape(d)) return d;
@@ -377,15 +381,34 @@ function loadDB(){
   return defaultDB();
 }
 
+window.addEventListener('storage', event => {
+  if(event.key !== STORE_KEY) return;
+  // A different tab changed the shared cache after this tab loaded it.
+  storageConflictDetected = true;
+  toast('检测到其他标签页已修改 ERP 数据。为避免覆盖对方更新，本标签页已暂停保存；请先导出未保存更改并重新载入最新数据。');
+});
+
 let saveTimer = null;
 function saveDB(){
+  if(storageConflictDetected){
+    toast('检测到跨标签页数据冲突，已阻止覆盖最新缓存。请先导出未保存更改，再重新载入最新数据。');
+    return false;
+  }
   if(storageRecoveryRequired){
     toast('检测到原 ERP 缓存异常，已阻止演示数据覆盖；请先导入有效备份，或在确认后重置演示数据');
     return false;
   }
   let localSaved = true;
   try{
-    localStorage.setItem(STORE_KEY, JSON.stringify(DB));
+    const currentStorageValue = localStorage.getItem(STORE_KEY);
+    if(currentStorageValue !== lastKnownStorageValue){
+      storageConflictDetected = true;
+      toast('ERP 数据已被其他标签页或进程更新，已阻止本次保存。请先导出未保存更改，再重新载入最新数据。');
+      return false;
+    }
+    const nextStorageValue = JSON.stringify(DB);
+    localStorage.setItem(STORE_KEY, nextStorageValue);
+    lastKnownStorageValue = nextStorageValue;
   }catch(e){
     localSaved = false;
     storageRecoveryRequired = true;
