@@ -19,3 +19,34 @@ jobs:
           node-version: 22
       - run: npm test
       - run: npm run check
+
+  postgres-transaction-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: erp_test
+          POSTGRES_PASSWORD: erp_test
+          POSTGRES_DB: erp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U erp_test -d erp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://erp_test:erp_test@localhost:5432/erp_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Apply transactional ledger migration
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_transactional_stock_ledger.sql
+      - name: Verify ledger invariants and rejection paths
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f test/postgres-stock-ledger.sql
+      - name: Verify concurrent writers cannot overspend stock
+        run: bash scripts/test-postgres-concurrency.sh
