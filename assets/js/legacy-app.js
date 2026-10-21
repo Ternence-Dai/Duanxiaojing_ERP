@@ -1697,14 +1697,14 @@ function closeModal(){
 }
 
 async function saveForm(){
-  if((typeof purchaseReceiptPending !== 'undefined' && purchaseReceiptPending) ||
-     (typeof purchaseReceiptReversalPending !== 'undefined' && purchaseReceiptReversalPending)){
-    toast('收货或冲销正在过账；请等待库存与采购台账提交完成后再编辑');
-    return;
-  }
   if(inventorySavePending){ toast('库存保存正在处理中，请勿重复提交'); return; }
   if(storageRecoveryRequired){
     toast('检测到原 ERP 缓存异常，已阻止编辑；请先恢复数据或明确重置演示数据');
+    return;
+  }
+  if((typeof purchaseReceiptPending !== 'undefined' && purchaseReceiptPending) ||
+     (typeof purchaseReceiptReversalPending !== 'undefined' && purchaseReceiptReversalPending)){
+    toast('收货或冲销正在过账；请等待库存与采购台账提交完成后再编辑');
     return;
   }
   const key = formState.key;
