@@ -1,0 +1,49 @@
+/* Readability and accessibility baseline — WCAG 2.2 AA-oriented UI layer.
+   Additive only: preserves existing layouts, colors, data and workflows. */
+body[data-workspace] {
+  font-size: 15px;
+  line-height: 1.55;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+body[data-workspace] :where(p, li, label, button, input, select, textarea, td, th) {
+  font-size: max(14px, 0.9375rem);
+  line-height: 1.5;
+}
+body[data-workspace] :where(small, .muted, .caption, .eyebrow, .kicker, .li-s, .sub, .meta, .hint, .more, .tag, .copyright, .sidebar-foot, thead th) {
+  font-size: max(12px, 0.8125rem);
+  line-height: 1.45;
+}
+body[data-workspace] :where(input, select, textarea, button) {
+  min-height: 40px;
+}
+body[data-workspace] :where(input, select, textarea) {
+  padding-block: 9px;
+}
+body[data-workspace] :where(button, a, input, select, textarea, [role="button"], [tabindex]):focus-visible {
+  outline: 3px solid var(--ui-accent, #1769aa);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+body[data-workspace] :where(table) {
+  font-variant-numeric: tabular-nums;
+}
+body[data-workspace] :where(.table-wrap, .table-container, .data-table-wrap) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+@media (max-width: 640px) {
+  body[data-workspace] { font-size: 15px; }
+  body[data-workspace] :where(button, input, select, textarea, [role="button"]) {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-workspace] *, body[data-workspace] *::before, body[data-workspace] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
