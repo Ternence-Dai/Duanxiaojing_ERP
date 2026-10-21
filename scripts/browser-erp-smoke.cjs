@@ -12,7 +12,6 @@ const { chromium } = require('playwright');
   try {
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForSelector('#navGroup .nav-item[data-page="dashboard"]');
-    await page.waitForSelector('#content .erp-demo-note').catch(() => {});
     if (!(await page.locator('#content').innerText()).trim()) {
       throw new Error('ERP dashboard did not render its initial content');
     }
