@@ -1,0 +1,56 @@
+/* Shared readability baseline v10 — aligned with USWDS type guidance and WCAG 2.2 AA.
+   Keep product-specific layouts and colors; normalize legibility without deleting legacy UI. */
+:root {
+  font-size: 100%;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+html { font-size: 100%; }
+body {
+  font-size: 16px !important;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+body :where(p, li, label, button, input, select, textarea, td, th, small,
+  figcaption, summary, .muted, .sub, .hint, .meta, .eyebrow, .badge, .chip,
+  .tag, .caption, .description, .helper, .status, .nav-item, .tabbar button,
+  .product-workflow__item small, .product-workflow__foot) {
+  font-size: max(14px, 1em) !important;
+  line-height: 1.5;
+}
+body :where(input, select, textarea, button) {
+  font-size: 16px !important;
+}
+body :where(p, li, td, th) {
+  line-height: 1.6;
+}
+body :where(table) {
+  font-size: 14px;
+}
+body :where(td, th) {
+  padding-block: max(10px, 0.65em);
+}
+body :where(svg text, canvas + .chart-label) {
+  font-size: 12px;
+}
+body :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: 3px !important;
+}
+@media (max-width: 640px) {
+  body { font-size: 16px !important; }
+  body :where(p, li, label, button, input, select, textarea, td, th, small,
+    .muted, .sub, .hint, .meta, .eyebrow, .badge, .chip, .tag, .caption,
+    .description, .helper, .status) {
+    font-size: max(14px, 1em) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
