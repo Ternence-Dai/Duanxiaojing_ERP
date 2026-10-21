@@ -1697,7 +1697,8 @@ function closeModal(){
 }
 
 async function saveForm(){
-  if(purchaseReceiptPending || purchaseReceiptReversalPending){
+  if((typeof purchaseReceiptPending !== 'undefined' && purchaseReceiptPending) ||
+     (typeof purchaseReceiptReversalPending !== 'undefined' && purchaseReceiptReversalPending)){
     toast('收货或冲销正在过账；请等待库存与采购台账提交完成后再编辑');
     return;
   }
