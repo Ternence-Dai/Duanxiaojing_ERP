@@ -249,7 +249,8 @@ assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[reversal,{...r
 const saveStart = app.indexOf('async function saveForm(){');
 const saveEnd = app.indexOf('\nfunction genId', saveStart);
 const saveHandler = app.slice(saveStart, saveEnd);
-assert.ok(saveHandler.includes('if(purchaseReceiptPending || purchaseReceiptReversalPending)'),
+assert.ok(saveHandler.includes('typeof purchaseReceiptPending !== \'undefined\'') &&
+          saveHandler.includes('typeof purchaseReceiptReversalPending !== \'undefined\''),
   'ordinary record edits must be blocked while receipt or reversal posting is awaiting its commit');
 
 const postHandlerStart = app.indexOf('function postPurchaseReceipt(){');
