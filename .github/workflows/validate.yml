@@ -29,6 +29,8 @@ jobs:
         run: node scripts/validate-dashboard-trend.cjs
       - name: Validate ERP work-order due alerts
         run: node scripts/validate-dashboard-due.cjs
+      - name: Validate readable typography and focus states
+        run: node scripts/validate-readability.cjs
       - name: Parse embedded JavaScript
         run: |
           node <<'NODE'
