@@ -1402,6 +1402,7 @@ function renderPurchaseReceiptWorkspace(){
 
 async function postPurchaseReceipt(){
   if(purchaseReceiptPending || purchaseReceiptReversalPending) return;
+  if(inventorySavePending){ toast('库存调整正在保存，请完成后再执行收货入库'); return; }
   if(storageRecoveryRequired){
     toast('检测到 ERP 缓存异常，已暂停收货入库；请先恢复有效备份。');
     return;
@@ -1475,6 +1476,7 @@ async function postPurchaseReceipt(){
 let purchaseReceiptReversalPending = false;
 async function reversePurchaseReceipt(receiptNo){
   if(purchaseReceiptPending || purchaseReceiptReversalPending) return;
+  if(inventorySavePending){toast('库存调整正在保存，请完成后再执行收货冲销。');return;}
   if(storageRecoveryRequired){
     toast('检测到 ERP 缓存异常，已暂停收货冲销；请先恢复有效备份。');
     return;
@@ -1695,6 +1697,10 @@ function closeModal(){
 }
 
 async function saveForm(){
+  if(purchaseReceiptPending || purchaseReceiptReversalPending){
+    toast('收货或冲销正在过账；请等待库存与采购台账提交完成后再编辑');
+    return;
+  }
   if(inventorySavePending){ toast('库存保存正在处理中，请勿重复提交'); return; }
   if(storageRecoveryRequired){
     toast('检测到原 ERP 缓存异常，已阻止编辑；请先恢复数据或明确重置演示数据');
