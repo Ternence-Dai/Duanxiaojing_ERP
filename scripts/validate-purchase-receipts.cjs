@@ -246,6 +246,25 @@ assert.equal(isValid({...postedReversed,stockMovements:[{...reversalMovement,rev
 assert.equal(isValid({...postedReversed,purchaseReceiptReversals:[reversal,{...reversal,reversalNo:'REV-GRN-2'}]}), false,
   'one receipt cannot be reversed more than once');
 
+const saveStart = app.indexOf('async function saveForm(){');
+const saveEnd = app.indexOf('\nfunction genId', saveStart);
+const saveHandler = app.slice(saveStart, saveEnd);
+assert.ok(saveHandler.includes('typeof purchaseReceiptPending !== \'undefined\'') &&
+          saveHandler.includes('typeof purchaseReceiptReversalPending !== \'undefined\''),
+  'ordinary record edits must be blocked while receipt or reversal posting is awaiting its commit');
+
+const postHandlerStart = app.indexOf('function postPurchaseReceipt(){');
+const postHandlerEnd = app.indexOf('let purchaseReceiptReversalPending', postHandlerStart);
+const postHandler = app.slice(postHandlerStart, postHandlerEnd);
+assert.ok(postHandler.includes('if(inventorySavePending)'),
+  'receipt posting must wait for an in-flight inventory master/ledger save');
+
+const reversalHandlerStart = app.indexOf('async function reversePurchaseReceipt(');
+const reversalHandlerEnd = app.indexOf('function renderPurchaseReceiptWorkspace', reversalHandlerStart);
+const reversalHandler = app.slice(reversalHandlerStart, reversalHandlerEnd);
+assert.ok(reversalHandler.includes('if(inventorySavePending)'),
+  'receipt reversal must wait for an in-flight inventory master/ledger save');
+
 const receiptPostStart = app.indexOf('function postPurchaseReceipt()');
 const reversalStateStart = app.indexOf('let purchaseReceiptReversalPending = false;');
 assert.ok(receiptPostStart >= 0 && reversalStateStart > receiptPostStart,
