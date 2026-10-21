@@ -32,7 +32,7 @@ body :where(td, th) {
   padding-block: max(10px, 0.65em);
 }
 body :where(svg text, canvas + .chart-label) {
-  font-size: 12px;
+  font-size: 14px;
 }
 body :where(button, a, input, select, textarea, [tabindex]):focus-visible {
   outline: 3px solid #f59e0b !important;
