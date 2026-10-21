@@ -109,7 +109,7 @@ const { chromium } = require('playwright');
       throw new Error('Mobile navigation did not switch to inventory');
     }
     if (pageErrors.length) throw new Error('ERP browser runtime errors: ' + pageErrors.join(' | '));
-    console.log('Zhiyun ERP browser acceptance passed: dashboard and nine business modules rendered, contextual module headers appeared, and mobile sidebar navigation passed.');
+    console.log('Zhiyun ERP browser acceptance passed: dashboard and nine business modules, contextual headers, synthetic inventory form validation, one opening stock-ledger movement, duplicate-SKU rejection, and mobile navigation passed.');
   } finally {
     await browser.close();
   }
