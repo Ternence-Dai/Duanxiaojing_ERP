@@ -217,12 +217,12 @@
     update();
     if (!watchRoot) return;
     const observer = new MutationObserver(() => update());
-    observer.observe(watchRoot, {
-      childList: true,
-      subtree: true,
-      attributes: theme === "health" || theme === "ekpo",
-      attributeFilter: ["class"]
-    });
+    const observerOptions = { childList: true, subtree: true };
+    if (theme === "health" || theme === "ekpo") {
+      observerOptions.attributes = true;
+      observerOptions.attributeFilter = ["class"];
+    }
+    observer.observe(watchRoot, observerOptions);
   }
 
   if (document.readyState === "loading") {
