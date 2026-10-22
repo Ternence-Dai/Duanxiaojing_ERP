@@ -201,8 +201,37 @@ const { chromium } = require('playwright');
     }
     await page.locator('#modalRoot .modal-foot .btn').filter({ hasText: '取消' }).click();
 
+    // Seed an isolated synthetic purchase order only inside this Playwright browser context.
+    // Production installs remain empty until a user imports/creates real business records.
+    const syntheticPurchaseNo = await page.evaluate(code => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      db.purchase = Array.isArray(db.purchase) ? db.purchase : [];
+      const no = 'PW-PO-20261022-001';
+      if (!db.purchase.some(row => row.no === no)) {
+        const item = (db.inventory || []).find(row => row.code === code);
+        db.purchase.push({
+          no,
+          sup: item?.supplier || 'Playwright synthetic supplier',
+          mat: item?.name || 'Playwright synthetic stock item',
+          qty: 25,
+          unit: item?.unit || '公斤',
+          price: 10,
+          date: '2026-10-22',
+          eta: '2026-10-23',
+          status: '已下单',
+          buyer: 'Playwright',
+          payment: '测试环境',
+          note: 'Synthetic browser fixture; isolated to test localStorage.'
+        });
+        localStorage.setItem('textile_erp_v4_enterprise', JSON.stringify(db));
+      }
+      return no;
+    }, testSku);
+    await page.evaluate(() => window.render?.());
+    
     // Exercise the complete PO -> qualified receipt -> stock movement -> append-only reversal flow.
     await page.locator('#navGroup .nav-item[data-page="purchase"]').click();
+
     await page.waitForSelector('#purchase-receipt-form');
     const receivableOrders = await page.locator('#receipt-purchase-order option').evaluateAll(options =>
       options.filter(option => option.value && !option.disabled).map(option => option.value)
