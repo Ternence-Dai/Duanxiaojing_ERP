@@ -34,3 +34,13 @@ body[data-workspace="erp"] .receipt-warning{margin-top:8px;padding:9px 11px;bord
 body[data-workspace="erp"] .receipt-match-message{margin-top:8px;padding:8px 10px;border-radius:7px;background:#f1f7f8;color:#56727f;font-size:10px}
 @media(max-width:1000px){body[data-workspace="erp"] .w5-receipt-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.w5-receipt-progress__row{grid-template-columns:1fr}.w5-receipt-step__fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){body[data-workspace="erp"] .w5-receipt-dashboard__heading{flex-direction:column}.w5-receipt-step__fields{grid-template-columns:1fr}}
+
+/* Legacy receipt DOM aliases retained while the v5 purchase renderer upgrades the visual hierarchy. */
+body[data-workspace="erp"] .purchase-receipt-workspace{display:flex;flex-direction:column;gap:12px;padding:14px 0}
+body[data-workspace="erp"] .purchase-receipt-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid #d9e5e9;border-radius:9px;background:#fff}
+body[data-workspace="erp"] .receipt-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+body[data-workspace="erp"] .receipt-warning{padding:9px 11px;border:1px solid #ead7a4;border-radius:8px;background:#fffaf0;color:#765c2a;font-size:10px;line-height:1.6}
+body[data-workspace="erp"] .purchase-receipt-history{border:1px solid #d9e5e9;border-radius:9px;background:#fff;overflow:auto}
+body[data-workspace="erp"] .receipt-match-message{padding:8px 10px;border:1px solid #c8dfe2;border-radius:7px;background:#f1f8f8;color:#52717b;font-size:10px}
+@media(max-width:1000px){body[data-workspace="erp"] .receipt-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){body[data-workspace="erp"] .receipt-form-grid{grid-template-columns:1fr}}
