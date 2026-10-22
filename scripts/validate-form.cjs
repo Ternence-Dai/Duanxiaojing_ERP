@@ -35,7 +35,7 @@ function run(values, initialRows = [], editingId = null) {
 }
 const assert = require('node:assert/strict');
 const productCss = fs.readFileSync('assets/css/operations-cockpit-v2.css', 'utf8');
-assert.ok(html.includes('operations-cockpit-v2.css?v=20261022-operations-cockpit-v2'),
+assert.ok(html.includes('operations-cockpit-v2.css?v=20261022-reference-v6'),
   'ERP page must load the replacement operations cockpit stylesheet');
 for (const selector of [
   '.erp-operations-cockpit{', '.erp-process-board__track{',
