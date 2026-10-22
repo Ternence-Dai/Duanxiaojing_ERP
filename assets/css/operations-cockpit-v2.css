@@ -94,3 +94,5 @@ body[data-workspace="erp"] .erp-native-module-badge.is-local{border-color:#cce3d
 body[data-workspace="erp"] .erp-native-module-context__status>strong{color:#315e72;font-size:20px;font-variant-numeric:tabular-nums}
 body[data-workspace="erp"] .erp-native-module-context__status>small{color:#8b9ca3;font-size:8px}
 @media(max-width:560px){body[data-workspace="erp"] .erp-native-module-context{flex-direction:column}body[data-workspace="erp"] .erp-native-module-context__status{align-items:flex-start}}
+
+body[data-workspace="erp"] .erp-op-production{min-width:0;}
