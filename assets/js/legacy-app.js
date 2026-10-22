@@ -2280,7 +2280,28 @@ function renderDashboard(){
     </div>`;
   }).join('') : '<div class="empty" style="padding:26px 0!important">暂无在产工单</div>';
 
+  const processStages = [
+    {key:'orders',label:'销售订单',value:validOrders.length,detail:pendingOrders.length+' 张待确认',tone:'blue',action:'orders'},
+    {key:'production',label:'生产执行',value:inProd,detail:overdue.length+' 张逾期 · '+dueSoon.length+' 张临期',tone:'violet',action:'workorders'},
+    {key:'inventory',label:'物料库存',value:DB.inventory.length,detail:lowStock.length+' 项低于安全线',tone:'amber',action:'inventory'},
+    {key:'quality',label:'质量检验',value:qcTotal,detail:'优等品率 '+firstRate+'%',tone:'green',action:'quality'}
+  ];
+  const processBoard = processStages.map((stage,index) =>
+    '<button type="button" class="erp-process-stage erp-process-stage--'+stage.tone+
+    '" data-process-stage="'+stage.key+'" onclick="go(\''+stage.action+'\')">'+
+    '<span class="erp-process-stage__index">0'+(index+1)+'</span>'+
+    '<span class="erp-process-stage__label">'+stage.label+'</span>'+
+    '<strong>'+stage.value+'</strong><small>'+stage.detail+'</small>'+
+    '<span class="erp-process-stage__open">进入模块 ↗</span></button>'
+  ).join('');
+
   return `
+  <section class="erp-process-board" aria-label="订单到交付的经营流程">
+    <div class="erp-process-board__head"><div><span class="eyebrow">ORDER → PRODUCE → STOCK → DELIVER</span>
+    <h3>经营流程总览</h3><p>以下状态直接读取当前浏览器中的业务台账；点击任一阶段进入对应的可编辑模块。</p></div>
+    <span class="erp-process-board__scope">LIVE LOCAL LEDGER</span></div>
+    <div class="erp-process-board__track">${processBoard}</div>
+  </section>
   <div class="dashboard-command" aria-label="经营快捷操作">
     <div class="dashboard-command-copy">
       <div class="eyebrow">BUSINESS WORKSPACE</div>
