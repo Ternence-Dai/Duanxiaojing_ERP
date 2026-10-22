@@ -3317,6 +3317,45 @@ function go(page){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
+function renderStorageRecoveryWorkspace() {
+  return `<section class="erp-empty-ledger erp-empty-ledger--recovery" id="erp-storage-recovery">
+    <div class="erp-empty-ledger__hero">
+      <span class="erp-empty-ledger__eyebrow">DATA RECOVERY / READ ONLY</span>
+      <h2>原始账本需要恢复</h2>
+      <p>检测到浏览器账本无法安全解析。原始数据已另存恢复副本，当前自动写入已锁定；不会用演示数据覆盖原记录。</p>
+      <div class="erp-empty-ledger__actions"><button type="button" onclick="go('settings')">前往导入 / 恢复账本</button></div>
+    </div>
+    <div class="erp-empty-ledger__note">在完成恢复之前，本工作台不提供经营汇总或“无异常”结论。</div>
+  </section>`;
+}
+
+function renderEmptyLedgerWorkspace() {
+  return `<section class="erp-empty-ledger" id="erp-empty-ledger-workspace" aria-label="新建企业经营账本">
+    <div class="erp-empty-ledger__hero">
+      <span class="erp-empty-ledger__eyebrow">BUSINESS OPERATIONS / VERIFIED LEDGER</span>
+      <h2>从真实业务记录开始</h2>
+      <p>当前账本为空。请导入企业已有账本，或从客户、订单、生产、库存和采购业务开始登记。未录入的金额、库存、交期与质检结果不会被虚构，也不会被显示为“0 异常”。</p>
+      <div class="erp-empty-ledger__actions">
+        <button type="button" onclick="go('orders')">建立销售订单</button>
+        <button type="button" onclick="go('workorders')">建立生产工单</button>
+        <button type="button" onclick="go('inventory')">登记期初库存</button>
+        <button type="button" onclick="go('purchase')">建立采购订单</button>
+        <button type="button" class="is-secondary" onclick="go('settings')">导入已有账本</button>
+      </div>
+    </div>
+    <div class="erp-empty-ledger__lower">
+      <article><span>01 / CUSTOMERS & ORDERS</span><strong>客户与销售</strong><small>建立客户档案、订单数量、单价和交期</small></article>
+      <article><span>02 / SHOP FLOOR</span><strong>生产与交付</strong><small>建立工单、工序、负责人和真实进度</small></article>
+      <article><span>03 / INVENTORY</span><strong>库存与采购</strong><small>录入实际 SKU、期初结存与采购来源</small></article>
+      <article><span>04 / QUALITY</span><strong>质量与报表</strong><small>基于已登记的检验数据计算指标</small></article>
+    </div>
+    <div class="erp-empty-ledger__demo">
+      <div><strong>需要体验界面？</strong><small>可主动载入明确标记的合成演示样本；不会自动进入真实账本，也不会覆盖已有记录。</small></div>
+      <button id="erp-load-demo-data" type="button" onclick="loadDemoLedger()">加载演示样本</button>
+    </div>
+  </section>`;
+}
+
 function render(){
   const meta = PAGES[currentPage] || {title:'', sub:''};
   $('pageTitle').textContent = meta.title;
@@ -3328,7 +3367,9 @@ function render(){
     const total = (DB[S.key] || []).length;
     sub = `共 ${total} 条记录 · 当前显示 ${n} 条 · 支持搜索 / 筛选 / 编辑 / 新增`;
   } else if(currentPage === 'dashboard'){
-    sub = `${DB.settings.company} · 实时汇总各业务模块数据`;
+    sub = isEmptyOperationalLedger(DB)
+      ? '新建空账本 · 仅显示已录入的业务记录 · 未导入的数据不推断为零或正常'
+      : `${DB.settings.company} · 基于当前账本汇总业务数据`;
   } else if(currentPage === 'report'){
     sub = `基于当前全部业务数据实时聚合 · 导出文件将自动署名 ${AUTHOR.name}`;
   } else if(currentPage === 'settings'){
@@ -3337,7 +3378,9 @@ function render(){
   $('pageSub').textContent = sub;
 
   let html = '';
-  if(currentPage === 'dashboard')      html = typeof window.renderOperationsCockpit === 'function' ? window.renderOperationsCockpit() : renderDashboard();
+  if(currentPage === 'dashboard' && storageRecoveryRequired) html = renderStorageRecoveryWorkspace();
+  else if(currentPage === 'dashboard' && isEmptyOperationalLedger(DB)) html = renderEmptyLedgerWorkspace();
+  else if(currentPage === 'dashboard') html = typeof window.renderOperationsCockpit === 'function' ? window.renderOperationsCockpit() : renderDashboard();
   else if(currentPage === 'report')    html = renderReport();
   else if(currentPage === 'settings')  html = renderSettings();
   else if(SCHEMAS[currentPage])        html = renderListPage(currentPage);
