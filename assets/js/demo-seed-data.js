@@ -315,11 +315,6 @@ function createEmptyDB() {
   ]) {
     if (Array.isArray(data[key])) data[key] = [];
   }
-  if (data.dict && typeof data.dict === 'object') {
-    for (const key of Object.keys(data.dict)) {
-      if (Array.isArray(data.dict[key])) data.dict[key] = [];
-    }
-  }
   data.settings = {
     ...data.settings,
     company: '企业信息待配置',
