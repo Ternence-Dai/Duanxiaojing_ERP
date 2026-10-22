@@ -203,7 +203,7 @@ const { chromium } = require('playwright');
     await duplicateModal.locator('#ff_cat').fill('纱线');
     await duplicateModal.locator('#ff_qty').fill('20');
     await duplicateModal.locator('#ff_unit').selectOption('公斤');
-    await duplicateModal.locator('#ff_loc').fill('A-01-01');
+    await duplicateModal.locator('#ff_loc').fill('PW-ERP-TEST-A01');
     await duplicateModal.locator('.modal-foot .btn-primary').click();
     await page.waitForFunction(() =>
       [...document.querySelectorAll('#toastRoot .toast')].some(el => el.textContent.includes('已存在')));
