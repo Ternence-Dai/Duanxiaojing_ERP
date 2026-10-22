@@ -107,6 +107,7 @@ function testStorageRecovery(initialRaw, readThrows = false) {
   };
   const context = {
     STORE_KEY:'erp_test',
+    FILE_SYNC_PENDING_KEY:'erp_test_file_sync_pending',
     storageRecoveryRequired:false,
     SCHEMAS:{orders:{}},
     localStorage:storage,
@@ -125,6 +126,10 @@ function testStorageRecovery(initialRaw, readThrows = false) {
     writeToFile:()=>{},
   };
   vm.createContext(context);
+  const migrationStart=html.indexOf('function migrateUnmodifiedDemoLedger(data, raw){');
+  const migrationEnd=html.indexOf('\nfunction loadDB()',migrationStart);
+  assert.ok(migrationStart>=0 && migrationEnd>migrationStart,'demo migration helper must be available');
+  vm.runInContext(html.slice(migrationStart,migrationEnd),context);
   const loadStart=html.indexOf('function loadDB(){');
   const loadEnd=html.indexOf('\n\nlet saveTimer',loadStart);
   assert.ok(loadStart>=0 && loadEnd>loadStart,'loadDB source must be available');
