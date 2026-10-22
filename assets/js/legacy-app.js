@@ -3314,6 +3314,22 @@ function render(){
   else if(SCHEMAS[currentPage])        html = renderListPage(currentPage);
   else html = '<div class="card">页面不存在</div>';
 
+  // Custom workspaces (reports and settings) receive the same native context header as ledger pages.
+  // List pages already render a schema-specific header and are not duplicated here.
+  if(currentPage !== 'dashboard' && !html.includes('erp-native-module-context')){
+    const schema = SCHEMAS[currentPage];
+    const total = schema ? (DB[schema.key] || []).length :
+      (currentPage === 'report' ? Object.values(SCHEMAS).reduce((sum,item)=>sum+(DB[item.key]||[]).length,0) : 0);
+    const sourceBadge = DB.settings.dataProvenance === 'demo-seed'
+      ? '<span class="erp-native-module-badge is-demo">示例账本</span>'
+      : '<span class="erp-native-module-badge is-local">本机账本</span>';
+    html = `<section class="erp-native-module-context" aria-label="${esc(meta.title)}模块上下文">
+      <div><span class="eyebrow">BUSINESS MODULE / ${esc(currentPage.toUpperCase())}</span>
+      <h2>${esc(meta.title)}</h2><p>${esc(meta.sub || '当前模块汇总现有业务账本；报表与设置按已登记数据和本机配置显示。')}</p></div>
+      <div class="erp-native-module-context__status">${sourceBadge}<strong>${total || '—'}</strong><small>${currentPage === 'report' ? '业务记录总量' : '模块记录'}</small></div>
+    </section>` + html;
+  }
+
   $('content').innerHTML = html;
   updateFileStatus();
 }
