@@ -320,6 +320,10 @@ function createEmptyDB() {
   for (const key of ['products','specs','salesmen','inspectors','departments','warehouses']) {
     if (Array.isArray(data.dict[key])) data.dict[key] = [];
   }
+  // These ledgers are created lazily by the real workflows.
+  data.stockMovements = Array.isArray(data.stockMovements) ? data.stockMovements : [];
+  data.purchaseReceipts = Array.isArray(data.purchaseReceipts) ? data.purchaseReceipts : [];
+  data.purchaseReceiptReversals = Array.isArray(data.purchaseReceiptReversals) ? data.purchaseReceiptReversals : [];
   data.settings = {
     ...data.settings,
     company: '企业信息待配置',
