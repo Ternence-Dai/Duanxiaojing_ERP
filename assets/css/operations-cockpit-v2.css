@@ -98,3 +98,28 @@ body[data-workspace="erp"] .erp-native-module-context__status>small{color:#8b9ca
 body[data-workspace="erp"] .erp-op-production{min-width:0;}
 
 body[data-workspace="erp"] .erp-operations-cockpit :where(button,a,input,select,textarea):focus-visible{outline:3px solid #218f96;outline-offset:3px;}
+
+
+/* First-run product workspace: do not render seeded KPIs as a real company dashboard. */
+body[data-workspace="erp"] .erp-empty-ledger{display:flex;flex-direction:column;gap:14px;max-width:1600px;margin:26px auto;padding:0 28px 36px}
+body[data-workspace="erp"] .erp-empty-ledger__hero{padding:clamp(24px,3vw,42px);border:1px solid #cedee4;border-radius:20px;background:radial-gradient(circle at 88% 5%,#0d94881a,transparent 27%),linear-gradient(118deg,#fff,#f0f6f7 68%,#e3f0ef);box-shadow:0 16px 40px #12384d0b}
+body[data-workspace="erp"] .erp-empty-ledger__eyebrow{font-size:10px;font-weight:850;letter-spacing:.16em;color:#0d7d78}
+body[data-workspace="erp"] .erp-empty-ledger__hero h2{margin:9px 0 10px;color:#12384c;font-size:clamp(25px,3vw,38px);letter-spacing:-.04em}
+body[data-workspace="erp"] .erp-empty-ledger__hero p{max-width:850px;color:#617985;font-size:13px;line-height:1.85}
+body[data-workspace="erp"] .erp-empty-ledger__actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
+body[data-workspace="erp"] .erp-empty-ledger__actions button,body[data-workspace="erp"] .erp-empty-ledger__demo button{min-height:42px;padding:10px 16px;border:1px solid #177f7b;border-radius:9px;background:#0d817f;color:#fff;font:inherit;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 7px 18px #0c77731c}
+body[data-workspace="erp"] .erp-empty-ledger__actions button:hover,body[data-workspace="erp"] .erp-empty-ledger__demo button:hover{background:#096e6c}
+body[data-workspace="erp"] .erp-empty-ledger__actions button.is-secondary{border-color:#c6d8dd;background:#fff;color:#315e71;box-shadow:none}
+body[data-workspace="erp"] .erp-empty-ledger__lower{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+body[data-workspace="erp"] .erp-empty-ledger__lower article{display:flex;min-width:0;flex-direction:column;gap:7px;padding:18px;border:1px solid #d9e5e8;border-radius:14px;background:#fff}
+body[data-workspace="erp"] .erp-empty-ledger__lower article span{color:#0f827b;font-size:9px;font-weight:850;letter-spacing:.08em}
+body[data-workspace="erp"] .erp-empty-ledger__lower article strong{color:#234b5d;font-size:15px}
+body[data-workspace="erp"] .erp-empty-ledger__lower article small{color:#78909b;font-size:11px;line-height:1.7}
+body[data-workspace="erp"] .erp-empty-ledger__demo{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;border:1px dashed #c5d8dc;border-radius:12px;background:#f8fbfb}
+body[data-workspace="erp"] .erp-empty-ledger__demo div{display:flex;flex-direction:column;gap:4px}
+body[data-workspace="erp"] .erp-empty-ledger__demo strong{color:#31596a;font-size:12px}
+body[data-workspace="erp"] .erp-empty-ledger__demo small{color:#80969d;font-size:10px;line-height:1.7}
+body[data-workspace="erp"] .erp-empty-ledger__demo button{min-height:36px;background:#fff;color:#356777;border-color:#c5d9de;box-shadow:none;white-space:nowrap}
+body[data-workspace="erp"] .erp-empty-ledger__note{padding:16px 18px;border:1px solid #e7dabc;border-radius:12px;background:#fff9ee;color:#7c6840;font-size:12px;line-height:1.8}
+@media(max-width:1000px){body[data-workspace="erp"] .erp-empty-ledger__lower{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){body[data-workspace="erp"] .erp-empty-ledger{margin:14px auto;padding:0 13px 25px}body[data-workspace="erp"] .erp-empty-ledger__hero{padding:20px 16px;border-radius:15px}body[data-workspace="erp"] .erp-empty-ledger__actions{display:grid;grid-template-columns:1fr 1fr}body[data-workspace="erp"] .erp-empty-ledger__actions button{width:100%;padding:9px 8px}body[data-workspace="erp"] .erp-empty-ledger__lower{gap:8px}body[data-workspace="erp"] .erp-empty-ledger__lower article{padding:12px}body[data-workspace="erp"] .erp-empty-ledger__demo{align-items:flex-start;flex-direction:column}body[data-workspace="erp"] .erp-empty-ledger__demo button{width:100%}}
