@@ -315,6 +315,11 @@ function createEmptyDB() {
   ]) {
     if (Array.isArray(data[key])) data[key] = [];
   }
+  // Master-data examples also contain invented textile SKUs, prices, people and warehouse codes.
+  // Start production ledgers empty; the explicit demo action still uses defaultDB() with fixtures.
+  for (const key of ['products','specs','salesmen','inspectors','departments','warehouses']) {
+    if (Array.isArray(data.dict[key])) data.dict[key] = [];
+  }
   data.settings = {
     ...data.settings,
     company: '企业信息待配置',
