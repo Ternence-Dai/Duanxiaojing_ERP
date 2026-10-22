@@ -34,7 +34,7 @@ assert.ok(app.includes('buildOrderDateTrend(validOrders, 7)') &&
           app.includes('暂无有效订单日期数据') &&
           !app.includes("{label:'06-14', v:8200}"),
   'dashboard must render the order-ledger aggregation and an explicit empty state');
-assert.ok(index.includes('legacy-app.js?v=20261022-demo-migration-v2'),
+assert.ok(index.includes('legacy-app.js?v=20261022-demo-migration-v3'),
   'ERP entry point must load the new trend logic without stale browser cache');
 assert.ok(app.includes('title="${t.date} · ${fmtM0(t.totalAmount)} · ${t.orderCount} 张订单"'),
   'each trend bar must expose its date, total amount and order count on hover');
