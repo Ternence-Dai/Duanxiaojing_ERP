@@ -11,6 +11,15 @@ const { chromium } = require('playwright');
 
   try {
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 30000 });
+    const seedResponse = await page.request.get('http://127.0.0.1:4173/assets/js/demo-seed-data.js?v=20261022-demo-provenance-v2');
+    const seedSource = await seedResponse.text();
+    if (!seedResponse.ok() || !seedSource.includes("dataProvenance: 'demo-seed'") ||
+        !seedSource.includes('示例企业账本（实际名称待配置）') ||
+        seedSource.includes('兴华织带有限公司') || seedSource.includes('xinghua-textile.com') ||
+        seedSource.includes('0512-8888 6666') || seedSource.includes('91320509MA1')) {
+      throw new Error('ERP seed ledger still contains invented company identity or tax/contact details');
+    }
+
     const referenceStylesheet = page.locator('link[rel="stylesheet"][href*="reference-platform-v4.css"]');
     if (await referenceStylesheet.count() !== 1) throw new Error('ERPNext operations desk stylesheet is not linked');
     const referenceCssResponse = await page.request.get(await referenceStylesheet.evaluate(node => node.href));
