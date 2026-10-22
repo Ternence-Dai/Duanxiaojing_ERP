@@ -34,32 +34,20 @@ function run(values, initialRows = [], editingId = null) {
   return {rows:context.DB.orders,messages};
 }
 const assert = require('node:assert/strict');
-const productCss = fs.readFileSync('assets/css/product-system.css', 'utf8');
-assert.ok(html.includes('product-system.css?v=20261019-v8'),
-  'ERP page must load the visible V8 product stylesheet');
-assert.ok(productCss.includes('Textile ERP operations workspace'),
-  'ERP visual system must expose its current product redesign layer');
+const productCss = fs.readFileSync('assets/css/operations-cockpit-v2.css', 'utf8');
+assert.ok(html.includes('operations-cockpit-v2.css?v=20261022-operations-cockpit-v2'),
+  'ERP page must load the replacement operations cockpit stylesheet');
 for (const selector of [
-  '.sidebar{', '.topbar{', '.erp-intro{', '.kpi-grid{',
-  '.kpi{', '.grid-2{', '.table-wrap{', 'thead th{', '.modal{'
+  '.erp-operations-cockpit{', '.erp-process-board__track{',
+  '.erp-op-command{', '.erp-op-queue{', '.erp-op-workspace-grid{',
+  '.erp-op-production', '.erp-op-analytics', '.erp-op-data-badge'
 ]) assert.ok(productCss.includes(selector),
-  'ERP product system must style the key operating surface: ' + selector);
-assert.ok(productCss.includes('@media(max-width:900px)') &&
-          productCss.includes('@media(max-width:520px)'),
-  'ERP redesign must preserve tablet and phone layout rules');
-
-assert.ok(productCss.includes('V4 · ZhiYun ERP operations command center') &&
-          productCss.includes('.erp-intro:after{') &&
-          productCss.includes('.product-workflow__grid{') &&
-          productCss.includes('.content .kpi:after{'),
-  'ERP V4 must implement the refreshed operations masthead, workflow cards and KPI treatment');
-assert.ok(productCss.includes('@media(max-width:900px)') &&
-          productCss.includes('@media(max-width:520px)') &&
-          productCss.includes('.product-workflow__item:hover'),
-  'ERP V4 must provide responsive business workflow cards and interactive states');
-
-assert.ok(productCss.includes('prefers-reduced-motion:reduce'),
-  'ERP redesign must respect reduced motion preferences');
+  'ERP product cockpit must implement the functional workspace component: ' + selector);
+assert.ok(productCss.includes('@media(max-width:1100px)') &&
+          productCss.includes('@media(max-width:560px)'),
+  'ERP cockpit must preserve tablet and phone layout rules');
+assert.ok(productCss.includes('focus-visible'),
+  'ERP redesign must retain accessible keyboard interaction styling');
 
 assert.ok(html.includes("const today = () => { const d = new Date();"),
   'ERP date helper must use the browser local calendar');
