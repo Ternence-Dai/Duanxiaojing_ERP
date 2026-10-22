@@ -59,6 +59,18 @@ const { chromium } = require('playwright');
     if (!(await page.locator('#content').innerText()).trim()) {
       throw new Error('ERP dashboard did not render its initial content');
     }
+    const processStages = await page.locator('#content .erp-process-board [data-process-stage]').evaluateAll(nodes =>
+      nodes.map(node => ({stage:node.dataset.processStage,label:node.querySelector('.erp-process-stage__label')?.textContent.trim()}))
+    );
+    const expectedStages = ['orders','production','inventory','quality'];
+    if (JSON.stringify(processStages.map(item => item.stage)) !== JSON.stringify(expectedStages) ||
+        processStages.some(item => !item.label)) {
+      throw new Error('ERP live order-to-delivery process board is incomplete: ' + JSON.stringify(processStages));
+    }
+    await page.locator('#content [data-process-stage="quality"]').click();
+    await page.waitForFunction(() => document.querySelector('#navGroup .nav-item.active')?.dataset.page === 'quality');
+    await page.locator('#navGroup .nav-item[data-page="dashboard"]').click();
+    await page.waitForSelector('#content .erp-process-board');
     const pages = ['orders', 'workorders', 'inventory', 'purchase', 'quality', 'customers', 'suppliers', 'report', 'settings'];
     for (const id of pages) {
       await page.locator('#navGroup .nav-item[data-page="' + id + '"]').click();
