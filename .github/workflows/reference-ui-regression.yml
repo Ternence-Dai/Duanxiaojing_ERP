@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: reference-ui-${{ github.workflow }}-${{ github.ref }}
@@ -46,3 +48,23 @@ jobs:
           exit 1
       - name: Verify reference layout, interactions, and product flows
         run: node scripts/browser-erp-smoke.cjs
+
+  deploy-pages:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: browser-and-domain-regression
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload the verified web application
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy the verified interface
+        id: deployment
+        uses: actions/deploy-pages@v4
