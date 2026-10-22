@@ -361,6 +361,93 @@ function preserveInvalidDB(raw){
     return false;
   }
 }
+function migrateUnmodifiedDemoLedger(data, raw){
+  if(storageRecoveryRequired || !raw || !data || !data.settings ||
+     data.settings.dataProvenance !== 'demo-seed') return data;
+  try {
+    // A pending disk write means the browser cache may be newer than the selected file.
+    // Never rewrite either side while that recovery marker exists.
+    if(localStorage.getItem(FILE_SYNC_PENDING_KEY)) return data;
+  } catch(error) {
+    console.warn('无法核对 ERP 文件同步标记；跳过演示记录迁移以保护数据。', error);
+    return data;
+  }
+
+  const seed = defaultDB();
+  const migrated = JSON.parse(JSON.stringify(data));
+  const operationalKeys = [
+    'customers','suppliers','orders','workorders','inventory','purchase','quality',
+    'stockMovements','purchaseReceipts','purchaseReceiptReversals'
+  ];
+  const dictionaryKeys = [
+    'products','specs','salesmen','inspectors','departments','warehouses'
+  ];
+  let removed = 0;
+  const filterExactSeedRows = (rows, seedRows) => {
+    if(!Array.isArray(rows) || !Array.isArray(seedRows)) return rows;
+    const remaining = new Set(seedRows.map(row => JSON.stringify(row)));
+    return rows.filter(row => {
+      const fingerprint = JSON.stringify(row);
+      if(!remaining.has(fingerprint)) return true;
+      remaining.delete(fingerprint);
+      removed += 1;
+      return false;
+    });
+  };
+  for(const key of operationalKeys){
+    migrated[key] = filterExactSeedRows(migrated[key], seed[key]);
+  }
+  for(const key of dictionaryKeys){
+    if(!migrated.dict || !seed.dict) break;
+    migrated.dict[key] = filterExactSeedRows(migrated.dict[key], seed.dict[key]);
+  }
+  if(!removed) return data;
+
+  const noOperationalRows = operationalKeys.every(key =>
+    !Array.isArray(migrated[key]) || migrated[key].length === 0);
+  const noUnverifiedMasterData = dictionaryKeys.every(key =>
+    !Array.isArray(migrated.dict?.[key]) || migrated.dict[key].length === 0);
+  if(noOperationalRows && noUnverifiedMasterData){
+    migrated.settings = {
+      ...migrated.settings,
+      company:'企业信息待配置',
+      companyShort:'未配置',
+      companyAddress:'',
+      companyPhone:'',
+      companyEmail:'',
+      companyTaxNo:'',
+      dataProvenance:'empty-ledger',
+      currentUser:'',
+      currentDept:'',
+      equipCount:0,
+      annualCapacity:0,
+      reportFooter:'本报表只汇总已登记并核验的业务记录；未录入项不推断为零或正常。'
+    };
+  }
+
+  const current = localStorage.getItem(STORE_KEY);
+  if(current !== raw){
+    storageConflictDetected = true;
+    console.warn('ERP 演示样本清理前检测到缓存已变化；保留最新账本，不执行迁移。');
+    return data;
+  }
+  const archiveKey = STORE_KEY + '_demo_archive_' + Date.now();
+  try{
+    // Archive the exact pre-migration payload before changing the active ledger.
+    localStorage.setItem(archiveKey, raw);
+    const nextRaw = JSON.stringify(migrated);
+    localStorage.setItem(STORE_KEY, nextRaw);
+    lastKnownStorageValue = nextRaw;
+    demoSeedMigrationNotice = archiveKey;
+    console.info('已清理 ' + removed + ' 条未修改的 ERP 内置演示样本；原始账本已归档：' + archiveKey);
+    return migrated;
+  }catch(error){
+    storageRecoveryRequired = true;
+    console.error('ERP 演示样本迁移失败；原始缓存和恢复副本均保持保护状态。', error);
+    return data;
+  }
+}
+let demoSeedMigrationNotice = '';
 function loadDB(){
   let raw = null;
   try{
@@ -368,7 +455,7 @@ function loadDB(){
     lastKnownStorageValue = raw;
     if(raw){
       const d = JSON.parse(raw);
-      if(isValidDBShape(d)) return d;
+      if(isValidDBShape(d)) return migrateUnmodifiedDemoLedger(d, raw);
       storageRecoveryRequired = true;
       preserveInvalidDB(raw);
       console.warn('ERP 缓存结构不完整，已保留恢复副本；在恢复前禁止自动覆盖原缓存。');
@@ -3417,6 +3504,9 @@ function tickClock(){
 
 initNav();
 go('dashboard');
+if(demoSeedMigrationNotice){
+  toast('已清理旧版未修改的内置演示订单、价格与库存样本；原始账本已另存恢复备份。请导入核验后的企业资料。');
+}
 tickClock();
 setInterval(tickClock, 30000);
 restoreHandle();
