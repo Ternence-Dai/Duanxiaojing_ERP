@@ -23,6 +23,26 @@ const { chromium } = require('playwright');
         erpLayout.display !== 'grid' || !erpLayout.columns.startsWith('250px')) {
       throw new Error('Reference ERP operations layout was not loaded/applied: ' + JSON.stringify(erpLayout));
     }
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    const wideErp = await page.evaluate(() => {
+      const main = document.querySelector('.main');
+      const content = document.querySelector('#content');
+      const sidebar = document.querySelector('.sidebar');
+      const rect = node => {
+        const box = node.getBoundingClientRect();
+        return { left: box.left, right: box.right, width: box.width };
+      };
+      return {
+        main: rect(main), content: rect(content), sidebar: rect(sidebar),
+        mainMarginLeft: getComputedStyle(main).marginLeft
+      };
+    });
+    if (wideErp.mainMarginLeft !== '0px' ||
+        wideErp.main.left < wideErp.sidebar.right - 1 ||
+        wideErp.main.left > wideErp.sidebar.right + 2 ||
+        wideErp.content.width < wideErp.main.width * 0.88) {
+      throw new Error('ERP legacy sidebar offset or narrow content width remains: ' + JSON.stringify(wideErp));
+    }
 
     const skipLink = page.locator('a.skip-link[href="#main-content"]');
     if (await skipLink.count() !== 1) throw new Error('Keyboard skip-navigation link is missing');
