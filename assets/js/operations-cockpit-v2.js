@@ -101,7 +101,7 @@
       '<button class="btn" onclick="go(&#39;workorders&#39;)">生产工单</button><button class="btn" onclick="go(&#39;inventory&#39;)">物料库存</button>' +
       '<button class="btn" onclick="go(&#39;purchase&#39;)">采购协同</button></nav></div>' +
 
-      '<section class="erp-op-metrics" aria-label="经营指标">' +
+      '<section class="erp-op-metrics kpi-grid" aria-label="经营指标">' +
       metric('订单金额汇总',fmtM0(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
       metric('在产工单',inProduction.length,'逾期 '+overdue.length+' · 临期 '+dueSoon.length,'violet') +
       metric('库存账面价值',fmtM0(stockValue),'低于安全库存 '+lowStock.length+' 项','amber') +
