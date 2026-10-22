@@ -91,6 +91,12 @@ const { chromium } = require('playwright');
         JSON.stringify(operationsCockpit));
     }
 
+    await page.waitForSelector('.erp-operations-cockpit');
+    const operationsCockpit = await page.locator('.erp-operations-cockpit').count();
+    if (operationsCockpit !== 1 || !(await page.locator('.erp-op-workspace-grid').count())) {
+      throw new Error('ERP reference operations cockpit is not mounted as dashboard');
+    }
+
     const skipLink = page.locator('a.skip-link[href="#main-content"]');
     if (await skipLink.count() !== 1) throw new Error('Keyboard skip-navigation link is missing');
     await page.keyboard.press('Tab');
