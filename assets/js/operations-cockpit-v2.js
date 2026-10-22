@@ -43,7 +43,7 @@
       {key:'quality',label:'质量检验',value:qcTotal,sub:'优等品率 '+firstRate+'%',tone:'green',page:'quality'}
     ];
     const stagesHtml = stageData.map((stage,index) =>
-      '<button type="button" class="erp-process-stage erp-process-stage--'+stage.tone+'" data-process-stage="'+stage.key+'" onclick="go(\\''+stage.page+'\\')">' +
+      '<button type="button" class="erp-process-stage erp-process-stage--'+stage.tone+'" data-process-stage="'+stage.key+'" onclick="go(&#39;'+stage.page+'&#39;)">' +
       '<span class="erp-process-stage__index">0'+(index+1)+'</span><span class="erp-process-stage__label">'+stage.label+'</span>' +
       '<strong>'+stage.value+'</strong><small>'+stage.sub+'</small><span class="erp-process-stage__open">打开台账 ↗</span></button>'
     ).join('');
@@ -60,7 +60,7 @@
     lowStock.slice(0,4).forEach(row => attention.push({level:'danger',kind:'安全库存',title:(row.name||row.code)+' 低于安全库存',
       detail:'现存 '+fmtN(row.qty)+' '+row.unit+' · 安全线 '+fmtN(row.safe)+' '+row.unit+' · '+(row.loc||'库位未填'),page:'inventory'}));
     const attentionHtml = attention.length ? attention.slice(0,10).map(item =>
-      '<button type="button" class="erp-op-queue-item is-'+item.level+'" onclick="go(\\''+item.page+'\\')">' +
+      '<button type="button" class="erp-op-queue-item is-'+item.level+'" onclick="go(&#39;'+item.page+'&#39;)">' +
       '<span class="erp-op-queue-level">'+item.kind+'</span><strong>'+text(item.title)+'</strong><small>'+text(item.detail)+'</small><i>进入处理 ↗</i></button>'
     ).join('') : '<div class="erp-op-empty"><strong>当前没有识别到待办异常</strong><span>这不等于现场状态已核实；请持续维护交期、库存与质检记录。</span></div>';
 
@@ -97,9 +97,9 @@
       '<span class="erp-process-board__scope">'+(isDemo?'DEMO LEDGER':'LOCAL LEDGER')+'</span></div><div class="erp-process-board__track">'+stagesHtml+'</div></section>' +
 
       '<div class="erp-op-command"><div><span class="eyebrow">QUICK ACTIONS</span><strong>新建业务 / 更新台账</strong><small>操作写入本机账本；导出与本地文件绑定由顶部工具栏管理。</small></div>' +
-      '<nav><button class="btn btn-primary" onclick="go(\\'orders\\');setTimeout(()=>openForm(\\'orders\\'),80)">＋ 新建订单</button>' +
-      '<button class="btn" onclick="go(\\'workorders\\')">生产工单</button><button class="btn" onclick="go(\\'inventory\\')">物料库存</button>' +
-      '<button class="btn" onclick="go(\\'purchase\\')">采购协同</button></nav></div>' +
+      '<nav><button class="btn btn-primary" onclick="go(&#39;orders&#39;);setTimeout(()=>openForm(&#39;orders&#39;),80)">＋ 新建订单</button>' +
+      '<button class="btn" onclick="go(&#39;workorders&#39;)">生产工单</button><button class="btn" onclick="go(&#39;inventory&#39;)">物料库存</button>' +
+      '<button class="btn" onclick="go(&#39;purchase&#39;)">采购协同</button></nav></div>' +
 
       '<section class="erp-op-metrics" aria-label="经营指标">' +
       metric('订单金额汇总',fmtM0(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
@@ -113,8 +113,8 @@
       '<span class="erp-op-count">'+attention.length+' 项</span></div><div class="erp-op-queue">'+attentionHtml+'</div></section>' +
 
       '<section class="erp-op-panel erp-op-production"><div class="erp-op-panel-head"><div><span class="eyebrow">SHOPFLOOR EXECUTION</span>' +
-      '<h3>生产执行进度</h3><p>在产工单进度来自当前工单计划量和完成量。</p></div><button onclick="go(\\'workorders\\')">全部工单 ↗</button></div>' +
-      '<div class="erp-op-workorders">'+activeHtml+'</div><div class="erp-op-subhead"><span>工序分布</span><button onclick="go(\\'workorders\\')">打开工单台账</button></div>' +
+      '<h3>生产执行进度</h3><p>在产工单进度来自当前工单计划量和完成量。</p></div><button onclick="go(&#39;workorders&#39;)">全部工单 ↗</button></div>' +
+      '<div class="erp-op-workorders">'+activeHtml+'</div><div class="erp-op-subhead"><span>工序分布</span><button onclick="go(&#39;workorders&#39;)">打开工单台账</button></div>' +
       '<div class="erp-op-process">'+processHtml+'</div></section></div>' +
 
       '<div class="erp-op-analytics"><section class="erp-op-panel"><div class="erp-op-panel-head"><div><span class="eyebrow">SALES ORDER VALUE</span>' +
@@ -124,7 +124,7 @@
       '<ul><li>'+(isDemo?'当前仍使用程序内置演示样本；订单、客户、供应商、库存、费用均非真实企业记录。':'当前使用本机账本；导入数据仍需业务人员确认来源与口径。')+'</li>' +
       '<li>指标由销售订单、生产工单、库存和质检台账计算；未接入外部实时 ERP 数据。</li>' +
       '<li>库存账面金额不等于财务总账，未经核验不得用于结算或对外报表。</li></ul>' +
-      '<div class="erp-op-guard-actions"><button onclick="go(\\'settings\\')">数据 / 公司设置</button><button onclick="go(\\'report\\')">经营报表 ↗</button></div></section></div>' +
+      '<div class="erp-op-guard-actions"><button onclick="go(&#39;settings&#39;)">数据 / 公司设置</button><button onclick="go(&#39;report&#39;)">经营报表 ↗</button></div></section></div>' +
       '</section>';
   };
 
