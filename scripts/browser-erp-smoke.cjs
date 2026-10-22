@@ -137,6 +137,49 @@ const { chromium } = require('playwright');
     if (!(receiptQty > 0 && receiptQty < outstanding)) {
       throw new Error('Synthetic receipt quantity must be positive and less than the outstanding order quantity');
     }
+
+    // An over-receipt must be rejected before creating any receipt, stock movement or balance change.
+    const beforeOverReceipt = await page.evaluate(({ purchaseNo, sku }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      return {
+        receiptCount: (db.purchaseReceipts || []).length,
+        movementCount: (db.stockMovements || []).length,
+        stock: (db.inventory || []).find(row => row.code === sku)?.qty,
+        status: (db.purchase || []).find(row => row.no === purchaseNo)?.status
+      };
+    }, { purchaseNo: targetPurchaseNo, sku: selectedSku });
+    const quantityInput = page.locator('#receipt-quantity');
+    const clientMaximum = Number(await quantityInput.getAttribute('max'));
+    if (clientMaximum !== outstanding) {
+      throw new Error('Receipt form must expose the exact outstanding purchase quantity as its client-side maximum: ' +
+        JSON.stringify({ clientMaximum, outstanding }));
+    }
+    // Bypass the UI guard deliberately so the domain layer is also tested as the authoritative boundary.
+    await quantityInput.evaluate(el => el.removeAttribute('max'));
+    await quantityInput.fill((outstanding + 0.001).toFixed(3));
+    await page.locator('#receipt-receiver').fill('Playwright rejected over-receipt operator');
+    await page.locator('#receipt-inspector').fill('Playwright rejected over-receipt inspector');
+    await page.locator('#receipt-inspection').selectOption('合格');
+    await page.locator('#receipt-note').fill('Synthetic over-receipt rejection; no real stock movement');
+    await page.locator('#receipt-submit').click();
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('#toastRoot .toast')].some(el =>
+        el.textContent.includes('receipt quantity exceeds the outstanding purchase order quantity')));
+    const afterOverReceipt = await page.evaluate(({ purchaseNo, sku }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      return {
+        receiptCount: (db.purchaseReceipts || []).length,
+        movementCount: (db.stockMovements || []).length,
+        stock: (db.inventory || []).find(row => row.code === sku)?.qty,
+        status: (db.purchase || []).find(row => row.no === purchaseNo)?.status
+      };
+    }, { purchaseNo: targetPurchaseNo, sku: selectedSku });
+    if (JSON.stringify(afterOverReceipt) !== JSON.stringify(beforeOverReceipt)) {
+      throw new Error('Rejected over-receipt changed the receipt ledger, stock movements, inventory balance or purchase status: ' +
+        JSON.stringify({ before: beforeOverReceipt, after: afterOverReceipt }));
+    }
+
+    // Continue with a qualified partial receipt after the rejected attempt.
     await page.locator('#receipt-quantity').fill(String(receiptQty));
     await page.locator('#receipt-receiver').fill('Playwright receiving operator');
     await page.locator('#receipt-inspector').fill('Playwright quality inspector');
