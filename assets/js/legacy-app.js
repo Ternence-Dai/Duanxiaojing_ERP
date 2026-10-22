@@ -1585,7 +1585,19 @@ function renderListPage(key){
       </div>`;
     }
   }
-  return `${tip}${key === 'purchase' ? renderPurchaseReceiptWorkspace() : ''}
+  const meta = PAGES[key] || {title:S.title || key,sub:''};
+  const totalRows = (DB[S.key] || []).length;
+  const visibleRows = filteredRows(key).length;
+  const provenanceBadge = DB.settings.dataProvenance === 'demo-seed'
+    ? '<span class="erp-native-module-badge is-demo">示例账本</span>'
+    : '<span class="erp-native-module-badge is-local">本机账本</span>';
+  const moduleContext = `<section class="erp-native-module-context" aria-label="${esc(meta.title)}模块上下文">
+    <div><span class="eyebrow">BUSINESS MODULE / ${esc(key.toUpperCase())}</span>
+    <h2>${esc(meta.title)}</h2>
+    <p>${esc(meta.sub || '在当前本机账本中查看、筛选并维护业务记录。每次变更均保留现有业务校验与保存流程。')}</p></div>
+    <div class="erp-native-module-context__status">${provenanceBadge}<strong>${totalRows}</strong><small>总记录 · 当前显示 ${visibleRows}</small></div>
+  </section>`;
+  return `${tip}${moduleContext}${key === 'purchase' ? renderPurchaseReceiptWorkspace() : ''}
   <div class="toolbar">
     <div class="search-box">
       <span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></span>
