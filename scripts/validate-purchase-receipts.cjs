@@ -5,7 +5,10 @@ const assert = require('node:assert/strict');
 
 const app = fs.readFileSync('assets/js/legacy-app.js', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
-const css = fs.readFileSync('assets/css/product-system.css', 'utf8');
+const css = [
+  fs.readFileSync('assets/css/workspace-v5.css', 'utf8'),
+  fs.readFileSync('assets/css/operations-cockpit-v2.css', 'utf8')
+].join('\n');
 const seed = fs.readFileSync('assets/js/demo-seed-data.js', 'utf8');
 const domain = fs.readFileSync('src/domain/index.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/validate.yml', 'utf8');
@@ -43,8 +46,6 @@ for (const selector of [
 ]) assert.ok(workspaceCss.includes(selector),
   'ERP V5.2 stylesheet must style the purchase workspace: ' + selector);
 
-assert.ok(html.includes('product-system.css?v=20261019-v8'),
-  'ERP must load the receipt-enabled product V8 workflow stylesheet revision');
 
 for (const id of [
   'purchase-receipt-form', 'receipt-purchase-order', 'receipt-sku',
