@@ -116,6 +116,7 @@ function testStorageRecovery(initialRaw, readThrows = false) {
     isValidDBShape:d=>!!(d && d.settings && d.dict && Array.isArray(d.orders)),
     preserveInvalidDB:raw=>{ if(raw) preserved++; return true; },
     defaultDB:()=>({settings:{demo:true},dict:{},orders:[]}),
+    createEmptyDB:()=>({settings:{dataProvenance:'empty-ledger'},dict:{},orders:[]}),
     DB:{settings:{demo:true},dict:{},orders:[]},
     toast:()=>{},
     fileHandle:null,
