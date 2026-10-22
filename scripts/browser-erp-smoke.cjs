@@ -51,10 +51,6 @@ const { chromium } = require('playwright');
     if (!firstKeyboardTarget) throw new Error('Skip navigation is not the first keyboard focus target');
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => document.activeElement?.getAttribute('id') === 'main-content');
-    const contextScript = await page.locator('script[src*="workspace-v5-context.js"]').getAttribute('src');
-    if (!contextScript || !contextScript.includes('v=20261021-mutationobserver-fix-v1')) {
-      throw new Error('Workspace observer fix cache-busting URL is missing: ' + contextScript);
-    }
     await page.waitForSelector('#navGroup .nav-item[data-page="dashboard"]');
     if (!(await page.locator('#content').innerText()).trim()) {
       throw new Error('ERP dashboard did not render its initial content');
@@ -69,6 +65,9 @@ const { chromium } = require('playwright');
     }
     await page.locator('#content [data-process-stage="quality"]').click();
     await page.waitForFunction(() => document.querySelector('#navGroup .nav-item.active')?.dataset.page === 'quality');
+    if (await page.locator('.w5-module-context').count() !== 0) {
+      throw new Error('Generic module-header overlay must remain removed; module hierarchy is native to the product');
+    }
     await page.locator('#navGroup .nav-item[data-page="dashboard"]').click();
     await page.waitForSelector('#content .erp-process-board');
     const pages = ['orders', 'workorders', 'inventory', 'purchase', 'quality', 'customers', 'suppliers', 'report', 'settings'];
