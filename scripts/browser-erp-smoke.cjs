@@ -142,6 +142,19 @@ const { chromium } = require('playwright');
       }
     }
 
+    // A new production ledger has no invented warehouse codes. Create a location
+    // through the real master-data workflow before creating a stock item.
+    await page.locator('#navGroup .nav-item[data-page="settings"]').click();
+    await page.locator('.tabs .tab').filter({ hasText: '数据字典' }).click();
+    await page.locator('.dict-btn').filter({ hasText: '库位' }).click();
+    await page.locator('#settingsBody .card').nth(1).locator('button.btn-primary').click();
+    const warehouseModal = page.locator('#modalRoot .modal');
+    await warehouseModal.locator('#dk_name').fill('PW-ERP-TEST-A01');
+    await warehouseModal.locator('.modal-foot .btn-primary').click();
+    await page.waitForFunction(() => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      return (db.dict?.warehouses || []).some(row => row.name === 'PW-ERP-TEST-A01');
+    });
     // Exercise the real inventory form and append-only opening-balance ledger using a synthetic SKU.
     await page.locator('#navGroup .nav-item[data-page="inventory"]').click();
     await page.locator('#content .toolbar button.btn-primary').click();
@@ -153,7 +166,7 @@ const { chromium } = require('playwright');
     await inventoryModal.locator('#ff_cat').fill('纱线');
     await inventoryModal.locator('#ff_qty').fill('-1');
     await inventoryModal.locator('#ff_unit').selectOption('公斤');
-    await inventoryModal.locator('#ff_loc').fill('A-01-01');
+    await inventoryModal.locator('#ff_loc').fill('PW-ERP-TEST-A01');
     await inventoryModal.locator('.modal-foot .btn-primary').click();
     await page.waitForFunction(() =>
       [...document.querySelectorAll('#toastRoot .toast')].some(el => el.textContent.includes('不能小于 0')));
