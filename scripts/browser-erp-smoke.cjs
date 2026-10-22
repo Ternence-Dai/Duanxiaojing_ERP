@@ -92,8 +92,8 @@ const { chromium } = require('playwright');
     }
 
     await page.waitForSelector('.erp-operations-cockpit');
-    const operationsCockpit = await page.locator('.erp-operations-cockpit').count();
-    if (operationsCockpit !== 1 || !(await page.locator('.erp-op-workspace-grid').count())) {
+    const referenceOperationsCockpitCount = await page.locator('.erp-operations-cockpit').count();
+    if (referenceOperationsCockpitCount !== 1 || !(await page.locator('.erp-op-workspace-grid').count())) {
       throw new Error('ERP reference operations cockpit is not mounted as dashboard');
     }
 
