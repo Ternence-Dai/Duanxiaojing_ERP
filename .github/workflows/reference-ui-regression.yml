@@ -59,10 +59,8 @@ jobs:
     steps:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - name: Upload the verified web application
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: .
       - name: Deploy the verified interface
