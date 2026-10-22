@@ -2,12 +2,12 @@
 function defaultDB(){
   return {
     settings: {
-      company: '兴华织带有限公司',
-      companyShort: '兴华织带',
-      companyAddress: '江苏省苏州市吴江区盛泽镇纺织产业园 88 号',
-      companyPhone: '0512-8888 6666',
-      companyEmail: 'info@xinghua-textile.com',
-      companyTaxNo: '91320509MA1XXXXXXX',
+      company: '示例企业账本（实际名称待配置）',
+      companyShort: '示例账本',
+      companyAddress: '',
+      companyPhone: '',
+      companyEmail: '',
+      companyTaxNo: '',
       dataProvenance: 'demo-seed',
       currency: '¥',
       taxRate: 13,
@@ -29,7 +29,7 @@ function defaultDB(){
       shiftsPerDay: 3,
       equipCount: 24,
       annualCapacity: 36000000,
-      reportFooter: '本报表由织云 ERP 自动生成 · 数据仅供内部使用',
+      reportFooter: '演示账本 · 未核验前不得用于财务结算或对外报送',
     },
     dict: {
       products: [
