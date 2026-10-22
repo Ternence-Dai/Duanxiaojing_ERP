@@ -55,6 +55,6 @@ assert.ok(dashboard.includes('${overdue.length} 张逾期 · ${dueSoon.length} �
   'production KPI must expose overdue count separately from upcoming due work');
 assert.ok(css.includes('.erp-operations-cockpit :where(button,a,input,select,textarea):focus-visible'),
   'actionable cockpit stages and exception queue controls must have visible keyboard focus states');
-assert.ok(html.includes('legacy-app.js?v=20261022-reference-v7'),
+assert.ok(html.includes('legacy-app.js?v=20261022-demo-migration-v2'),
   'dashboard due-alert logic must be cache-busted in the served page');
 console.log('ERP work-order due-date and actionable dashboard alert checks passed.');
