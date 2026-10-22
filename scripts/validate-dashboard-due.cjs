@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 
 const app = fs.readFileSync('assets/js/legacy-app.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
-const css = fs.readFileSync('assets/css/zhiyun-operations-workspace.css','utf8');
+const css = fs.readFileSync('assets/css/operations-cockpit-v2.css','utf8');
 
 const start = app.indexOf('function getWorkOrderDueStatus(');
 const end = app.indexOf('function renderDashboard()',start);
@@ -53,8 +53,8 @@ assert.ok(dashboard.includes("page:'workorders'") &&
   'each alert must route to its relevant work-order, order or inventory ledger');
 assert.ok(dashboard.includes('${overdue.length} 张逾期 · ${dueSoon.length} 张临近交期'),
   'production KPI must expose overdue count separately from upcoming due work');
-assert.ok(css.includes('.alert-item-action:focus-visible'),
-  'actionable alert cards must have a visible keyboard focus state');
+assert.ok(css.includes('.erp-operations-cockpit :where(button,a,input,select,textarea):focus-visible'),
+  'actionable cockpit stages and exception queue controls must have visible keyboard focus states');
 assert.ok(html.includes('legacy-app.js?v=20261020-erp-due-alerts-v1'),
   'dashboard due-alert logic must be cache-busted in the served page');
 console.log('ERP work-order due-date and actionable dashboard alert checks passed.');
