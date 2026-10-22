@@ -96,6 +96,35 @@ const { chromium } = require('playwright');
     if (referenceOperationsCockpitCount !== 1 || !(await page.locator('.erp-op-workspace-grid').count())) {
       throw new Error('ERP reference operations cockpit is not mounted as dashboard');
     }
+    const workspaceTheme = page.locator('link[rel="stylesheet"][href*="erp-operations-workspace-v3.css"]');
+    if (await workspaceTheme.count() !== 1) throw new Error('ERP reference neon workspace stylesheet is not linked');
+    const workspaceThemeResponse = await page.request.get(await workspaceTheme.evaluate(node => node.href));
+    const workspaceThemeText = await workspaceThemeResponse.text();
+    const workspaceGeometry = await page.evaluate(() => {
+      const root = document.querySelector('#content .erp-operations-cockpit');
+      const shell = root?.querySelector('.erp-op-shell');
+      const main = root?.querySelector('.erp-op-main');
+      const inspector = root?.querySelector('.erp-op-inspector');
+      const box = node => {
+        const r = node.getBoundingClientRect();
+        return {left:r.left,right:r.right,width:r.width};
+      };
+      return {
+        root: root ? getComputedStyle(root).color : '',
+        shellColumns: shell ? getComputedStyle(shell).gridTemplateColumns : '',
+        main: main ? box(main) : null,
+        inspector: inspector ? box(inspector) : null,
+        inspectorCards: inspector?.querySelectorAll('.erp-op-inspector-card').length || 0,
+        actionButtons: inspector?.querySelectorAll('.erp-op-inspector-action').length || 0
+      };
+    });
+    if (!workspaceThemeResponse.ok() || !workspaceThemeText.includes('--erp3-bg:#071321') ||
+        !workspaceGeometry.inspector || workspaceGeometry.inspector.width < 260 ||
+        workspaceGeometry.inspector.left < workspaceGeometry.main.right - 1 ||
+        workspaceGeometry.inspectorCards !== 3 || workspaceGeometry.actionButtons !== 5) {
+      throw new Error('ERP right-hand context inspector or neon three-column workbench is missing/overlapping: ' +
+        JSON.stringify(workspaceGeometry));
+    }
     const referenceBoot = await page.locator('script[src*="reference-shell-v4-boot.js"]').getAttribute('src');
     if (!referenceBoot || !referenceBoot.includes('v=20261022-reference-v6')) {
       throw new Error('ERP route-safe reference boot cache version is missing');
