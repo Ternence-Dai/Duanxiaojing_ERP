@@ -44,6 +44,16 @@ const { chromium } = require('playwright');
       throw new Error('ERP legacy sidebar offset or narrow content width remains: ' + JSON.stringify(wideErp));
     }
 
+    const dashboardKpis = await page.locator('#content .kpi-grid > .kpi').count();
+    if (dashboardKpis !== 4) {
+      throw new Error('ERP dashboard must render four complete KPI cards inside the KPI grid, found: ' + dashboardKpis);
+    }
+    const processBoard = page.locator('#content .erp-process-board');
+    if (await processBoard.count() !== 1 ||
+        await processBoard.locator('.erp-process-stage[data-process-stage]').count() !== 4) {
+      throw new Error('ERP order-to-delivery process board must expose four real workflow stages');
+    }
+
     const skipLink = page.locator('a.skip-link[href="#main-content"]');
     if (await skipLink.count() !== 1) throw new Error('Keyboard skip-navigation link is missing');
     await page.keyboard.press('Tab');
