@@ -33,7 +33,9 @@
     const invalidDue = assessed.filter(row => row.due.status === 'invalid');
     const provenance = DB.settings && DB.settings.dataProvenance;
     const isDemo = provenance === 'demo-seed';
+    const isEmpty = provenance === 'empty-ledger';
     const dataBadge = isDemo ? '<span class="erp-op-data-badge is-demo">示例账本 · 非真实企业数据</span>' :
+      isEmpty ? '<span class="erp-op-data-badge is-demo">空白演示账本 · 尚未录入真实企业数据</span>' :
       '<span class="erp-op-data-badge is-local">本机账本 · 待业务核验</span>';
 
     const attention = [];
