@@ -54,6 +54,24 @@ const { chromium } = require('playwright');
       throw new Error('ERP order-to-delivery process board must expose four real workflow stages');
     }
 
+    const operationsCockpit = await page.evaluate(() => {
+      const root = document.querySelector('#content .erp-operations-cockpit');
+      return {
+        present: !!root,
+        demoDisclosure: !!root?.querySelector('.erp-op-data-badge.is-demo'),
+        actionQueue: root?.querySelectorAll('.erp-op-queue-item').length || 0,
+        metricCount: root?.querySelectorAll('.erp-op-metric').length || 0,
+        workorderPanel: !!root?.querySelector('.erp-op-production'),
+        dataGovernance: !!root?.querySelector('.erp-op-guard')
+      };
+    });
+    if (!operationsCockpit.present || !operationsCockpit.demoDisclosure ||
+        operationsCockpit.metricCount !== 4 || !operationsCockpit.workorderPanel ||
+        !operationsCockpit.dataGovernance) {
+      throw new Error('ERP exception-first operations cockpit or synthetic-ledger disclosure is missing: ' +
+        JSON.stringify(operationsCockpit));
+    }
+
     const skipLink = page.locator('a.skip-link[href="#main-content"]');
     if (await skipLink.count() !== 1) throw new Error('Keyboard skip-navigation link is missing');
     await page.keyboard.press('Tab');
