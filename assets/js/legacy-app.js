@@ -2316,6 +2316,7 @@ function renderDashboard(){
     </div>
   </div>
   <div class="kpi-grid">
+    <div class="kpi c1">
       <div class="kpi-label">订单总金额</div>
       <div class="kpi-value">${fmtM0(totalAmount)}</div>
       <div class="kpi-foot">共 ${validOrders.length} 张有效订单 · 含税 ${DB.settings.taxRate}%</div>
