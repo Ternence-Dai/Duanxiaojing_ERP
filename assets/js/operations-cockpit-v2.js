@@ -81,6 +81,7 @@
       '<header class="erp-op-header"><div><span class="eyebrow">OPERATIONS / CONTROL TOWER</span>' +
       '<h2>运营驾驶舱</h2><p>'+text(DB.settings.company||'企业账本')+' · 从订单、生产、库存到质量的履约状态与例外处理</p></div>' +
       '<div class="erp-op-header-side">'+dataBadge+'<small>汇总自当前本机账本 · 非外部实时数据</small></div></header>' +
+      '<div class="erp-op-shell"><div class="erp-op-main">' +
 
       '<div class="erp-op-command"><div><span class="eyebrow">QUICK ACTIONS</span><strong>新建业务 / 更新台账</strong><small>操作写入本机账本；导出与本地文件绑定由顶部工具栏管理。</small></div>' +
       '<nav><button class="btn btn-primary" onclick="go(&#39;orders&#39;);setTimeout(()=>openForm(&#39;orders&#39;),80)">＋ 新建订单</button>' +
@@ -111,6 +112,25 @@
       '<li>指标由销售订单、生产工单、库存和质检台账计算；未接入外部实时 ERP 数据。</li>' +
       '<li>库存账面金额不等于财务总账，未经核验不得用于结算或对外报表。</li></ul>' +
       '<div class="erp-op-guard-actions"><button onclick="go(&#39;settings&#39;)">数据 / 公司设置</button><button onclick="go(&#39;report&#39;)">经营报表 ↗</button></div></section></div>' +
+      '</div>' +
+      '<aside class="erp-op-inspector" aria-label="业务上下文与快捷操作">' +
+        '<section class="erp-op-inspector-card"><span class="eyebrow">WORKSPACE CONTEXT</span><h3>当前业务上下文</h3>' +
+          '<div class="erp-op-inspector-status">'+dataBadge+'</div>' +
+          '<p>'+(isDemo?'当前为内置示例账本。所有业务金额、客户、物料和库存仅供功能演示。':isEmpty?'当前为空白账本；尚未录入经核验的企业订单、客户、库存或生产记录。':'当前为本机账本；请核对原始凭证、业务责任人与更新时间。')+'</p>' +
+          '<div class="erp-op-inspector-stats"><div><small>待确认订单</small><strong>'+pendingOrders.length+'</strong></div><div><small>逾期工单</small><strong>'+overdue.length+'</strong></div><div><small>库存预警</small><strong>'+lowStock.length+'</strong></div><div><small>质检记录</small><strong>'+qcTotal+'</strong></div></div>' +
+        '</section>' +
+        '<section class="erp-op-inspector-card"><span class="eyebrow">QUICK ACTIONS</span><h3>快速发起业务</h3>' +
+          '<button type="button" class="erp-op-inspector-action" onclick="go(\'orders\');setTimeout(()=>openForm(\'orders\'),80)">＋ 新建销售订单 <b>↗</b></button>' +
+          '<button type="button" class="erp-op-inspector-action" onclick="go(\'workorders\')">生产工单 <b>↗</b></button>' +
+          '<button type="button" class="erp-op-inspector-action" onclick="go(\'inventory\')">物料与库存 <b>↗</b></button>' +
+          '<button type="button" class="erp-op-inspector-action" onclick="go(\'quality\')">质量检验 <b>↗</b></button>' +
+          '<button type="button" class="erp-op-inspector-action" onclick="go(\'purchase\')">采购协同 <b>↗</b></button>' +
+        '</section>' +
+        '<section class="erp-op-inspector-card erp-op-inspector-card--note"><span class="eyebrow">DATA GUARD</span><h3>经营数据边界</h3>' +
+          '<ul><li>汇总只读取当前本机账本。</li><li>空白字段不推断为零或正常。</li><li>库存账面金额不等于财务总账。</li><li>示例账本不得用于实际经营决策。</li></ul>' +
+          '<button type="button" class="erp-op-inspector-link" onclick="go(\'settings\')">查看数据来源与备份 ↗</button>' +
+        '</section>' +
+      '</aside></div>' +
       '</section>';
   };
 
