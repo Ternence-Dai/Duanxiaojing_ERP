@@ -102,6 +102,130 @@ const { chromium } = require('playwright');
     }
     await page.locator('#modalRoot .modal-foot .btn').filter({ hasText: '取消' }).click();
 
+    // Exercise the complete PO -> qualified receipt -> stock movement -> append-only reversal flow.
+    await page.locator('#navGroup .nav-item[data-page="purchase"]').click();
+    await page.waitForSelector('#purchase-receipt-form');
+    const receivableOrders = await page.locator('#receipt-purchase-order option').evaluateAll(options =>
+      options.filter(option => option.value && !option.disabled).map(option => option.value)
+    );
+    if (!receivableOrders.length) {
+      throw new Error('No purchase order with an exact inventory SKU mapping is available for receipt acceptance');
+    }
+    const targetPurchaseNo = receivableOrders[0];
+    await page.locator('#receipt-purchase-order').selectOption(targetPurchaseNo);
+    const selectedSku = await page.locator('#receipt-sku').inputValue();
+    if (!selectedSku) throw new Error('Purchase order did not resolve an exact inventory SKU');
+    const beforeReceipt = await page.evaluate(({ purchaseNo, sku }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      const order = (db.purchase || []).find(row => row.no === purchaseNo);
+      const item = (db.inventory || []).find(row => row.code === sku);
+      return {
+        order: order && { no: order.no, qty: order.qty, unit: order.unit, status: order.status,
+          material: order.mat, supplier: order.sup },
+        item: item && { code: item.code, qty: item.qty, name: item.name, supplier: item.supplier,
+          unit: item.unit, batch: item.batch, location: item.loc }
+      };
+    }, { purchaseNo: targetPurchaseNo, sku: selectedSku });
+    if (!beforeReceipt.order || !beforeReceipt.item ||
+        beforeReceipt.order.material !== beforeReceipt.item.name ||
+        beforeReceipt.order.supplier !== beforeReceipt.item.supplier ||
+        beforeReceipt.order.unit !== beforeReceipt.item.unit) {
+      throw new Error('Purchase receipt fixture does not satisfy exact material, supplier and unit identity');
+    }
+    const receiptQty = 1.125;
+    const outstanding = Number(beforeReceipt.order.qty);
+    if (!(receiptQty > 0 && receiptQty < outstanding)) {
+      throw new Error('Synthetic receipt quantity must be positive and less than the outstanding order quantity');
+    }
+    await page.locator('#receipt-quantity').fill(String(receiptQty));
+    await page.locator('#receipt-receiver').fill('Playwright receiving operator');
+    await page.locator('#receipt-inspector').fill('Playwright quality inspector');
+    await page.locator('#receipt-inspection').selectOption('合格');
+    await page.locator('#receipt-note').fill('Synthetic browser acceptance; not a real-world receipt');
+    await page.locator('#receipt-submit').click();
+    await page.waitForFunction(({ purchaseNo, sku, quantity, priorBalance }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      const receipt = (db.purchaseReceipts || []).find(row =>
+        row.purchaseNo === purchaseNo && row.receivedBy === 'Playwright receiving operator');
+      const item = (db.inventory || []).find(row => row.code === sku);
+      const order = (db.purchase || []).find(row => row.no === purchaseNo);
+      const movement = receipt && (db.stockMovements || []).find(row =>
+        row.reference === receipt.stockMovementReference);
+      return !!receipt && !!item && !!order && !!movement &&
+        receipt.quantity === quantity && receipt.inspectionResult === '合格' &&
+        movement.quantityDelta === quantity && movement.previousBalance === priorBalance &&
+        movement.nextBalance === priorBalance + quantity && item.qty === priorBalance + quantity &&
+        order.status === '部分到货';
+    }, {
+      purchaseNo: targetPurchaseNo, sku: selectedSku, quantity: receiptQty,
+      priorBalance: Number(beforeReceipt.item.qty)
+    }, { timeout: 15000 });
+    let receiptState = await page.evaluate(({ purchaseNo, sku }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      const receipt = (db.purchaseReceipts || []).find(row =>
+        row.purchaseNo === purchaseNo && row.sku === sku &&
+        row.receivedBy === 'Playwright receiving operator');
+      const item = (db.inventory || []).find(row => row.code === sku);
+      return { receipt, stock: item?.qty };
+    }, { purchaseNo: targetPurchaseNo, sku: selectedSku });
+    if (!receiptState.receipt || receiptState.receipt.quantity !== receiptQty ||
+        receiptState.stock !== Number(beforeReceipt.item.qty) + receiptQty) {
+      throw new Error('Qualified receipt did not commit the receipt record and inventory ledger as one operation');
+    }
+    const receiptNo = receiptState.receipt.receiptNo;
+    const reversalButton = page.locator('[data-reverse-receipt="' + receiptNo + '"]');
+    await reversalButton.waitFor({ state: 'visible', timeout: 10000 });
+    let dialogStep = 0;
+    page.on('dialog', async dialog => {
+      dialogStep += 1;
+      if (dialog.type() === 'prompt' && dialogStep === 1) {
+        await dialog.accept('Synthetic browser acceptance reversal');
+      } else if (dialog.type() === 'prompt' && dialogStep === 2) {
+        await dialog.accept('Playwright warehouse supervisor');
+      } else if (dialog.type() === 'confirm') {
+        await dialog.accept();
+      } else {
+        await dialog.dismiss();
+      }
+    });
+    await reversalButton.click();
+    await page.waitForFunction(({ purchaseNo, sku, receiptNo, priorBalance, quantity }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      const receipt = (db.purchaseReceipts || []).find(row => row.receiptNo === receiptNo);
+      const reversal = (db.purchaseReceiptReversals || []).find(row => row.receiptNo === receiptNo);
+      const item = (db.inventory || []).find(row => row.code === sku);
+      const order = (db.purchase || []).find(row => row.no === purchaseNo);
+      const movement = reversal && (db.stockMovements || []).find(row =>
+        row.reference === reversal.stockMovementReference);
+      return !!receipt && !!reversal && !!item && !!order && !!movement &&
+        reversal.quantity === quantity && movement.quantityDelta === -quantity &&
+        movement.previousBalance === priorBalance + quantity && movement.nextBalance === priorBalance &&
+        item.qty === priorBalance && order.status === receipt.purchaseStatusBefore;
+    }, {
+      purchaseNo: targetPurchaseNo, sku: selectedSku, receiptNo,
+      priorBalance: Number(beforeReceipt.item.qty), quantity: receiptQty
+    }, { timeout: 15000 });
+    receiptState = await page.evaluate(({ receiptNo, sku }) => {
+      const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
+      const reversal = (db.purchaseReceiptReversals || []).find(row => row.receiptNo === receiptNo);
+      return {
+        receipt: (db.purchaseReceipts || []).find(row => row.receiptNo === receiptNo),
+        reversal,
+        movements: (db.stockMovements || []).filter(row =>
+          row.reference === receiptNo || row.reference === reversal?.stockMovementReference),
+        stock: (db.inventory || []).find(row => row.code === sku)?.qty
+      };
+    }, { receiptNo, sku: selectedSku });
+    if (!receiptState.receipt || !receiptState.reversal ||
+        receiptState.movements.length !== 2 ||
+        receiptState.stock !== Number(beforeReceipt.item.qty)) {
+      throw new Error('Receipt reversal must append one negative stock movement and preserve the original receipt');
+    }
+    if (await page.locator('[data-reverse-receipt="' + receiptNo + '"]').count() !== 0 ||
+        !(await page.locator('.w5-receipt-reversal-log').innerText()).includes('Synthetic browser acceptance reversal')) {
+      throw new Error('Reversed receipt must be immutable in history and visible in the reversal audit log');
+    }
+
     await page.setViewportSize({ width: 390, height: 844 });
     const hamburger = page.locator('.hamburger');
     await hamburger.click();
@@ -116,7 +240,7 @@ const { chromium } = require('playwright');
       throw new Error('Mobile navigation did not switch to inventory');
     }
     if (pageErrors.length) throw new Error('ERP browser runtime errors: ' + pageErrors.join(' | '));
-    console.log('Zhiyun ERP browser acceptance passed: dashboard and nine business modules, contextual headers, synthetic inventory form validation, one opening stock-ledger movement, duplicate-SKU rejection, and mobile navigation passed.');
+    console.log('Zhiyun ERP browser acceptance passed: dashboard and nine business modules, contextual headers, opening inventory ledger and duplicate-SKU rejection, purchase order to qualified receipt to stock movement to append-only reversal with full identity and balance restoration, and mobile navigation passed.');
   } finally {
     await browser.close();
   }
