@@ -209,6 +209,12 @@ const { chromium } = require('playwright');
       const no = 'PW-PO-20261022-001';
       if (!db.purchase.some(row => row.no === no)) {
         const item = (db.inventory || []).find(row => row.code === code);
+        if (item) {
+          item.supplier = 'Playwright synthetic supplier';
+          item.batch = 'PW-BATCH-001';
+          item.loc = item.loc || 'A-01-01';
+          item.inDate = item.inDate || '2026-10-22';
+        }
         db.purchase.push({
           no,
           sup: item?.supplier || 'Playwright synthetic supplier',
