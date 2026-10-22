@@ -12,7 +12,7 @@
       '<div class="kpi-label">' + label + '</div><div class="kpi-value">' + value +
       '</div><div class="kpi-foot">' + note + '</div></article>';
   }
-  window.renderDashboard = function () {
+  window.renderOperationsCockpit = function () {
     const validOrders = DB.orders.filter(row => row.status !== '已取消');
     const pendingOrders = DB.orders.filter(row => row.status === '待确认');
     const totalAmount = validOrders.reduce((sum,row) => sum + (Number(row.qty)||0)*(Number(row.price)||0),0);
