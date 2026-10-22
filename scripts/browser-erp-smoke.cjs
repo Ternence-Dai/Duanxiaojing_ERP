@@ -19,8 +19,8 @@ const { chromium } = require('playwright');
       display: getComputedStyle(node).display,
       columns: getComputedStyle(node).gridTemplateColumns
     }));
-    if (!referenceCssResponse.ok() || !referenceCssText.includes('--erp-blue:#286e97') ||
-        erpLayout.display !== 'grid' || !erpLayout.columns.startsWith('250px')) {
+    if (!referenceCssResponse.ok() || !referenceCssText.includes('--erp-ref-bg:#f0f4f6') ||
+        erpLayout.display !== 'grid' || !erpLayout.columns.startsWith('252px')) {
       throw new Error('Reference ERP operations layout was not loaded/applied: ' + JSON.stringify(erpLayout));
     }
     await page.setViewportSize({ width: 1920, height: 1080 });
