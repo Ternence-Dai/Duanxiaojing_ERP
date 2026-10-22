@@ -378,7 +378,36 @@ function loadDB(){
     if(raw) preserveInvalidDB(raw);
     console.error('ERP 缓存读取或解析失败；在确认恢复前禁止自动覆盖原缓存。', e);
   }
-  return defaultDB();
+  return createEmptyDB();
+}
+
+function isEmptyOperationalLedger(data) {
+  if (!data || !data.settings || data.settings.dataProvenance !== 'empty-ledger') return false;
+  return ['customers','suppliers','orders','workorders','inventory','purchase','quality',
+    'stockMovements','purchaseReceipts','purchaseReceiptReversals'].every(key =>
+      !Array.isArray(data[key]) || data[key].length === 0);
+}
+
+function loadDemoLedger() {
+  if (storageRecoveryRequired || storageConflictDetected) {
+    toast('缓存仍待恢复或存在跨标签冲突，已阻止载入演示账本。');
+    return;
+  }
+  if (!isEmptyOperationalLedger(DB)) {
+    toast('当前账本已有内容，演示数据不会覆盖现有记录。');
+    return;
+  }
+  const previous = snapshotDB();
+  const demo = defaultDB();
+  demo.settings = { ...demo.settings, ...DB.settings,
+    company:'示例企业账本（实际名称待配置）', companyShort:'示例账本',
+    companyTaxNo:'', dataProvenance:'demo-seed',
+    reportFooter:'演示账本 · 未核验前不得用于财务结算或对外报送' };
+  DB = demo;
+  if (!commitDBMutation(previous)) return;
+  initNav();
+  go('dashboard');
+  toast('演示样本已载入并标记为非真实业务数据。');
 }
 
 window.addEventListener('storage', event => {
