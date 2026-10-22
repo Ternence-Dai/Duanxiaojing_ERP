@@ -96,3 +96,5 @@ body[data-workspace="erp"] .erp-native-module-context__status>small{color:#8b9ca
 @media(max-width:560px){body[data-workspace="erp"] .erp-native-module-context{flex-direction:column}body[data-workspace="erp"] .erp-native-module-context__status{align-items:flex-start}}
 
 body[data-workspace="erp"] .erp-op-production{min-width:0;}
+
+body[data-workspace="erp"] .erp-operations-cockpit :where(button,a,input,select,textarea):focus-visible{outline:3px solid #218f96;outline-offset:3px;}
