@@ -148,7 +148,15 @@ const { chromium } = require('playwright');
         status: (db.purchase || []).find(row => row.no === purchaseNo)?.status
       };
     }, { purchaseNo: targetPurchaseNo, sku: selectedSku });
-    await page.locator('#receipt-quantity').fill((outstanding + 0.001).toFixed(3));
+    const quantityInput = page.locator('#receipt-quantity');
+    const clientMaximum = Number(await quantityInput.getAttribute('max'));
+    if (clientMaximum !== outstanding) {
+      throw new Error('Receipt form must expose the exact outstanding purchase quantity as its client-side maximum: ' +
+        JSON.stringify({ clientMaximum, outstanding }));
+    }
+    // Bypass the UI guard deliberately so the domain layer is also tested as the authoritative boundary.
+    await quantityInput.evaluate(el => el.removeAttribute('max'));
+    await quantityInput.fill((outstanding + 0.001).toFixed(3));
     await page.locator('#receipt-receiver').fill('Playwright rejected over-receipt operator');
     await page.locator('#receipt-inspector').fill('Playwright rejected over-receipt inspector');
     await page.locator('#receipt-inspection').selectOption('合格');
