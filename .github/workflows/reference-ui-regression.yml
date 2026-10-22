@@ -1,0 +1,49 @@
+name: Reference UI and domain regression
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reference-ui-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-and-domain-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install browser test runtime
+        run: npm install --no-save --package-lock=false playwright
+      - name: Install Chromium and OS dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run JavaScript syntax and static checks
+        run: npm run check
+      - name: Run domain regression tests
+        run: npm test
+      - name: Start local application server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/reference-ui-http.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/reference-ui-http.log
+          exit 1
+      - name: Verify reference layout, interactions, and product flows
+        run: node scripts/browser-erp-smoke.cjs
