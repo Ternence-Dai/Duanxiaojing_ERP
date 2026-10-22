@@ -96,6 +96,10 @@ const { chromium } = require('playwright');
     if (referenceOperationsCockpitCount !== 1 || !(await page.locator('.erp-op-workspace-grid').count())) {
       throw new Error('ERP reference operations cockpit is not mounted as dashboard');
     }
+    const referenceBoot = await page.locator('script[src*="reference-shell-v4-boot.js"]').getAttribute('src');
+    if (!referenceBoot || !referenceBoot.includes('v=20261022-reference-v6')) {
+      throw new Error('ERP route-safe reference boot cache version is missing');
+    }
 
     const skipLink = page.locator('a.skip-link[href="#main-content"]');
     if (await skipLink.count() !== 1) throw new Error('Keyboard skip-navigation link is missing');
@@ -115,6 +119,17 @@ const { chromium } = require('playwright');
         const active = document.querySelector('#navGroup .nav-item.active');
         return active && active.dataset.page !== 'dashboard';
       });
+      await page.evaluate(() => window.dispatchEvent(new Event('load')));
+      await page.waitForTimeout(240);
+      const routeAfterLateLoad = await page.evaluate(() => ({
+        page: typeof currentPage !== 'undefined' ? currentPage : '',
+        active: document.querySelector('#navGroup .nav-item.active')?.dataset.page || '',
+        hasCockpit: !!document.querySelector('#content .erp-operations-cockpit')
+      }));
+      if (!routeAfterLateLoad.page || routeAfterLateLoad.page === 'dashboard' ||
+          routeAfterLateLoad.active === 'dashboard' || routeAfterLateLoad.hasCockpit) {
+        throw new Error('Late ERP cockpit boot overwrote an active business module: ' + JSON.stringify(routeAfterLateLoad));
+      }
       if (await page.locator('.w5-module-context').count() !== 0) {
         throw new Error('Generic module-header overlay must remain removed; module hierarchy is native to the product');
       }
