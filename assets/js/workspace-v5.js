@@ -51,11 +51,11 @@
     backdrop.className = 'w5-command-backdrop';
     backdrop.hidden = true;
     backdrop.innerHTML =
-      '<section class="w5-command-panel" role="dialog" aria-modal="true" aria-label="快速跳转">' +
-        '<div class="w5-command-heading"><div><small>WORKSPACE COMMAND</small><strong>快速打开模块</strong></div>' +
+      '<section id="w5-command-dialog" class="w5-command-panel" role="dialog" aria-modal="true" aria-labelledby="w5-command-title">' +
+        '<div class="w5-command-heading"><div><small>WORKSPACE COMMAND</small><strong id="w5-command-title">快速打开模块</strong></div>' +
         '<button class="w5-command-close" type="button" aria-label="关闭">Esc</button></div>' +
-        '<input class="w5-command-input" type="search" autocomplete="off" placeholder="输入模块名称进行筛选…" aria-label="筛选模块">' +
-        '<div class="w5-command-list" role="listbox"></div>' +
+        '<input id="w5-command-input" class="w5-command-input" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="w5-command-list" autocomplete="off" placeholder="输入模块名称进行筛选…" aria-label="筛选模块">' +
+        '<div id="w5-command-list" class="w5-command-list" role="listbox" aria-label="可打开的模块"></div>' +
         '<div class="w5-command-hint">↑ ↓ 选择 · Enter 打开 · Esc 关闭 · Ctrl/⌘ K 呼出</div>' +
       '</section>';
     document.body.appendChild(backdrop);
@@ -89,12 +89,14 @@
         empty.className = 'w5-command-empty';
         empty.textContent = '暂未找到可跳转模块，请使用页面原有导航。';
         list.appendChild(empty);
+        input.removeAttribute('aria-activedescendant');
         return;
       }
       visibleItems.forEach((item, index) => {
-        const button = document.createElement('button');
-        button.type = 'button';
+        const button = document.createElement('div');
         button.className = 'w5-command-entry' + (index === activeIndex ? ' active' : '');
+        button.id = 'w5-command-option-' + index;
+        button.tabIndex = -1;
         button.setAttribute('role', 'option');
         button.setAttribute('aria-selected', index === activeIndex ? 'true' : 'false');
         const title = document.createElement('span');
@@ -104,15 +106,28 @@
         button.append(title, hint);
         button.addEventListener('mouseenter', () => {
           activeIndex = index;
-          Array.from(list.children).forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+          syncActiveOption();
         });
         button.addEventListener('click', () => { item.node.click(); close(); });
         list.appendChild(button);
       });
+      syncActiveOption();
+    }
+    function syncActiveOption() {
+      const options = Array.from(list.querySelectorAll('[role="option"]'));
+      options.forEach((option, index) => {
+        option.classList.toggle('active', index === activeIndex);
+        option.setAttribute('aria-selected', index === activeIndex ? 'true' : 'false');
+      });
+      const active = options[activeIndex];
+      if (active) input.setAttribute('aria-activedescendant', active.id);
+      else input.removeAttribute('aria-activedescendant');
     }
     function open() {
       backdrop.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
+      input.setAttribute('aria-expanded', 'true');
+      input.setAttribute('aria-expanded', 'true');
       input.value = '';
       activeIndex = 0;
       render();
@@ -121,12 +136,42 @@
     function close() {
       backdrop.hidden = true;
       trigger.setAttribute('aria-expanded', 'false');
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
       trigger.focus();
     }
+    trigger.setAttribute('aria-controls', 'w5-command-dialog');
+    trigger.setAttribute('aria-controls', 'w5-command-dialog');
     trigger.addEventListener('click', open);
     closeButton.addEventListener('click', close);
     backdrop.addEventListener('click', event => { if (event.target === backdrop) close(); });
     input.addEventListener('input', () => { activeIndex = 0; render(); });
+    backdrop.addEventListener('keydown', event => {
+      if (event.key !== 'Tab' || backdrop.hidden) return;
+      const focusable = Array.from(backdrop.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'))
+        .filter(element => element.getClientRects().length > 0);
+      if (!focusable.length) { event.preventDefault(); input.focus(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !backdrop.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !backdrop.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    });
+    backdrop.addEventListener('keydown', event => {
+      if (event.key !== 'Tab' || backdrop.hidden) return;
+      const focusable = Array.from(backdrop.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'))
+        .filter(element => element.getClientRects().length > 0);
+      if (!focusable.length) { event.preventDefault(); input.focus(); return; }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !backdrop.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !backdrop.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    });
     input.addEventListener('keydown', event => {
       if (event.key === 'ArrowDown' && visibleItems.length) {
         event.preventDefault(); activeIndex = (activeIndex + 1) % visibleItems.length; render();
