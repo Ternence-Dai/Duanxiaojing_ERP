@@ -3,7 +3,10 @@
   'use strict';
   function mount() {
     const target = document.getElementById('content');
-    if (!target || typeof window.renderOperationsCockpit !== 'function') return false;
+    // The legacy ERP router owns orders, inventory, production and settings.
+    // Startup/load callbacks may only mount this cockpit on the dashboard.
+    if (!target || typeof currentPage === 'undefined' || currentPage !== 'dashboard' ||
+        typeof window.renderOperationsCockpit !== 'function') return false;
     const html = window.renderOperationsCockpit();
     if (!html) return false;
     target.innerHTML = html;
