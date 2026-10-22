@@ -53,14 +53,24 @@ const { chromium } = require('playwright');
       throw new Error('ERP legacy sidebar offset or narrow content width remains: ' + JSON.stringify(wideErp));
     }
 
-    const dashboardKpis = await page.locator('#content .kpi-grid > .kpi').count();
-    if (dashboardKpis !== 4) {
-      throw new Error('ERP dashboard must render four complete KPI cards inside the KPI grid, found: ' + dashboardKpis);
-    }
-    const processBoard = page.locator('#content .erp-process-board');
-    if (await processBoard.count() !== 1 ||
-        await processBoard.locator('.erp-process-stage[data-process-stage]').count() !== 4) {
-      throw new Error('ERP order-to-delivery process board must expose four real workflow stages');
+    const dashboardStructure = await page.evaluate(() => {
+      const root = document.querySelector('#content .erp-operations-cockpit');
+      const queue = root?.querySelector('.erp-op-attention');
+      const metrics = root?.querySelector('.erp-op-metrics');
+      const production = root?.querySelector('.erp-op-production');
+      return {
+        hasDuplicateProcessBoard: !!root?.querySelector('.erp-process-board'),
+        queueBeforeMetrics: !!queue && !!metrics && !!(queue.compareDocumentPosition(metrics) & Node.DOCUMENT_POSITION_FOLLOWING),
+        productionPanel: !!production,
+        kpiCount: root?.querySelectorAll('.erp-op-metric').length || 0
+      };
+    });
+    if (dashboardStructure.hasDuplicateProcessBoard ||
+        !dashboardStructure.queueBeforeMetrics ||
+        !dashboardStructure.productionPanel ||
+        dashboardStructure.kpiCount !== 4) {
+      throw new Error('ERP home must lead with exception handling and production execution rather than duplicated stage cards: ' +
+        JSON.stringify(dashboardStructure));
     }
 
     const operationsCockpit = await page.evaluate(() => {
@@ -92,21 +102,19 @@ const { chromium } = require('playwright');
     if (!(await page.locator('#content').innerText()).trim()) {
       throw new Error('ERP dashboard did not render its initial content');
     }
-    const processStages = await page.locator('#content .erp-process-board [data-process-stage]').evaluateAll(nodes =>
-      nodes.map(node => ({stage:node.dataset.processStage,label:node.querySelector('.erp-process-stage__label')?.textContent.trim()}))
-    );
-    const expectedStages = ['orders','production','inventory','quality'];
-    if (JSON.stringify(processStages.map(item => item.stage)) !== JSON.stringify(expectedStages) ||
-        processStages.some(item => !item.label)) {
-      throw new Error('ERP live order-to-delivery process board is incomplete: ' + JSON.stringify(processStages));
+    const firstActionableException = page.locator('#content .erp-op-queue-item').first();
+    if (await firstActionableException.count()) {
+      await firstActionableException.click();
+      await page.waitForFunction(() => {
+        const active = document.querySelector('#navGroup .nav-item.active');
+        return active && active.dataset.page !== 'dashboard';
+      });
+      if (await page.locator('.w5-module-context').count() !== 0) {
+        throw new Error('Generic module-header overlay must remain removed; module hierarchy is native to the product');
+      }
+      await page.locator('#navGroup .nav-item[data-page="dashboard"]').click();
+      await page.waitForSelector('#content .erp-op-attention');
     }
-    await page.locator('#content [data-process-stage="quality"]').click();
-    await page.waitForFunction(() => document.querySelector('#navGroup .nav-item.active')?.dataset.page === 'quality');
-    if (await page.locator('.w5-module-context').count() !== 0) {
-      throw new Error('Generic module-header overlay must remain removed; module hierarchy is native to the product');
-    }
-    await page.locator('#navGroup .nav-item[data-page="dashboard"]').click();
-    await page.waitForSelector('#content .erp-process-board');
     const pages = ['orders', 'workorders', 'inventory', 'purchase', 'quality', 'customers', 'suppliers', 'report', 'settings'];
     for (const id of pages) {
       await page.locator('#navGroup .nav-item[data-page="' + id + '"]').click();
