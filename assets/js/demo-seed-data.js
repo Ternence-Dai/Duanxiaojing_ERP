@@ -303,3 +303,37 @@ function defaultDB(){
     purchaseReceipts: [],
   };
 }
+
+
+/* New installations start with no commercial or inventory assertions.
+   The synthetic fixture above remains available only through an explicit demo action. */
+function createEmptyDB() {
+  const data = JSON.parse(JSON.stringify(defaultDB()));
+  for (const key of [
+    'customers','suppliers','orders','workorders','inventory','purchase','quality',
+    'stockMovements','purchaseReceipts','purchaseReceiptReversals'
+  ]) {
+    if (Array.isArray(data[key])) data[key] = [];
+  }
+  if (data.dict && typeof data.dict === 'object') {
+    for (const key of Object.keys(data.dict)) {
+      if (Array.isArray(data.dict[key])) data.dict[key] = [];
+    }
+  }
+  data.settings = {
+    ...data.settings,
+    company: '企业信息待配置',
+    companyShort: '未配置',
+    companyAddress: '',
+    companyPhone: '',
+    companyEmail: '',
+    companyTaxNo: '',
+    dataProvenance: 'empty-ledger',
+    currentUser: '',
+    currentDept: '',
+    equipCount: 0,
+    annualCapacity: 0,
+    reportFooter: '本报表只汇总已登记并核验的业务记录；未录入项不推断为零或正常。'
+  };
+  return data;
+}
