@@ -36,18 +36,6 @@
     const dataBadge = isDemo ? '<span class="erp-op-data-badge is-demo">示例账本 · 非真实企业数据</span>' :
       '<span class="erp-op-data-badge is-local">本机账本 · 待业务核验</span>';
 
-    const stageData = [
-      {key:'orders',label:'销售订单',value:validOrders.length,sub:pendingOrders.length+' 张待确认',tone:'blue',page:'orders'},
-      {key:'production',label:'生产执行',value:inProduction.length,sub:overdue.length+' 张逾期 · '+dueSoon.length+' 张临期',tone:'violet',page:'workorders'},
-      {key:'inventory',label:'物料库存',value:DB.inventory.length,sub:lowStock.length+' 项低于安全线',tone:'amber',page:'inventory'},
-      {key:'quality',label:'质量检验',value:qcTotal,sub:'优等品率 '+firstRate+'%',tone:'green',page:'quality'}
-    ];
-    const stagesHtml = stageData.map((stage,index) =>
-      '<button type="button" class="erp-process-stage erp-process-stage--'+stage.tone+'" data-process-stage="'+stage.key+'" onclick="go(&#39;'+stage.page+'&#39;)">' +
-      '<span class="erp-process-stage__index">0'+(index+1)+'</span><span class="erp-process-stage__label">'+stage.label+'</span>' +
-      '<strong>'+stage.value+'</strong><small>'+stage.sub+'</small><span class="erp-process-stage__open">打开台账 ↗</span></button>'
-    ).join('');
-
     const attention = [];
     overdue.slice(0,4).forEach(row => attention.push({level:'danger',kind:'交期逾期',title:'工单 '+row.workOrder.no+' 已逾期 '+row.due.daysLate+' 天',
       detail:'计划交期 '+row.workOrder.due+' · '+row.workOrder.product+' · 完成 '+fmtN(row.workOrder.done)+' / '+fmtN(row.workOrder.plan)+' '+row.workOrder.unit,page:'workorders'}));
@@ -92,21 +80,10 @@
       '<h2>运营驾驶舱</h2><p>'+text(DB.settings.company||'企业账本')+' · 从订单、生产、库存到质量的履约状态与例外处理</p></div>' +
       '<div class="erp-op-header-side">'+dataBadge+'<small>汇总自当前本机账本 · 非外部实时数据</small></div></header>' +
 
-      '<section class="erp-process-board" aria-label="订单到交付的经营流程"><div class="erp-process-board__head"><div>' +
-      '<span class="eyebrow">ORDER → PRODUCE → STOCK → QUALITY</span><h3>订单履约链路</h3><p>选择阶段可直接进入对应台账，跟进状态与业务责任。</p></div>' +
-      '<span class="erp-process-board__scope">'+(isDemo?'DEMO LEDGER':'LOCAL LEDGER')+'</span></div><div class="erp-process-board__track">'+stagesHtml+'</div></section>' +
-
       '<div class="erp-op-command"><div><span class="eyebrow">QUICK ACTIONS</span><strong>新建业务 / 更新台账</strong><small>操作写入本机账本；导出与本地文件绑定由顶部工具栏管理。</small></div>' +
       '<nav><button class="btn btn-primary" onclick="go(&#39;orders&#39;);setTimeout(()=>openForm(&#39;orders&#39;),80)">＋ 新建订单</button>' +
       '<button class="btn" onclick="go(&#39;workorders&#39;)">生产工单</button><button class="btn" onclick="go(&#39;inventory&#39;)">物料库存</button>' +
       '<button class="btn" onclick="go(&#39;purchase&#39;)">采购协同</button></nav></div>' +
-
-      '<section class="erp-op-metrics kpi-grid" aria-label="经营指标">' +
-      metric('订单金额汇总',fmtM0(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
-      metric('在产工单',inProduction.length,'逾期 '+overdue.length+' · 临期 '+dueSoon.length,'violet') +
-      metric('库存账面价值',fmtM0(stockValue),'低于安全库存 '+lowStock.length+' 项','amber') +
-      metric('优等品率',firstRate+'%','检验 '+qcTotal+' 条 · 订单完成率 '+completionRate+'%','green') +
-      '</section>' +
 
       '<div class="erp-op-workspace-grid"><section class="erp-op-panel erp-op-attention"><div class="erp-op-panel-head"><div>' +
       '<span class="eyebrow">ACTION QUEUE</span><h3>异常与待办队列</h3><p>优先处理逾期交期、库存风险、待确认订单与数据异常。</p></div>' +
@@ -116,6 +93,13 @@
       '<h3>生产执行进度</h3><p>在产工单进度来自当前工单计划量和完成量。</p></div><button onclick="go(&#39;workorders&#39;)">全部工单 ↗</button></div>' +
       '<div class="erp-op-workorders">'+activeHtml+'</div><div class="erp-op-subhead"><span>工序分布</span><button onclick="go(&#39;workorders&#39;)">打开工单台账</button></div>' +
       '<div class="erp-op-process">'+processHtml+'</div></section></div>' +
+
+      '<section class="erp-op-metrics kpi-grid" aria-label="经营指标">' +
+      metric('订单金额汇总',fmtM0(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
+      metric('在产工单',inProduction.length,'逾期 '+overdue.length+' · 临期 '+dueSoon.length,'violet') +
+      metric('库存账面价值',fmtM0(stockValue),'低于安全库存 '+lowStock.length+' 项','amber') +
+      metric('优等品率',firstRate+'%','检验 '+qcTotal+' 条 · 订单完成率 '+completionRate+'%','green') +
+      '</section>' +
 
       '<div class="erp-op-analytics"><section class="erp-op-panel"><div class="erp-op-panel-head"><div><span class="eyebrow">SALES ORDER VALUE</span>' +
       '<h3>订单金额趋势</h3><p>最近 7 个有订单日期 · 排除已取消订单</p></div><span class="erp-op-count">本机账本</span></div>' +
