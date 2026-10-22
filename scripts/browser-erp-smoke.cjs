@@ -233,7 +233,8 @@ const { chromium } = require('playwright');
       }
       return no;
     }, testSku);
-    await page.evaluate(() => window.render?.());
+    await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
+    await page.waitForSelector('#navGroup .nav-item[data-page="dashboard"]');
     
     // Exercise the complete PO -> qualified receipt -> stock movement -> append-only reversal flow.
     await page.locator('#navGroup .nav-item[data-page="purchase"]').click();
