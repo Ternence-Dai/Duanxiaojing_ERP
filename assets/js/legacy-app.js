@@ -408,21 +408,23 @@ function migrateUnmodifiedDemoLedger(data, raw){
   const noUnverifiedMasterData = dictionaryKeys.every(key =>
     !Array.isArray(migrated.dict?.[key]) || migrated.dict[key].length === 0);
   if(noOperationalRows && noUnverifiedMasterData){
-    migrated.settings = {
-      ...migrated.settings,
-      company:'企业信息待配置',
-      companyShort:'未配置',
-      companyAddress:'',
-      companyPhone:'',
-      companyEmail:'',
-      companyTaxNo:'',
-      dataProvenance:'empty-ledger',
-      currentUser:'',
-      currentDept:'',
-      equipCount:0,
-      annualCapacity:0,
-      reportFooter:'本报表只汇总已登记并核验的业务记录；未录入项不推断为零或正常。'
+    const resetOnlyIfUnchanged = (key, value) => {
+      if(JSON.stringify(migrated.settings[key]) === JSON.stringify(seed.settings[key])) {
+        migrated.settings[key] = value;
+      }
     };
+    resetOnlyIfUnchanged('company','企业信息待配置');
+    resetOnlyIfUnchanged('companyShort','未配置');
+    resetOnlyIfUnchanged('companyAddress','');
+    resetOnlyIfUnchanged('companyPhone','');
+    resetOnlyIfUnchanged('companyEmail','');
+    resetOnlyIfUnchanged('companyTaxNo','');
+    resetOnlyIfUnchanged('currentUser','');
+    resetOnlyIfUnchanged('currentDept','');
+    resetOnlyIfUnchanged('equipCount',0);
+    resetOnlyIfUnchanged('annualCapacity',0);
+    resetOnlyIfUnchanged('reportFooter','本报表只汇总已登记并核验的业务记录；未录入项不推断为零或正常。');
+    migrated.settings.dataProvenance = 'empty-ledger';
   }
 
   const current = localStorage.getItem(STORE_KEY);
