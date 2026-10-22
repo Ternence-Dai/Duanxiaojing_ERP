@@ -110,8 +110,12 @@ const { chromium } = require('playwright');
       if (!content.trim() || content.includes('页面不存在')) {
         throw new Error('ERP module failed to render: ' + id);
       }
-      if (id !== 'dashboard' && !(await page.locator('#content > .w5-module-context').count())) {
-        throw new Error('ERP module context header did not appear for: ' + id);
+      const nativeModuleHeader = page.locator('#content > .erp-native-module-context');
+      if (id !== 'dashboard' && !(await nativeModuleHeader.count())) {
+        throw new Error('ERP native module context header did not appear for: ' + id);
+      }
+      if (id !== 'dashboard' && !(await nativeModuleHeader.innerText()).includes(id === 'workorders' ? '生产工单' : ({orders:'销售订单',inventory:'物料库存',purchase:'采购管理',quality:'质量管理',customers:'客户档案',suppliers:'供应商档案',report:'报表分析',settings:'系统设置'}[id] || ''))) {
+        throw new Error('ERP native module header title does not match the active ledger: ' + id);
       }
     }
 
