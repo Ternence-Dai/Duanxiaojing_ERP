@@ -337,3 +337,19 @@ function createEmptyDB() {
   };
   return data;
 }
+
+
+/* A new account starts empty; demo fixtures are opt-in and never loaded implicitly. */
+function createEmptyDB(){
+  const data = defaultDB();
+  data.settings = {
+    ...data.settings,
+    dataProvenance: 'empty-ledger',
+    reportFooter: '空白账本 · 未录入真实业务数据',
+    company: '新建企业账本',
+    companyShort: '新建账本'
+  };
+  ['customers','suppliers','orders','workorders','inventory','purchase','quality',
+   'stockMovements','purchaseReceipts','purchaseReceiptReversals'].forEach(key => { data[key] = []; });
+  return data;
+}
