@@ -1,0 +1,25 @@
+/* Zhiyun ERP — ERPNext-style transaction desk */
+body[data-workspace="erp"]{--erp-ink:#19384e;--erp-muted:#708492;--erp-line:#dce6ec;--erp-blue:#286e97;--erp-bg:#edf2f6}
+body[data-workspace="erp"] .app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh;background:var(--erp-bg)}
+body[data-workspace="erp"] .sidebar{position:sticky;top:0;height:100vh;min-height:100vh;width:250px;overflow:auto;padding:22px 15px;background:linear-gradient(180deg,#102f45,#123d55 68%,#0c2b40);border-right:1px solid #2c5871;box-shadow:10px 0 30px #143b5315}
+body[data-workspace="erp"] .brand{padding:5px 9px 22px;border-bottom:1px solid #ffffff21}
+body[data-workspace="erp"] .brand-logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(145deg,#267b91,#16445c);box-shadow:0 8px 22px #071d2b80}
+body[data-workspace="erp"] .nav-group{padding-top:17px}
+body[data-workspace="erp"] .nav-group :is(.nav-item,.nav-link){border:1px solid transparent;border-radius:9px;margin:3px 0;padding:10px 11px;color:#b5cad5}
+body[data-workspace="erp"] .nav-group .active{background:#1b526d;border-color:#3d7890;color:#fff}
+body[data-workspace="erp"] .sidebar-foot{margin-top:auto;padding:15px 8px;border-top:1px solid #ffffff20;color:#92acba}
+body[data-workspace="erp"] .main{min-width:0;background:radial-gradient(ellipse at 100% 0,#2a82a10b,transparent 36%),#f2f6f9}
+body[data-workspace="erp"] .topbar{position:sticky;top:0;z-index:30;min-height:68px;padding:12px 28px;background:#ffffffed;border-bottom:1px solid var(--erp-line);box-shadow:0 5px 18px #173b5108;backdrop-filter:blur(16px)}
+body[data-workspace="erp"] .erp-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;min-height:190px;margin:25px 28px 16px;padding:29px 32px;border:1px solid #d5e2eb;border-radius:17px;background:radial-gradient(circle at 86% 15%,#3d94b21b,transparent 24%),linear-gradient(115deg,#fff,#f0f5f9 68%,#e5eff5);box-shadow:0 15px 38px #1a49640c}
+body[data-workspace="erp"] .erp-intro h2{font-size:clamp(29px,3vw,42px);letter-spacing:-.04em;color:#173a53}
+body[data-workspace="erp"] .erp-intro .erp-mark{display:grid;place-items:center;width:104px;height:104px;border-radius:22px;border:1px solid #cbdfe8;background:#fff;color:#246c88;font-size:37px;font-weight:850;box-shadow:0 12px 28px #17445d12}
+body[data-workspace="erp"] .product-workflow{margin:0 28px 18px;padding:18px 20px;border:1px solid var(--erp-line);border-radius:16px;background:#fff;box-shadow:0 10px 26px #193f5708}
+body[data-workspace="erp"] .product-workflow__item{min-height:130px;border-radius:11px;background:linear-gradient(150deg,#fff,#f6f9fb)}
+body[data-workspace="erp"] .content{max-width:1840px;margin:auto;padding:8px 28px 44px}
+body[data-workspace="erp"] .content :is(.card,.panel,.kpi,.metric-card,.stat-card,.module-card){border:1px solid #dce6ec;border-radius:12px;background:#fff;box-shadow:0 7px 21px #1b42580a}
+body[data-workspace="erp"] .content :is(th,td){padding:11px 12px;border-color:#e6edf1}
+body[data-workspace="erp"] .content :is(input,select,textarea){min-height:40px;border:1px solid #d1dfe7;border-radius:8px;background:#fbfdfe;color:#203e50}
+body[data-workspace="erp"] .content button{border-radius:8px}
+@media(max-width:920px){body[data-workspace="erp"] .app{grid-template-columns:72px minmax(0,1fr)}body[data-workspace="erp"] .sidebar{width:72px;padding:17px 8px}body[data-workspace="erp"] .brand>div:last-child,body[data-workspace="erp"] .sidebar-foot{display:none}body[data-workspace="erp"] .nav-group :is(.nav-item,.nav-link){font-size:0;text-align:center;padding:12px 3px}body[data-workspace="erp"] .erp-intro,body[data-workspace="erp"] .product-workflow,body[data-workspace="erp"] .content{margin-left:14px;margin-right:14px;padding-left:0;padding-right:0}}
+@media(max-width:640px){body[data-workspace="erp"] .app{display:block}body[data-workspace="erp"] .sidebar{position:relative;width:auto;height:auto;min-height:0;padding:9px 12px;border:0;border-bottom:1px solid #2c5871}body[data-workspace="erp"] .brand{display:none}body[data-workspace="erp"] .nav-group{display:flex;gap:5px;overflow:auto;padding:0}body[data-workspace="erp"] .nav-group :is(.nav-item,.nav-link){flex:0 0 auto;font-size:11px;white-space:nowrap;padding:9px 12px}body[data-workspace="erp"] .erp-intro{display:block;margin:14px;padding:21px}body[data-workspace="erp"] .erp-intro .erp-mark{display:none}body[data-workspace="erp"] .topbar{padding:10px 14px}body[data-workspace="erp"] .product-workflow{margin:0 14px 14px}body[data-workspace="erp"] .content{padding:8px 12px 28px}}
+@media(prefers-reduced-motion:reduce){body[data-workspace="erp"] *{transition:none!important}}
