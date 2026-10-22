@@ -397,6 +397,9 @@ function migrateUnmodifiedDemoLedger(data, raw){
   for(const key of operationalKeys){
     migrated[key] = filterExactSeedRows(migrated[key], seed[key]);
   }
+  for(const key of ['stockMovements','purchaseReceipts','purchaseReceiptReversals']){
+    if(!Array.isArray(migrated[key])) migrated[key] = [];
+  }
   for(const key of dictionaryKeys){
     if(!migrated.dict || !seed.dict) break;
     migrated.dict[key] = filterExactSeedRows(migrated.dict[key], seed.dict[key]);
