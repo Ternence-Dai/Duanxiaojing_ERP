@@ -1,0 +1,22 @@
+/* Reference platform v4: ERP desk/workspace, exception-first. */
+:root{--erp-ref-bg:#f0f4f6;--erp-ref-line:#d9e3e8;--erp-ref-ink:#183247;--erp-ref-accent:#246e95}
+body[data-workspace="erp"]{background:var(--erp-ref-bg);color:var(--erp-ref-ink)}
+body[data-workspace="erp"] .app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+body[data-workspace="erp"] .sidebar{position:sticky;top:0;width:auto;height:100vh;background:#102f45;border-right:1px solid #2d5366}
+body[data-workspace="erp"] .main{margin-left:0!important;min-width:0;background:var(--erp-ref-bg)}
+body[data-workspace="erp"] .topbar{height:64px;min-height:64px;padding:0 24px;background:#fff;border-bottom:1px solid var(--erp-ref-line)}
+body[data-workspace="erp"] .erp-demo-note,
+body[data-workspace="erp"] .erp-intro,
+body[data-workspace="erp"] .product-workflow{display:none!important}
+body[data-workspace="erp"] .content{width:100%;max-width:none;margin:0;padding:16px 24px 36px}
+body[data-workspace="erp"] .erp-operations-cockpit{display:flex;flex-direction:column;gap:12px;max-width:1600px;margin:0 auto}
+body[data-workspace="erp"] .erp-process-board{border-radius:9px;background:#fff;border:1px solid var(--erp-ref-line);box-shadow:0 4px 14px rgba(19,53,73,.04)}
+body[data-workspace="erp"] .erp-op-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+body[data-workspace="erp"] .erp-op-workspace-grid{grid-template-columns:minmax(0,1.3fr) minmax(360px,.9fr);gap:12px}
+body[data-workspace="erp"] .erp-op-panel{border-radius:9px;border:1px solid var(--erp-ref-line);box-shadow:0 4px 14px rgba(19,53,73,.04);background:#fff}
+body[data-workspace="erp"] .erp-op-panel-head{padding-bottom:10px}
+body[data-workspace="erp"] .erp-op-queue,
+body[data-workspace="erp"] .erp-op-process{max-height:none}
+body[data-workspace="erp"] .erp-op-analytics{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,.7fr);gap:12px}
+body[data-workspace="erp"] .erp-op-analytics .erp-op-panel{min-height:250px}
+@media(max-width:980px){body[data-workspace="erp"] .app{grid-template-columns:78px minmax(0,1fr)}body[data-workspace="erp"] .sidebar{width:auto;padding:14px 8px}body[data-workspace="erp"] .erp-op-workspace-grid,body[data-workspace="erp"] .erp-op-analytics{grid-template-columns:1fr}body[data-workspace="erp"] .content{padding:14px}}
