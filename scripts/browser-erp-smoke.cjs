@@ -11,6 +11,19 @@ const { chromium } = require('playwright');
 
   try {
     await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle', timeout: 30000 });
+    const referenceStylesheet = page.locator('link[rel="stylesheet"][href*="erpnext-operations-desk-v2.css"]');
+    if (await referenceStylesheet.count() !== 1) throw new Error('ERPNext operations desk stylesheet is not linked');
+    const referenceCssResponse = await page.request.get(await referenceStylesheet.evaluate(node => node.href));
+    const referenceCssText = await referenceCssResponse.text();
+    const erpLayout = await page.locator('.app').evaluate(node => ({
+      display: getComputedStyle(node).display,
+      columns: getComputedStyle(node).gridTemplateColumns
+    }));
+    if (!referenceCssResponse.ok() || !referenceCssText.includes('--erp-blue:#286e97') ||
+        erpLayout.display !== 'grid' || !erpLayout.columns.startsWith('250px')) {
+      throw new Error('Reference ERP operations layout was not loaded/applied: ' + JSON.stringify(erpLayout));
+    }
+
     const skipLink = page.locator('a.skip-link[href="#main-content"]');
     if (await skipLink.count() !== 1) throw new Error('Keyboard skip-navigation link is missing');
     await page.keyboard.press('Tab');
