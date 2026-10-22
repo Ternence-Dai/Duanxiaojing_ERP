@@ -3296,7 +3296,7 @@ function render(){
   $('pageSub').textContent = sub;
 
   let html = '';
-  if(currentPage === 'dashboard')      html = renderDashboard();
+  if(currentPage === 'dashboard')      html = typeof window.renderOperationsCockpit === 'function' ? window.renderOperationsCockpit() : renderDashboard();
   else if(currentPage === 'report')    html = renderReport();
   else if(currentPage === 'settings')  html = renderSettings();
   else if(SCHEMAS[currentPage])        html = renderListPage(currentPage);
