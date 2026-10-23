@@ -26,6 +26,18 @@ BEGIN
   RAISE EXCEPTION 'over-precision quantity was accepted';
  EXCEPTION WHEN invalid_parameter_value THEN NULL;
  END;
+ -- Verify that the sole supported posting entry point is security-definer
+ -- and that the direct-insert guard is installed on the ledger.
+ IF NOT (SELECT p.prosecdef FROM pg_proc p
+         WHERE p.oid = 'erp.post_stock_movement(text,numeric,text,text,timestamp with time zone)'::regprocedure) THEN
+  RAISE EXCEPTION 'stock posting entry point must execute with its controlled owner privileges';
+ END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_trigger
+                WHERE tgrelid='erp.stock_movement'::regclass
+                  AND tgname='stock_movement_insert_only_via_posting'
+                  AND NOT tgisinternal) THEN
+  RAISE EXCEPTION 'direct stock movement insert guard is missing';
+ END IF;
  -- A posted movement is immutable, including bulk table clearing. Corrections
  -- must use a separately referenced compensating movement.
  BEGIN
