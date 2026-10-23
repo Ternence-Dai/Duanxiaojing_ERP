@@ -1,6 +1,7 @@
 'use strict';
 
 const { chromium } = require('playwright');
+const fs = require('node:fs');
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -260,18 +261,20 @@ const { chromium } = require('playwright');
 
     // Seed an isolated synthetic purchase order only inside this Playwright browser context.
     // Production installs remain empty until a user imports/creates real business records.
-    const syntheticPurchaseNo = await page.evaluate(code => {
+    const syntheticOrders = await page.evaluate(code => {
       const db = JSON.parse(localStorage.getItem('textile_erp_v4_enterprise') || '{}');
       db.purchase = Array.isArray(db.purchase) ? db.purchase : [];
       const no = 'PW-PO-20261022-001';
+      const blockedNo = 'PW-PO-20261022-002';
+      const overdueEta = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+      const item = (db.inventory || []).find(row => row.code === code);
+      if (item) {
+        item.supplier = 'Playwright synthetic supplier';
+        item.batch = 'PW-BATCH-001';
+        item.loc = item.loc || 'A-01-01';
+        item.inDate = item.inDate || '2026-10-22';
+      }
       if (!db.purchase.some(row => row.no === no)) {
-        const item = (db.inventory || []).find(row => row.code === code);
-        if (item) {
-          item.supplier = 'Playwright synthetic supplier';
-          item.batch = 'PW-BATCH-001';
-          item.loc = item.loc || 'A-01-01';
-          item.inDate = item.inDate || '2026-10-22';
-        }
         db.purchase.push({
           no,
           sup: item?.supplier || 'Playwright synthetic supplier',
@@ -280,16 +283,33 @@ const { chromium } = require('playwright');
           unit: item?.unit || '公斤',
           price: 10,
           date: '2026-10-22',
-          eta: '2026-10-23',
+          eta: overdueEta,
           status: '已下单',
           buyer: 'Playwright',
           payment: '测试环境',
           note: 'Synthetic browser fixture; isolated to test localStorage.'
         });
-        localStorage.setItem('textile_erp_v4_enterprise', JSON.stringify(db));
       }
-      return no;
+      if (!db.purchase.some(row => row.no === blockedNo)) {
+        db.purchase.push({
+          no: blockedNo,
+          sup: 'Unmapped Playwright supplier',
+          mat: 'Unmapped synthetic material',
+          qty: 4,
+          unit: '箱',
+          price: 1,
+          date: '2026-10-22',
+          eta: overdueEta,
+          status: '已下单',
+          buyer: 'Playwright',
+          payment: '测试环境',
+          note: 'Deliberately unmatched SKU fixture; must not enable receipt posting.'
+        });
+      }
+      localStorage.setItem('textile_erp_v4_enterprise', JSON.stringify(db));
+      return { purchaseNo: no, blockedPurchaseNo: blockedNo, overdueEta };
     }, testSku);
+    const syntheticPurchaseNo = syntheticOrders.purchaseNo;
     await page.reload({ waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForSelector('#navGroup .nav-item[data-page="dashboard"]');
     
@@ -297,6 +317,64 @@ const { chromium } = require('playwright');
     await page.locator('#navGroup .nav-item[data-page="purchase"]').click();
 
     await page.waitForSelector('#purchase-receipt-form');
+    await page.waitForSelector('.w5-receipt-queue');
+    const overdueQueueRow = page.locator('[data-purchase-order="' + syntheticPurchaseNo + '"]');
+    const blockedQueueRow = page.locator('[data-purchase-order="' + syntheticOrders.blockedPurchaseNo + '"]');
+    if (await overdueQueueRow.count() !== 1 || await blockedQueueRow.count() !== 1) {
+      throw new Error('Priority queue must expose both the overdue receivable order and the unmatched-SKU blocker');
+    }
+    const queueEvidence = await page.evaluate(({ orderNo, blockedNo }) => {
+      const order = document.querySelector('[data-purchase-order="' + orderNo + '"]');
+      const blocked = document.querySelector('[data-purchase-order="' + blockedNo + '"]');
+      const overdueMetric = [...document.querySelectorAll('.w5-receipt-metric')].find(card =>
+        card.querySelector('.w5-receipt-metric__label')?.textContent === '交期已逾期');
+      return {
+        orderDue: order?.getAttribute('data-due-state') || '',
+        orderState: order?.getAttribute('data-queue-state') || '',
+        orderText: order?.innerText || '',
+        orderActionDisabled: !!order?.querySelector('[data-receipt-open-order]')?.disabled,
+        blockedState: blocked?.getAttribute('data-queue-state') || '',
+        blockedText: blocked?.innerText || '',
+        blockedActionDisabled: !!blocked?.querySelector('button')?.disabled,
+        overdueMetric: overdueMetric?.querySelector('.w5-receipt-metric__value')?.textContent || ''
+      };
+    }, { orderNo: syntheticPurchaseNo, blockedNo: syntheticOrders.blockedPurchaseNo });
+    if (queueEvidence.orderDue !== 'overdue' || queueEvidence.orderState !== 'ready' ||
+        queueEvidence.orderActionDisabled || queueEvidence.blockedState !== 'blocked' ||
+        !queueEvidence.blockedActionDisabled || !queueEvidence.blockedText.includes('无精确 SKU 匹配') ||
+        !Number(queueEvidence.overdueMetric)) {
+      throw new Error('Purchase priority queue did not separate due-risk actions from blocked SKU mappings: ' +
+        JSON.stringify(queueEvidence));
+    }
+    const queueFilter = page.locator('.w5-receipt-queue__filter select');
+    await queueFilter.selectOption('blocked');
+    await page.waitForFunction(blockedNo =>
+      document.querySelector('[data-purchase-order="' + blockedNo + '"]')?.hidden === false &&
+      document.querySelector('[data-purchase-order="PW-PO-20261022-001"]')?.hidden === true,
+      syntheticOrders.blockedPurchaseNo);
+    await queueFilter.selectOption('overdue');
+    await page.waitForFunction(() =>
+      document.querySelector('[data-purchase-order="PW-PO-20261022-001"]')?.hidden === false);
+    await page.locator('[data-purchase-order="' + syntheticPurchaseNo + '"] [data-receipt-open-order]').click();
+    await page.waitForFunction(expected =>
+      document.querySelector('#receipt-purchase-order')?.value === expected, syntheticPurchaseNo);
+    await queueFilter.selectOption('all');
+    fs.mkdirSync('artifacts', { recursive: true });
+    await page.locator('.w5-receipt-dashboard').screenshot({ path: 'artifacts/erp-purchase-queue-desktop.png' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileQueueGeometry = await page.locator('.w5-receipt-dashboard').evaluate(node => {
+      const rect = node.getBoundingClientRect();
+      const content = document.querySelector('#content').getBoundingClientRect();
+      return { panelLeft: rect.left, panelRight: rect.right, panelWidth: rect.width,
+        contentWidth: content.width, queueRows: node.querySelectorAll('[data-purchase-order]').length };
+    });
+    if (mobileQueueGeometry.panelLeft < 0 || mobileQueueGeometry.panelRight > 391 ||
+        mobileQueueGeometry.panelWidth < 340 || mobileQueueGeometry.contentWidth < 360) {
+      throw new Error('ERP mobile purchase queue is clipped or too narrow: ' + JSON.stringify(mobileQueueGeometry));
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator('.w5-receipt-dashboard').screenshot({ path: 'artifacts/erp-purchase-queue-mobile.png' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
     const receivableOrders = await page.locator('#receipt-purchase-order option').evaluateAll(options =>
       options.filter(option => option.value && !option.disabled).map(option => option.value)
     );
@@ -475,7 +553,7 @@ const { chromium } = require('playwright');
       throw new Error('Mobile navigation did not switch to inventory');
     }
     if (pageErrors.length) throw new Error('ERP browser runtime errors: ' + pageErrors.join(' | '));
-    console.log('Zhiyun ERP browser acceptance passed: dashboard and nine business modules, contextual headers, opening inventory ledger and duplicate-SKU rejection, purchase order to qualified receipt to stock movement to append-only reversal with full identity and balance restoration, and mobile navigation passed.');
+    console.log('Zhiyun ERP browser acceptance passed: dashboard and nine business modules, contextual headers, opening inventory ledger and duplicate-SKU rejection, purchase order to qualified receipt to stock movement to append-only reversal with full identity and balance restoration, and the due/SKU-aware interactive receiving queue with desktop/mobile evidence passed.');
   } finally {
     await browser.close();
   }
