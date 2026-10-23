@@ -13,7 +13,7 @@ const seed = fs.readFileSync('assets/js/demo-seed-data.js', 'utf8');
 const domain = fs.readFileSync('src/domain/index.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/validate.yml', 'utf8');
 const purchaseWorkspace = fs.readFileSync('assets/js/workspace-v5-purchase.js', 'utf8');
-const workspaceCss = fs.readFileSync('assets/css/workspace-v5.css', 'utf8');
+const workspaceCss = fs.readFileSync('assets/css/workspace-v5.css', 'utf8') + '\n' + fs.readFileSync('assets/css/purchase-receiving-queue-v1.css', 'utf8');
 
 assert.ok(html.includes('workspace-v5-purchase.js?v=20261019-v53') &&
           html.includes('workspace-v5.css?v=20261019-v53'),
@@ -23,8 +23,8 @@ assert.doesNotThrow(() => new Function(purchaseWorkspace),
 for (const token of [
   'w5-receipt-dashboard', 'w5-receipt-metrics', 'w5-receipt-progress',
   'w5-receipt-steps', 'w5-receipt-history-tools',
-  'data-reverse-receipt',
-  '采购订单到货进度', '检索流水'
+  'w5-receipt-queue', 'w5-receipt-queue__filter', 'data-receipt-open-order',
+  'data-reverse-receipt', '收货待办队列', '检索流水'
 ]) assert.ok(purchaseWorkspace.includes(token),
   'purchase receiving workspace must include the operating surface: ' + token);
 for (const id of [
@@ -42,7 +42,8 @@ for (const selector of [
   '.w5-receipt-dashboard', '.w5-receipt-metric',
   '.w5-receipt-progress__row', '.w5-receipt-step',
   '.w5-receipt-history-tools', '.w5-receipt-reverse',
-  '.w5-receipt-reversal-log'
+  '.w5-receipt-reversal-log', '.w5-receipt-queue__row',
+  '.w5-receipt-queue__due', '.w5-receipt-queue__action'
 ]) assert.ok(workspaceCss.includes(selector),
   'ERP V5.2 stylesheet must style the purchase workspace: ' + selector);
 
