@@ -33,9 +33,12 @@ for (const id of [
   'receipt-receiver', 'receipt-inspector', 'receipt-inspection'
 ]) assert.ok(purchaseWorkspace.includes(id),
   'purchase receiving UI must retain the required form field: ' + id);
-assert.ok(purchaseWorkspace.includes('按订单与单位独立计算') &&
-          purchaseWorkspace.includes('item.received / item.ordered * 100'),
-  'order progress must be calculated per order and must not mix unlike material units');
+assert.ok(purchaseWorkspace.includes('各物料计量单位独立显示') &&
+          purchaseWorkspace.includes('item.received / item.ordered * 100') &&
+          purchaseWorkspace.includes('data-purchase-order') &&
+          purchaseWorkspace.includes('data-due-state') &&
+          purchaseWorkspace.includes('item.matches.length === 0'),
+  'receiving queue must calculate progress per order, prioritize recorded due dates and block unmatched inventory SKUs');
 assert.ok(!purchaseWorkspace.includes('.innerHTML'),
   'workspace enhancement must create text nodes safely instead of injecting data HTML');
 for (const selector of [
