@@ -127,7 +127,6 @@
       backdrop.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
       input.setAttribute('aria-expanded', 'true');
-      input.setAttribute('aria-expanded', 'true');
       input.value = '';
       activeIndex = 0;
       render();
@@ -141,24 +140,10 @@
       trigger.focus();
     }
     trigger.setAttribute('aria-controls', 'w5-command-dialog');
-    trigger.setAttribute('aria-controls', 'w5-command-dialog');
     trigger.addEventListener('click', open);
     closeButton.addEventListener('click', close);
     backdrop.addEventListener('click', event => { if (event.target === backdrop) close(); });
     input.addEventListener('input', () => { activeIndex = 0; render(); });
-    backdrop.addEventListener('keydown', event => {
-      if (event.key !== 'Tab' || backdrop.hidden) return;
-      const focusable = Array.from(backdrop.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'))
-        .filter(element => element.getClientRects().length > 0);
-      if (!focusable.length) { event.preventDefault(); input.focus(); return; }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && (document.activeElement === first || !backdrop.contains(document.activeElement))) {
-        event.preventDefault(); last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || !backdrop.contains(document.activeElement))) {
-        event.preventDefault(); first.focus();
-      }
-    });
     backdrop.addEventListener('keydown', event => {
       if (event.key !== 'Tab' || backdrop.hidden) return;
       const focusable = Array.from(backdrop.querySelectorAll('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'))
