@@ -7,7 +7,7 @@ This migration adds a database-side stock posting primitive. It is a foundation 
 ## Data model
 
 - `erp.inventory_item`: one canonical SKU balance, stored as `numeric(18,3)`.
-- `erp.stock_movement`: append-only, business-referenced movements with previous/next balances.
+- `erp.stock_movement`: database-enforced immutable, business-referenced movements with previous/next balances. Row updates, row deletes and table truncation are rejected; corrections require a new compensating movement.
 - Unique `(source_type, reference)` prevents the same business posting from being applied twice.
 - Foreign keys prevent deleting a SKU that has stock history.
 - A check constraint keeps every movement's balance equation auditable.
@@ -20,8 +20,8 @@ Call `erp.post_stock_movement(sku, quantity_delta, reference, source_type, occur
 
 The GitHub Actions PostgreSQL integration job starts a disposable PostgreSQL 17 service and:
 1. Applies the migration to an empty database.
-2. Checks sequential receipt/issue arithmetic, duplicate-reference rejection, negative-stock rejection and three-decimal precision.
-3. Starts two independent database sessions that each attempt to issue the final unit. Exactly one must commit; the other must be rejected, leaving zero stock and one ledger row.
+2. Checks sequential receipt/issue arithmetic, duplicate-reference rejection, negative-stock rejection and three-decimal precision.\n3. Proves posted ledger rows cannot be updated, deleted or truncated; the rejected operations leave the audit history intact.
+4. Starts two independent database sessions that each attempt to issue the final unit. Exactly one must commit; the other must be rejected, leaving zero stock and one ledger row.
 
 ## Rollout boundary and remaining work
 
