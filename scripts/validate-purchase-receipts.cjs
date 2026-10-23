@@ -37,7 +37,8 @@ assert.ok(purchaseWorkspace.includes('各物料计量单位独立显示') &&
           purchaseWorkspace.includes('item.received / item.ordered * 100') &&
           purchaseWorkspace.includes('data-purchase-order') &&
           purchaseWorkspace.includes('data-due-state') &&
-          purchaseWorkspace.includes('item.matches.length === 0'),
+          purchaseWorkspace.includes('item.matches.length ? "ready" : "blocked"') &&
+          purchaseWorkspace.includes('action.disabled = true'),
   'receiving queue must calculate progress per order, prioritize recorded due dates and block unmatched inventory SKUs');
 assert.ok(!purchaseWorkspace.includes('.innerHTML'),
   'workspace enhancement must create text nodes safely instead of injecting data HTML');
