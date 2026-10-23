@@ -361,6 +361,20 @@ const fs = require('node:fs');
     await queueFilter.selectOption('all');
     fs.mkdirSync('artifacts', { recursive: true });
     await page.locator('.w5-receipt-dashboard').screenshot({ path: 'artifacts/erp-purchase-queue-desktop.png' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileQueueGeometry = await page.locator('.w5-receipt-dashboard').evaluate(node => {
+      const rect = node.getBoundingClientRect();
+      const content = document.querySelector('#content').getBoundingClientRect();
+      return { panelLeft: rect.left, panelRight: rect.right, panelWidth: rect.width,
+        contentWidth: content.width, queueRows: node.querySelectorAll('[data-purchase-order]').length };
+    });
+    if (mobileQueueGeometry.panelLeft < 0 || mobileQueueGeometry.panelRight > 391 ||
+        mobileQueueGeometry.panelWidth < 340 || mobileQueueGeometry.contentWidth < 360) {
+      throw new Error('ERP mobile purchase queue is clipped or too narrow: ' + JSON.stringify(mobileQueueGeometry));
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.locator('.w5-receipt-dashboard').screenshot({ path: 'artifacts/erp-purchase-queue-mobile.png' });
+    await page.setViewportSize({ width: 1440, height: 1000 });
     const receivableOrders = await page.locator('#receipt-purchase-order option').evaluateAll(options =>
       options.filter(option => option.value && !option.disabled).map(option => option.value)
     );
@@ -526,18 +540,6 @@ const fs = require('node:fs');
     }
 
     await page.setViewportSize({ width: 390, height: 844 });
-    const mobileQueueGeometry = await page.locator('.w5-receipt-dashboard').evaluate(node => {
-      const rect = node.getBoundingClientRect();
-      const content = document.querySelector('#content').getBoundingClientRect();
-      return { panelLeft: rect.left, panelRight: rect.right, panelWidth: rect.width,
-        contentWidth: content.width, queueRows: node.querySelectorAll('[data-purchase-order]').length };
-    });
-    if (mobileQueueGeometry.panelLeft < 0 || mobileQueueGeometry.panelRight > 391 ||
-        mobileQueueGeometry.panelWidth < 340 || mobileQueueGeometry.contentWidth < 360) {
-      throw new Error('ERP mobile purchase queue is clipped or too narrow: ' + JSON.stringify(mobileQueueGeometry));
-    }
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.locator('.w5-receipt-dashboard').screenshot({ path: 'artifacts/erp-purchase-queue-mobile.png' });
     const hamburger = page.locator('.hamburger');
     await hamburger.click();
     if (!(await page.locator('#sidebar').evaluate(el => el.classList.contains('open')))) {
