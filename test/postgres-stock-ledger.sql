@@ -111,3 +111,27 @@ BEGIN
   END IF;
 END
 $app_role_balance$;
+
+-- Reject PostgreSQL's special NaN numeric value before ledger arithmetic.
+DO $$ BEGIN
+  BEGIN
+    PERFORM erp.post_stock_movement('TEST-FABRIC', 'NaN'::numeric, 'NAN-QUANTITY', 'test');
+    RAISE EXCEPTION 'NaN quantity was accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  IF (SELECT on_hand FROM erp.inventory_item WHERE sku='TEST-FABRIC') <> 12.000 THEN
+    RAISE EXCEPTION 'rejected NaN posting changed inventory balance';
+  END IF;
+END $$;
+
+-- Reject an infinite occurrence timestamp before it enters the audit ledger.
+DO $$ BEGIN
+  BEGIN
+    PERFORM erp.post_stock_movement('TEST-FABRIC', 1, 'INFINITE-TIME', 'test', 'infinity'::timestamptz);
+    RAISE EXCEPTION 'infinite occurrence timestamp was accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  IF (SELECT on_hand FROM erp.inventory_item WHERE sku='TEST-FABRIC') <> 12.000 THEN
+    RAISE EXCEPTION 'rejected infinite timestamp changed inventory balance';
+  END IF;
+END $$;
