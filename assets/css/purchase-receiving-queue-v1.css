@@ -84,7 +84,14 @@ body[data-workspace="erp"] .w5-receipt-queue :where(select,button):focus-visible
   }
   body[data-workspace="erp"] .app>.sidebar,
   body[data-workspace="erp"] .sidebar{
-    display:none!important;width:0!important;min-width:0!important
+    display:flex!important;position:fixed!important;z-index:120;inset:0 auto 0 0;
+    width:min(82vw,280px)!important;min-width:0!important;height:100dvh;
+    transform:translateX(-105%);transition:transform .22s ease
+  }
+  body[data-workspace="erp"] .sidebar.open{transform:translateX(0)!important;box-shadow:0 0 40px #07132166}
+  body[data-workspace="erp"] .sidebar.open:after{
+    content:"";position:fixed;inset:0 0 0 100%;width:calc(100vw - min(82vw,280px));
+    background:#07132145;pointer-events:none
   }
   body[data-workspace="erp"] .app>.main,
   body[data-workspace="erp"] .main{
