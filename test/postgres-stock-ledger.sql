@@ -46,4 +46,4 @@ BEGIN
  IF (SELECT count(*) FROM erp.stock_movement WHERE sku='TEST-FABRIC') <> 2 THEN
   RAISE EXCEPTION 'immutable ledger rows were changed by a rejected mutation';
  END IF;
-END $;
+END $$;
