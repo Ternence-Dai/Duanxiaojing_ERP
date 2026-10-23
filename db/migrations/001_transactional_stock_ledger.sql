@@ -29,11 +29,16 @@ AS $$
 DECLARE v_previous numeric(18,3); v_next numeric(18,3); v_row erp.stock_movement;
 BEGIN
   IF p_sku IS NULL OR length(btrim(p_sku))=0 OR p_reference IS NULL OR length(btrim(p_reference))=0
-     OR p_source_type IS NULL OR length(btrim(p_source_type))=0 OR p_occurred_at IS NULL THEN
-    RAISE EXCEPTION 'SKU, business reference, source type and timestamp are required' USING ERRCODE='22023';
+     OR p_source_type IS NULL OR length(btrim(p_source_type))=0 OR p_occurred_at IS NULL
+     OR NOT isfinite(p_occurred_at) THEN
+    RAISE EXCEPTION 'SKU, business reference, source type and finite timestamp are required' USING ERRCODE='22023';
   END IF;
-  IF p_quantity_delta IS NULL OR p_quantity_delta=0 OR p_quantity_delta<>trunc(p_quantity_delta,3) THEN
-    RAISE EXCEPTION 'Quantity delta must be non-zero and precise to at most three decimals' USING ERRCODE='22023';
+  -- PostgreSQL numeric supports NaN. It is not caught by ordinary zero or
+  -- scale checks and sorts above finite values, so reject it explicitly
+  -- before arithmetic or persistence can contaminate the stock ledger.
+  IF p_quantity_delta IS NULL OR p_quantity_delta::text = 'NaN'
+     OR p_quantity_delta=0 OR p_quantity_delta<>trunc(p_quantity_delta,3) THEN
+    RAISE EXCEPTION 'Quantity delta must be finite, non-zero and precise to at most three decimals' USING ERRCODE='22023';
   END IF;
   -- Serializes concurrent writers for this SKU across independent DB sessions.
   SELECT on_hand INTO v_previous FROM erp.inventory_item WHERE sku=p_sku FOR UPDATE;
@@ -49,7 +54,6 @@ END $$;
 COMMENT ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) IS
 'Atomically appends a referenced stock movement and updates the SKU balance under a row lock.';
 
- 
 -- The ledger is an audit record, not a mutable balance cache. Corrections must
 -- be represented by a new compensating movement through post_stock_movement.
 -- Application connections must use a non-owner database role. The posting
