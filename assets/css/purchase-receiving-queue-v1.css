@@ -75,3 +75,35 @@ body[data-workspace="erp"] .w5-receipt-queue :where(select,button):focus-visible
 @media(prefers-reduced-motion:reduce){
   body[data-workspace="erp"] .w5-receipt-queue *{transition:none!important;animation:none!important}
 }
+
+/* Narrow-screen ERP shell: remove the legacy 78px desktop rail and give
+   the order queue the full content width. */
+@media(max-width:640px){
+  body[data-workspace="erp"] .app{
+    display:block!important;width:100%;min-width:0;min-height:100dvh;height:auto;overflow-x:hidden
+  }
+  body[data-workspace="erp"] .app>.sidebar,
+  body[data-workspace="erp"] .sidebar{
+    display:none!important;width:0!important;min-width:0!important
+  }
+  body[data-workspace="erp"] .app>.main,
+  body[data-workspace="erp"] .main{
+    display:flex;width:100%;max-width:100%;min-width:0;margin:0!important;overflow:hidden
+  }
+  body[data-workspace="erp"] .topbar{
+    width:100%;min-width:0;padding:0 12px
+  }
+  body[data-workspace="erp"] .content,
+  body[data-workspace="erp"] #content{
+    display:block;width:100%!important;max-width:none!important;min-width:0;
+    margin:0!important;padding:12px 12px calc(84px + env(safe-area-inset-bottom))!important;
+    box-sizing:border-box;overflow-x:hidden
+  }
+  body[data-workspace="erp"] .purchase-receipt-workspace,
+  body[data-workspace="erp"] .w5-receipt-dashboard{
+    width:100%;max-width:100%;min-width:0;margin-left:0;margin-right:0
+  }
+  body[data-workspace="erp"] .w5-receipt-progress__list{
+    grid-template-columns:minmax(0,1fr)
+  }
+}
