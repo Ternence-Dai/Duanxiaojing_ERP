@@ -60,7 +60,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = pg_catalog, erp
-AS $
+AS $insert_guard$
 DECLARE v_owner name;
 BEGIN
   SELECT pg_get_userbyid(c.relowner) INTO v_owner
@@ -72,7 +72,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END
-$;
+$insert_guard$;
 
 DROP TRIGGER IF EXISTS stock_movement_insert_only_via_posting ON erp.stock_movement;
 CREATE TRIGGER stock_movement_insert_only_via_posting
