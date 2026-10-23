@@ -24,7 +24,7 @@ CREATE OR REPLACE FUNCTION erp.post_stock_movement(
   p_sku text, p_quantity_delta numeric, p_reference text,
   p_source_type text, p_occurred_at timestamptz DEFAULT clock_timestamp()
 ) RETURNS erp.stock_movement
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, erp
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, erp
 AS $$
 DECLARE v_previous numeric(18,3); v_next numeric(18,3); v_row erp.stock_movement;
 BEGIN
@@ -52,6 +52,37 @@ COMMENT ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) 
  
 -- The ledger is an audit record, not a mutable balance cache. Corrections must
 -- be represented by a new compensating movement through post_stock_movement.
+-- Application connections must use a non-owner database role. The posting
+-- function runs as the table owner; direct INSERTs by application roles are
+-- rejected even if an overly broad INSERT grant is accidentally added.
+CREATE OR REPLACE FUNCTION erp.reject_stock_movement_direct_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog, erp
+AS $
+DECLARE v_owner name;
+BEGIN
+  SELECT pg_get_userbyid(c.relowner) INTO v_owner
+    FROM pg_class c
+    WHERE c.oid = 'erp.stock_movement'::regclass;
+  IF current_user <> v_owner THEN
+    RAISE EXCEPTION 'Stock movements must be posted through erp.post_stock_movement'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END
+$;
+
+DROP TRIGGER IF EXISTS stock_movement_insert_only_via_posting ON erp.stock_movement;
+CREATE TRIGGER stock_movement_insert_only_via_posting
+  BEFORE INSERT ON erp.stock_movement
+  FOR EACH ROW EXECUTE FUNCTION erp.reject_stock_movement_direct_insert();
+
+REVOKE INSERT ON erp.stock_movement FROM PUBLIC;
+COMMENT ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) IS
+'Security-definer entry point: atomically appends a referenced stock movement and updates the SKU balance under a row lock. Application roles must not own the ledger table.';
+
 CREATE OR REPLACE FUNCTION erp.reject_stock_movement_mutation()
 RETURNS trigger
 LANGUAGE plpgsql
