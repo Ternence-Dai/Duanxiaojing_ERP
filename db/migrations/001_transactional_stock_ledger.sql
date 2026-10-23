@@ -48,3 +48,28 @@ BEGIN
 END $$;
 COMMENT ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) IS
 'Atomically appends a referenced stock movement and updates the SKU balance under a row lock.';
+
+ 
+-- The ledger is an audit record, not a mutable balance cache. Corrections must
+-- be represented by a new compensating movement through post_stock_movement.
+CREATE OR REPLACE FUNCTION erp.reject_stock_movement_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog, erp
+AS $$
+BEGIN
+  RAISE EXCEPTION 'Stock movement history is immutable; post a compensating movement instead'
+    USING ERRCODE = '55000';
+END
+$$;
+
+DROP TRIGGER IF EXISTS stock_movement_no_row_mutation ON erp.stock_movement;
+CREATE TRIGGER stock_movement_no_row_mutation
+  BEFORE UPDATE OR DELETE ON erp.stock_movement
+  FOR EACH ROW EXECUTE FUNCTION erp.reject_stock_movement_mutation();
+
+DROP TRIGGER IF EXISTS stock_movement_no_truncate ON erp.stock_movement;
+CREATE TRIGGER stock_movement_no_truncate
+  BEFORE TRUNCATE ON erp.stock_movement
+  FOR EACH STATEMENT EXECUTE FUNCTION erp.reject_stock_movement_mutation();
