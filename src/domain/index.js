@@ -386,7 +386,7 @@ export function createPurchaseReceipt({
 export function createPurchaseReceiptReversal({
   purchaseOrder, inventoryItem, receipt, existingReceipts = [],
   existingReversals = [], existingMovementReferences = [],
-  reversalNo, reversedAt, reversedBy, reason
+  reversalNo, reversedAt, reversedBy, reason, asOf = new Date()
 } = {}) {
   if (!purchaseOrder || typeof purchaseOrder !== "object" || Array.isArray(purchaseOrder)) {
     throw new TypeError("purchase order is required for receipt reversal");
@@ -406,6 +406,12 @@ export function createPurchaseReceiptReversal({
   const normalizedReversedAt = parseOccurredAt(reversedAt);
   if (Date.parse(normalizedReversedAt) < Date.parse(target.receivedAt)) {
     throw new RangeError("receipt reversal timestamp cannot precede the original receipt");
+  }
+  if (!(asOf instanceof Date) || !Number.isFinite(asOf.getTime())) {
+    throw new TypeError("receipt reversal reference time must be a valid Date");
+  }
+  if (Date.parse(normalizedReversedAt) > asOf.getTime()) {
+    throw new RangeError("future-dated purchase receipt reversal cannot be posted to current stock");
   }
   const purchaseNo = requiredPurchaseText(purchaseOrder.no, "purchase order number", 80);
   if (target.purchaseNo !== purchaseNo) {
