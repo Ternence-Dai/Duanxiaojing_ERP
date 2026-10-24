@@ -102,6 +102,25 @@ test("posts a qualified purchase receipt to stock with order and lot traceabilit
  assert.ok(Object.isFrozen(result.receipt));
  assert.ok(Object.isFrozen(result.stockMovement));
 });
+test("future-dated purchase receipts cannot increase current inventory",()=>{
+ const asOf=new Date("2026-10-24T00:00:00.000Z");
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,
+  receivedAt:"2026-10-25T09:00:00.000Z",
+  asOf
+ }),/future-dated purchase receipt/);
+ assert.throws(()=>createPurchaseReceipt({
+  ...receiptBase,
+  asOf:"2026-10-24T00:00:00.000Z"
+ }),/reference time must be a valid Date/);
+ const today=createPurchaseReceipt({
+  ...receiptBase,
+  receivedAt:"2026-10-24T00:00:00.000Z",
+  asOf
+ });
+ assert.equal(today.stockMovement.nextBalance,45,
+  "a receipt at the current reference time may be posted");
+});
 test("supports multiple receipts but never exceeds ordered quantity",()=>{
  const first=createPurchaseReceipt(receiptBase);
  const second=createPurchaseReceipt({
