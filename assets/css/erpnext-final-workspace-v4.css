@@ -1,0 +1,82 @@
+/* ERPNext-inspired operations desk v4.
+   This layer intentionally replaces the former shared dark control-tower palette.
+   Transaction values remain sourced from the existing local ERP ledger. */
+body[data-workspace="erp"]{
+  --erp3-bg:#f3f5f7;--erp3-surface:#fff;--erp3-panel:#fff;--erp3-line:#dce3e9;
+  --erp3-text:#24313d;--erp3-muted:#687784;--erp3-cyan:#1677c8;
+  background:var(--erp3-bg)!important;color:var(--erp3-text)!important;
+}
+body[data-workspace="erp"] .app{background:var(--erp3-bg)!important}
+body[data-workspace="erp"] .sidebar{
+  background:#fff!important;border-right:1px solid #dfe5ea!important;
+  box-shadow:3px 0 18px rgba(26,48,66,.045)!important;color:#253443!important;
+}
+body[data-workspace="erp"] .brand,
+body[data-workspace="erp"] .sidebar-foot{border-color:#e4e9ed!important}
+body[data-workspace="erp"] .brand h2,
+body[data-workspace="erp"] .sidebar .nav-item{color:#536473!important}
+body[data-workspace="erp"] .sidebar .nav-item{border-radius:7px!important}
+body[data-workspace="erp"] .sidebar .nav-item:hover{background:#f1f5f8!important;color:#20384b!important}
+body[data-workspace="erp"] .sidebar .nav-item.active{
+  color:#145b94!important;background:#eaf3fb!important;border:1px solid #d2e6f7!important;
+  box-shadow:inset 3px 0 #1677c8!important;
+}
+body[data-workspace="erp"] .main{background:var(--erp3-bg)!important}
+body[data-workspace="erp"] .topbar{
+  background:#fff!important;border-bottom:1px solid #dce3e9!important;
+  box-shadow:0 1px 4px rgba(24,48,66,.035)!important;color:#24313d!important;
+}
+body[data-workspace="erp"] .topbar h2,
+body[data-workspace="erp"] .topbar .title{color:#24313d!important}
+body[data-workspace="erp"] .topbar .btn,
+body[data-workspace="erp"] .topbar button{background:#f7f9fb!important;color:#405363!important;border-color:#d6e0e7!important}
+body[data-workspace="erp"] #content{background:transparent!important}
+body[data-workspace="erp"] .erp-operations-cockpit{color:#24313d!important}
+body[data-workspace="erp"] .erp-op-header{
+  min-height:108px!important;padding:19px 22px!important;border:1px solid #dce4eb!important;
+  border-left:4px solid #1677c8!important;border-radius:9px!important;
+  background:linear-gradient(105deg,#fff 0%,#f7fbff 72%,#edf5fc 100%)!important;
+  box-shadow:0 3px 12px rgba(25,54,78,.045)!important;
+}
+body[data-workspace="erp"] .erp-op-header:after{border-color:#1677c812!important;box-shadow:0 0 0 25px #1677c808,0 0 0 52px #1677c805!important}
+body[data-workspace="erp"] .erp-op-header .eyebrow,
+body[data-workspace="erp"] .erp-op-panel .eyebrow,
+body[data-workspace="erp"] .erp-op-inspector .eyebrow{color:#1677c8!important}
+body[data-workspace="erp"] .erp-op-header h2{color:#1d3345!important}
+body[data-workspace="erp"] .erp-op-header p{color:#657583!important}
+body[data-workspace="erp"] .erp-op-header-side>small{color:#71818e!important}
+body[data-workspace="erp"] .erp-op-data-badge{background:#edf5fc!important;color:#245c88!important;border-color:#d4e5f2!important}
+body[data-workspace="erp"] .erp-op-shell,
+body[data-workspace="erp"] .erp-op-main{color:#263744!important}
+body[data-workspace="erp"] .erp-op-command,
+body[data-workspace="erp"] .erp-op-panel,
+body[data-workspace="erp"] .erp-op-inspector,
+body[data-workspace="erp"] .erp-op-metric{
+  background:#fff!important;border:1px solid #dce4e9!important;color:#263744!important;
+  box-shadow:0 2px 9px rgba(26,49,65,.035)!important;
+}
+body[data-workspace="erp"] .erp-op-command strong,
+body[data-workspace="erp"] .erp-op-panel h3,
+body[data-workspace="erp"] .erp-op-panel-head h3{color:#253846!important}
+body[data-workspace="erp"] .erp-op-command small,
+body[data-workspace="erp"] .erp-op-panel p,
+body[data-workspace="erp"] .erp-op-panel .muted{color:#687985!important}
+body[data-workspace="erp"] .erp-op-command nav button,
+body[data-workspace="erp"] .erp-op-panel button{
+  border:1px solid #d6e2eb!important;background:#f6f9fb!important;color:#285a7d!important;
+}
+body[data-workspace="erp"] .erp-op-command nav .btn-primary,
+body[data-workspace="erp"] .erp-op-command nav button.btn-primary{
+  background:#1677c8!important;border-color:#1677c8!important;color:#fff!important;
+}
+body[data-workspace="erp"] .erp-op-panel table th{background:#f4f7f9!important;color:#536573!important}
+body[data-workspace="erp"] .erp-op-panel table td{color:#334652!important;border-color:#e6ecef!important}
+body[data-workspace="erp"] .erp-op-queue>*,
+body[data-workspace="erp"] .erp-op-workorders>*,
+body[data-workspace="erp"] .erp-op-process>*{border-color:#e1e8ed!important}
+body[data-workspace="erp"] :focus-visible{outline:3px solid #1677c8!important;outline-offset:2px}
+@media(max-width:760px){
+ body[data-workspace="erp"] .topbar{padding-inline:14px!important}
+ body[data-workspace="erp"] .erp-op-header{align-items:flex-start!important;flex-direction:column!important;gap:10px!important;padding:16px!important}
+ body[data-workspace="erp"] .erp-op-header-side{align-items:flex-start!important}
+}
