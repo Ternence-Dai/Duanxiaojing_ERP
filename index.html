@@ -61,6 +61,14 @@
       </div>
     </header>
 
+    <nav class="weave-order-flow" aria-label="纺织企业订单到交付工作流" style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px 0">
+      <button type="button" onclick="go('orders')">01 销售接单</button>
+      <button type="button" onclick="go('workorders')">02 生产排程</button>
+      <button type="button" onclick="go('inventory')">03 物料库存</button>
+      <button type="button" onclick="go('purchase')">04 采购协同</button>
+      <button type="button" onclick="go('quality')">05 质量放行</button>
+      <span style="margin-left:auto;align-self:center;color:#74869b;font-size:11px">织云 · 订单驱动的生产与供应链</span>
+    </nav>
     <div class="content" id="content"></div>
 
     <footer class="app-footer">
