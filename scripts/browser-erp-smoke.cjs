@@ -139,6 +139,28 @@ const fs = require('node:fs');
     await page.keyboard.press('Enter');
     await page.waitForFunction(() => document.activeElement?.getAttribute('id') === 'main-content');
     await page.waitForSelector('#navGroup .nav-item[data-page="dashboard"]');
+    const navSemantics = await page.evaluate(() => ({
+      allButtons: [...document.querySelectorAll('#navGroup .nav-item[data-page]')].every(node => node.tagName === 'BUTTON'),
+      current: document.querySelector('#navGroup .nav-item[data-page="dashboard"]')?.getAttribute('aria-current')
+    }));
+    if (!navSemantics.allButtons || navSemantics.current !== 'page') {
+      throw new Error('ERP module navigation must remain native and expose the active page: ' + JSON.stringify(navSemantics));
+    }
+    const beforeInvalidRoute = await page.evaluate(() => ({
+      page: currentPage,
+      title: document.querySelector('#pageTitle')?.textContent,
+      active: document.querySelector('#navGroup .nav-item.active')?.dataset.page
+    }));
+    const invalidRouteResult = await page.evaluate(() => window.go('__invalid_erp_module__'));
+    const afterInvalidRoute = await page.evaluate(() => ({
+      page: currentPage,
+      title: document.querySelector('#pageTitle')?.textContent,
+      active: document.querySelector('#navGroup .nav-item.active')?.dataset.page
+    }));
+    if (invalidRouteResult !== false || JSON.stringify(beforeInvalidRoute) !== JSON.stringify(afterInvalidRoute)) {
+      throw new Error('Unknown ERP route must be rejected without changing the current workspace: ' +
+        JSON.stringify({invalidRouteResult,beforeInvalidRoute,afterInvalidRoute}));
+    }
     if (!(await page.locator('#content').innerText()).trim()) {
       throw new Error('ERP dashboard did not render its initial content');
     }
