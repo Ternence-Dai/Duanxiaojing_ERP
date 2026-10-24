@@ -204,7 +204,7 @@ export function validatePurchaseReceiptReversalRecord(entry) {
 export function createPurchaseReceipt({
   purchaseOrder, inventoryItem, existingReceipts = [], existingReversals = [],
   existingMovementReferences = [], receiptNo, quantity, batch, location,
-  receivedAt, receivedBy, inspectedBy, inspectionResult, note = ""
+  receivedAt, receivedBy, inspectedBy, inspectionResult, note = "", asOf = new Date()
 } = {}) {
   if (!purchaseOrder || typeof purchaseOrder !== "object" || Array.isArray(purchaseOrder)) {
     throw new TypeError("purchase order is required");
@@ -324,6 +324,12 @@ export function createPurchaseReceipt({
   }
 
   const normalizedReceivedAt = parseOccurredAt(receivedAt);
+  if (!(asOf instanceof Date) || !Number.isFinite(asOf.getTime())) {
+    throw new TypeError("purchase receipt reference time must be a valid Date");
+  }
+  if (Date.parse(normalizedReceivedAt) > asOf.getTime()) {
+    throw new RangeError("future-dated purchase receipt cannot be posted to current stock");
+  }
   const normalizedReceiver = requiredPurchaseText(receivedBy, "receiver", 120);
   const normalizedInspector = requiredPurchaseText(inspectedBy, "inspector", 120);
   if (inspectionResult !== "合格") {
