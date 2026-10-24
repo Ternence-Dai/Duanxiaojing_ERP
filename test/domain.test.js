@@ -681,3 +681,31 @@ test("bounds imported receipt reversal history before validating individual rows
   existingReceipts:new Array(50001),existingReversals:[],existingMovementReferences:[]
  }),/supported validation limit/);
 });
+
+
+test("future-dated purchase receipt reversals cannot decrease current inventory",()=>{
+ const first=createPurchaseReceipt(receiptBase,{
+  asOf:new Date("2026-10-24T00:00:00.000Z")
+ });
+ const args={
+  purchaseOrder:{...purchaseOrder,status:"部分到货"},
+  inventoryItem:{...inventoryItem,qty:first.stockMovement.nextBalance},
+  receipt:first.receipt,existingReceipts:[first.receipt],existingReversals:[],
+  existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-GRN-FUTURE",reversedBy:"warehouse-supervisor",
+  reason:"Scheduled reversal must not alter current stock",
+  asOf:new Date("2026-10-24T00:00:00.000Z")
+ };
+ assert.throws(()=>createPurchaseReceiptReversal({
+  ...args,reversedAt:"2026-10-25T09:00:00.000Z"
+ }),/future-dated purchase receipt reversal/);
+ assert.throws(()=>createPurchaseReceiptReversal({
+  ...args,reversedAt:"2026-10-24T00:00:00.000Z",
+  asOf:"2026-10-24T00:00:00.000Z"
+ }),/reference time must be a valid Date/);
+ const today=createPurchaseReceiptReversal({
+  ...args,reversedAt:"2026-10-24T00:00:00.000Z"
+ });
+ assert.equal(today.stockMovement.nextBalance,10,
+  "a reversal at the current reference time may be posted");
+});
