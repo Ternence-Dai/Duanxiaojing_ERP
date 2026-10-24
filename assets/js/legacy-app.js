@@ -3400,13 +3400,21 @@ function getInventoryPosition(item){
 let currentPage = 'dashboard';
 
 function go(page){
+  if (!Object.prototype.hasOwnProperty.call(PAGES, page)) {
+    console.warn('Ignored navigation to an unknown ERP module:', page);
+    return false;
+  }
   currentPage = page;
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.page === page);
+  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+    const active = el.dataset.page === page;
+    el.classList.toggle('active', active);
+    if (active) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
   });
   render();
   $('sidebar').classList.remove('open');
   window.scrollTo({top:0, behavior:'smooth'});
+  return true;
 }
 
 function renderStorageRecoveryWorkspace() {
