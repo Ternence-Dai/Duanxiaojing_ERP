@@ -69,8 +69,26 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp_app_test') THEN
     CREATE ROLE erp_app_test NOLOGIN;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'erp_untrusted_test') THEN
+    CREATE ROLE erp_untrusted_test NOLOGIN;
+  END IF;
 END
 $role_setup$;
+
+-- PostgreSQL grants EXECUTE on newly created functions to PUBLIC by default.
+-- A non-provisioned role must not inherit access to this SECURITY DEFINER writer.
+DO $public_execute_test$
+BEGIN
+  IF has_function_privilege(
+    'erp_untrusted_test',
+    'erp.post_stock_movement(text,numeric,text,text,timestamptz)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'untrusted role inherited PUBLIC EXECUTE on stock posting function';
+  END IF;
+END
+$public_execute_test$;
+
 GRANT USAGE ON SCHEMA erp TO erp_app_test;
 GRANT SELECT, INSERT ON erp.inventory_item, erp.stock_movement TO erp_app_test;
 GRANT EXECUTE ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) TO erp_app_test;
