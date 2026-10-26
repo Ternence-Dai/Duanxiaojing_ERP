@@ -51,6 +51,11 @@ BEGIN
   UPDATE erp.inventory_item SET on_hand=v_next,updated_at=clock_timestamp() WHERE sku=p_sku;
   RETURN v_row;
 END $$;
+
+-- SECURITY DEFINER functions are executable by PUBLIC by default in PostgreSQL.
+-- Revoke that default so only explicitly provisioned application roles can post stock.
+REVOKE EXECUTE ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) FROM PUBLIC;
+
 COMMENT ON FUNCTION erp.post_stock_movement(text,numeric,text,text,timestamptz) IS
 'Atomically appends a referenced stock movement and updates the SKU balance under a row lock.';
 
