@@ -50,7 +50,7 @@ BEGIN
   RETURNING * INTO v_row;
   UPDATE erp.inventory_item SET on_hand=v_next,updated_at=clock_timestamp() WHERE sku=p_sku;
   RETURN v_row;
-END $;
+END $$;
 
 -- SECURITY DEFINER functions are executable by PUBLIC by default in PostgreSQL.
 -- Revoke that default so only explicitly provisioned application roles can post stock.
