@@ -1,0 +1,25 @@
+{
+  "background_color": "#142f49",
+  "description": "织云ERP - 企业级纺织行业全流程管理系统",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "lang": "zh-CN",
+  "name": "织云 ERP · 纺织经营协同工作台",
+  "scope": ".",
+  "short_name": "织云ERP",
+  "start_url": ".",
+  "theme_color": "#142f49"
+}

@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#142f49">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="织云ERP">
 <title>织云 ERP · 纺织经营协同工作台</title>
 <meta name="author" content="段小静">
 <meta name="contact" content="18662613315@163.com">
@@ -83,5 +88,6 @@
   <script src="./assets/js/workspace-v5.js?v=20261019-v5"></script>
   <script src="./assets/js/workspace-v5-purchase.js?v=20261019-v53"></script>
 <script src="./assets/js/reference-shell-v4-boot.js?v=20261022-reference-v6"></script>
+<script>if('serviceWorker' in navigator && (location.protocol==='https:' || location.protocol==='http:')){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').catch(function(){});});}</script>
 </body>
 </html>
