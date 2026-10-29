@@ -88,6 +88,189 @@ export function applyStockMovement(balance, movement) {
   });
 }
 
+/* ---------- 金额账本（移动加权平均） ----------
+   Quantities are tracked in milliunits and money in integer cents; unit
+   costs are integer milli-yuan (0.001 yuan). No floating-point money math:
+   every amount below is derived with integer multiplication and a single
+   rounding division. The value ledger runs parallel to the quantity
+   ledger: inbound movements revalue at the incoming unit cost, outbound
+   movements settle at the current moving average, and emptying a balance
+   sweeps any rounding residue so value returns exactly to zero. */
+const VALUE_MOVEMENT_FIELDS = Object.freeze([
+  "unitCostMilliYuan",
+  "amountDeltaCents",
+  "previousValueCents",
+  "nextValueCents",
+  "avgCostAfterMilliYuan",
+]);
+
+function assertValueCents(value, name) {
+  if (!Number.isSafeInteger(value)) {
+    throw new TypeError(`${name} must be an integer number of cents`);
+  }
+  if (value < 0) {
+    throw new RangeError(`${name} must not be negative`);
+  }
+  return value;
+}
+
+// Tolerant opening-balance derivation used for rows that predate the value
+// ledger (the load-time migration in the app uses the same rule):
+// quantity × static reference price, rounded to cents. Non-numeric or
+// non-positive inputs value the opening balance at zero rather than
+// failing the load.
+export function openingValueCents(quantity, unitPrice) {
+  const qty = Number(quantity);
+  const price = Number(unitPrice);
+  if (!Number.isFinite(qty) || !Number.isFinite(price) || qty <= 0 || price <= 0) {
+    return 0;
+  }
+  const product = Math.round(qty * 1000) * Math.round(price * 1000);
+  if (!Number.isSafeInteger(product)) return 0;
+  return Math.round(product / 10000);
+}
+
+function currentValueCents(item) {
+  if (Number.isSafeInteger(item.valueCents) && item.valueCents >= 0) {
+    return item.valueCents;
+  }
+  return openingValueCents(item.qty, item.price);
+}
+
+export function applyValueMovement(balance, movement) {
+  if (!balance || typeof balance !== "object" || Array.isArray(balance)) {
+    throw new TypeError("value balance must be an object");
+  }
+  if (!movement || typeof movement !== "object" || Array.isArray(movement)) {
+    throw new TypeError("value movement must be an object");
+  }
+
+  const quantityMilli = toMilliunits(balance.quantity, "balance quantity");
+  if (quantityMilli < 0) {
+    throw new RangeError("balance quantity must not be negative");
+  }
+  const previousValueCents = assertValueCents(balance.valueCents, "balance valueCents");
+  const deltaMilli = toMilliunits(movement.quantityDelta, "quantityDelta", { allowZero: false });
+  const nextQuantityMilli = quantityMilli + deltaMilli;
+  if (!Number.isSafeInteger(nextQuantityMilli) || nextQuantityMilli < 0) {
+    throw new RangeError("value movement would create an invalid quantity balance");
+  }
+
+  let unitCostMilliYuan;
+  if (movement.unitCostMilliYuan !== undefined) {
+    if (!Number.isSafeInteger(movement.unitCostMilliYuan)) {
+      throw new TypeError("unitCostMilliYuan must be an integer number of milli-yuan");
+    }
+    if (movement.unitCostMilliYuan < 0) {
+      throw new RangeError("unit cost must not be negative");
+    }
+    unitCostMilliYuan = movement.unitCostMilliYuan;
+  } else if (movement.unitCost !== undefined) {
+    unitCostMilliYuan = toMilliunits(movement.unitCost, "unit cost");
+    if (unitCostMilliYuan < 0) {
+      throw new RangeError("unit cost must not be negative");
+    }
+  }
+
+  let amountDeltaCents;
+  if (movement.amountDeltaCents !== undefined) {
+    // Exact mode (a reversal negating its original receipt): the amount
+    // is authoritative and the unit cost is only a snapshot.
+    if (!Number.isSafeInteger(movement.amountDeltaCents)) {
+      throw new TypeError("amountDeltaCents must be an integer number of cents");
+    }
+    amountDeltaCents = movement.amountDeltaCents;
+    if ((deltaMilli > 0 && amountDeltaCents < 0) || (deltaMilli < 0 && amountDeltaCents > 0)) {
+      throw new RangeError("value movement amount sign does not match its quantity direction");
+    }
+    if (unitCostMilliYuan !== undefined) {
+      const expected = Math.abs(deltaMilli) * unitCostMilliYuan;
+      if (!Number.isSafeInteger(expected) ||
+          Math.round(expected / 10000) !== Math.abs(amountDeltaCents)) {
+        throw new RangeError("value movement amount does not match its unit cost");
+      }
+    } else {
+      unitCostMilliYuan = Math.round(Math.abs(amountDeltaCents) * 10000 / Math.abs(deltaMilli));
+    }
+  } else if (deltaMilli > 0) {
+    if (unitCostMilliYuan === undefined) {
+      throw new RangeError("unit cost is required for an inbound value movement");
+    }
+    const product = deltaMilli * unitCostMilliYuan;
+    if (!Number.isSafeInteger(product)) {
+      throw new RangeError("value movement amount exceeds the safe integer range");
+    }
+    amountDeltaCents = Math.round(product / 10000);
+  } else {
+    if (unitCostMilliYuan === undefined) {
+      unitCostMilliYuan = quantityMilli > 0
+        ? Math.round(previousValueCents * 10000 / quantityMilli)
+        : 0;
+    }
+    if (nextQuantityMilli === 0) {
+      amountDeltaCents = -previousValueCents;
+    } else {
+      const settled = -deltaMilli * previousValueCents;
+      if (!Number.isSafeInteger(settled)) {
+        throw new RangeError("value movement amount exceeds the safe integer range");
+      }
+      amountDeltaCents = -Math.round(settled / quantityMilli);
+    }
+  }
+
+  const nextValueCents = previousValueCents + amountDeltaCents;
+  if (!Number.isSafeInteger(nextValueCents) || nextValueCents < 0) {
+    throw new RangeError("value movement would create an invalid inventory value");
+  }
+  const avgCostAfterMilliYuan = nextQuantityMilli > 0
+    ? Math.round(nextValueCents * 10000 / nextQuantityMilli)
+    : 0;
+
+  return Object.freeze({
+    quantityDelta: deltaMilli / 1000,
+    unitCostMilliYuan,
+    amountDeltaCents,
+    previousValueCents,
+    nextValueCents,
+    avgCostAfterMilliYuan,
+  });
+}
+
+// Validates the optional five-field value snapshot carried by receipt and
+// reversal records. Legacy records without any value field stay valid;
+// a partial set is always an error.
+function validateOptionalValueFields(entry, label) {
+  const present = VALUE_MOVEMENT_FIELDS.filter((field) => entry[field] !== undefined);
+  if (!present.length) return undefined;
+  if (present.length !== VALUE_MOVEMENT_FIELDS.length) {
+    throw new TypeError(`${label} value fields must be provided as a complete set`);
+  }
+  const value = {};
+  for (const field of VALUE_MOVEMENT_FIELDS) {
+    if (!Number.isSafeInteger(entry[field])) {
+      throw new TypeError(`${label} ${field} must be an integer`);
+    }
+    value[field] = entry[field];
+  }
+  if (value.unitCostMilliYuan < 0 || value.previousValueCents < 0 || value.nextValueCents < 0) {
+    throw new RangeError(`${label} value fields must not be negative`);
+  }
+  if (value.previousValueCents + value.amountDeltaCents !== value.nextValueCents) {
+    throw new RangeError(`${label} value balances are inconsistent`);
+  }
+  return value;
+}
+
+function expectedAvgCostMilliYuan(valueCents, balanceMilli) {
+  return balanceMilli > 0 ? Math.round(valueCents * 10000 / balanceMilli) : 0;
+}
+
+function withoutValueFields(record) {
+  const copy = { ...record };
+  for (const field of VALUE_MOVEMENT_FIELDS) delete copy[field];
+  return copy;
+}
+
 
 const PURCHASE_RECEIVABLE_STATUSES = new Set(["已下单", "在途", "部分到货"]);
 function requiredPurchaseText(value, field, maxLength = 160) {
@@ -112,7 +295,7 @@ export function validatePurchaseReceiptRecord(entry) {
     "receiptNo", "purchaseNo", "sku", "material", "supplier", "quantity",
     "unit", "batch", "location", "receivedAt", "receivedBy", "inspectedBy",
     "inspectionResult", "note", "stockMovementReference", "previousBalance",
-    "nextBalance", "purchaseStatusBefore"
+    "nextBalance", "purchaseStatusBefore", ...VALUE_MOVEMENT_FIELDS
   ]);
   if (Object.keys(entry).some(key => !allowed.has(key))) {
     throw new TypeError("purchase receipt contains unsupported fields");
@@ -151,13 +334,30 @@ export function validatePurchaseReceiptRecord(entry) {
     }
     purchaseStatusBefore = entry.purchaseStatusBefore;
   }
+  // Optional value-ledger snapshot: new receipts always carry one; records
+  // posted before the value ledger existed carry none and stay valid.
+  const value = validateOptionalValueFields(entry, "purchase receipt");
+  if (value) {
+    if (value.amountDeltaCents < 0 ||
+        value.amountDeltaCents !== Math.round(quantity * value.unitCostMilliYuan / 10000) ||
+        value.avgCostAfterMilliYuan !== expectedAvgCostMilliYuan(value.nextValueCents, next)) {
+      throw new RangeError("purchase receipt value snapshot is inconsistent");
+    }
+  }
   return Object.freeze({
     receiptNo, purchaseNo, sku, material, supplier,
     quantity: quantity / 1000, unit, batch, location, receivedAt,
     receivedBy, inspectedBy, inspectionResult: "合格",
     note: entry.note.trim(), stockMovementReference: receiptNo,
     previousBalance: previous / 1000, nextBalance: next / 1000,
-    purchaseStatusBefore
+    purchaseStatusBefore,
+    ...(value ? {
+      unitCostMilliYuan: value.unitCostMilliYuan,
+      amountDeltaCents: value.amountDeltaCents,
+      previousValueCents: value.previousValueCents,
+      nextValueCents: value.nextValueCents,
+      avgCostAfterMilliYuan: value.avgCostAfterMilliYuan
+    } : {})
   });
 }
 
@@ -168,7 +368,8 @@ export function validatePurchaseReceiptReversalRecord(entry) {
   const allowed = new Set([
     "reversalNo", "receiptNo", "purchaseNo", "sku", "quantity", "unit",
     "reason", "reversedBy", "reversedAt", "stockMovementReference",
-    "originalStockMovementReference", "previousBalance", "nextBalance"
+    "originalStockMovementReference", "previousBalance", "nextBalance",
+    ...VALUE_MOVEMENT_FIELDS
   ]);
   if (Object.keys(entry).some(key => !allowed.has(key))) {
     throw new TypeError("purchase receipt reversal contains unsupported fields");
@@ -193,18 +394,37 @@ export function validatePurchaseReceiptReversalRecord(entry) {
       !Number.isSafeInteger(previous - quantity)) {
     throw new RangeError("purchase receipt reversal stock balances are inconsistent");
   }
+  // Optional value-ledger snapshot (see validatePurchaseReceiptRecord).
+  // The amount is not recomputed from the unit cost here: a reversal of a
+  // legacy receipt without a snapshot settles at the moving average, whose
+  // rounded amount need not equal quantity × unit cost exactly.
+  const value = validateOptionalValueFields(entry, "purchase receipt reversal");
+  if (value) {
+    if (value.amountDeltaCents > 0 ||
+        value.avgCostAfterMilliYuan !== expectedAvgCostMilliYuan(value.nextValueCents, next)) {
+      throw new RangeError("purchase receipt reversal value snapshot is inconsistent");
+    }
+  }
   return Object.freeze({
     reversalNo, receiptNo, purchaseNo, sku, quantity: quantity / 1000, unit,
     reason, reversedBy, reversedAt, stockMovementReference: reversalNo,
     originalStockMovementReference: receiptNo,
-    previousBalance: previous / 1000, nextBalance: next / 1000
+    previousBalance: previous / 1000, nextBalance: next / 1000,
+    ...(value ? {
+      unitCostMilliYuan: value.unitCostMilliYuan,
+      amountDeltaCents: value.amountDeltaCents,
+      previousValueCents: value.previousValueCents,
+      nextValueCents: value.nextValueCents,
+      avgCostAfterMilliYuan: value.avgCostAfterMilliYuan
+    } : {})
   });
 }
 
 export function createPurchaseReceipt({
   purchaseOrder, inventoryItem, existingReceipts = [], existingReversals = [],
   existingMovementReferences = [], receiptNo, quantity, batch, location,
-  receivedAt, receivedBy, inspectedBy, inspectionResult, note = "", asOf = new Date()
+  receivedAt, receivedBy, inspectedBy, inspectionResult, note = "", asOf = new Date(),
+  unitCost
 } = {}) {
   if (!purchaseOrder || typeof purchaseOrder !== "object" || Array.isArray(purchaseOrder)) {
     throw new TypeError("purchase order is required");
@@ -296,6 +516,8 @@ export function createPurchaseReceipt({
     if (!original || original.purchaseNo !== reversal.purchaseNo ||
         original.sku !== reversal.sku || original.quantity !== reversal.quantity ||
         original.unit !== reversal.unit ||
+        (original.amountDeltaCents !== undefined && reversal.amountDeltaCents !== undefined &&
+         reversal.amountDeltaCents !== -original.amountDeltaCents) ||
         Date.parse(reversal.reversedAt) < Date.parse(original.receivedAt) ||
         !movementReferenceSet.has(reversal.stockMovementReference) ||
         !movementReferenceSet.has(reversal.originalStockMovementReference) ||
@@ -339,6 +561,27 @@ export function createPurchaseReceipt({
     sku, quantityDelta: received / 1000, reference: normalizedReceiptNo,
     occurredAt: normalizedReceivedAt
   });
+  // 金额账本：收货单价快照。优先用调用方传入的单价（表单可改），其次采购
+  // 订单单价；两者都没有时按当前移动均价入账，库存为空则记 0，保证历史
+  // 无价数据仍可过账。PO 单价用容忍取整（历史订单可能超过三位小数），
+  // 显式传入的单价则走严格的毫单位校验。
+  const previousValueCents = currentValueCents(inventoryItem);
+  let unitCostMilliYuan;
+  if (unitCost !== undefined && unitCost !== null) {
+    unitCostMilliYuan = toMilliunits(unitCost, "unit cost");
+    if (unitCostMilliYuan < 0) throw new RangeError("unit cost must not be negative");
+  } else if (Number.isFinite(purchaseOrder.price) && Number(purchaseOrder.price) >= 0) {
+    unitCostMilliYuan = Math.round(Number(purchaseOrder.price) * 1000);
+  } else {
+    const currentQuantityMilli = toMilliunits(inventoryItem.qty, "inventory quantity");
+    unitCostMilliYuan = currentQuantityMilli > 0
+      ? Math.round(previousValueCents * 10000 / currentQuantityMilli)
+      : 0;
+  }
+  const valueMovement = applyValueMovement(
+    { quantity: inventoryItem.qty, valueCents: previousValueCents },
+    { quantityDelta: received / 1000, unitCostMilliYuan }
+  );
   const orderReceipts = [...existingReceiptById.values()]
     .filter(row => row.purchaseNo === purchaseNo)
     .sort((left, right) => Date.parse(left.receivedAt) - Date.parse(right.receivedAt));
@@ -363,14 +606,24 @@ export function createPurchaseReceipt({
     stockMovementReference: normalizedReceiptNo,
     previousBalance: movement.previousBalance,
     nextBalance: movement.nextBalance,
-    purchaseStatusBefore
+    purchaseStatusBefore,
+    unitCostMilliYuan: valueMovement.unitCostMilliYuan,
+    amountDeltaCents: valueMovement.amountDeltaCents,
+    previousValueCents: valueMovement.previousValueCents,
+    nextValueCents: valueMovement.nextValueCents,
+    avgCostAfterMilliYuan: valueMovement.avgCostAfterMilliYuan
   });
   const stockMovement = Object.freeze({
     ...movement,
     sourceType: "purchase-receipt",
     sourceNo: purchaseNo,
     batch: normalizedBatch,
-    location: normalizedLocation
+    location: normalizedLocation,
+    unitCostMilliYuan: valueMovement.unitCostMilliYuan,
+    amountDeltaCents: valueMovement.amountDeltaCents,
+    previousValueCents: valueMovement.previousValueCents,
+    nextValueCents: valueMovement.nextValueCents,
+    avgCostAfterMilliYuan: valueMovement.avgCostAfterMilliYuan
   });
   const totalReceived = previouslyReceived + received;
   return Object.freeze({
@@ -487,6 +740,8 @@ export function createPurchaseReceiptReversal({
     if (!original || original.purchaseNo !== row.purchaseNo ||
         original.sku !== row.sku || original.quantity !== row.quantity ||
         original.unit !== row.unit ||
+        (original.amountDeltaCents !== undefined && row.amountDeltaCents !== undefined &&
+         row.amountDeltaCents !== -original.amountDeltaCents) ||
         original.stockMovementReference !== row.originalStockMovementReference ||
         Date.parse(row.reversedAt) < Date.parse(original.receivedAt) ||
         !referenceSet.has(row.stockMovementReference) ||
@@ -519,6 +774,20 @@ export function createPurchaseReceiptReversal({
     reference: normalizedReversalNo,
     occurredAt: reversedAt
   });
+  // 金额账本：原收货带单价快照时按原金额精确取反冲销；历史收货没有快照
+  // 时按当前移动均价结转（与出库同一口径），冲销记录注明所用单价。
+  const previousValueCents = currentValueCents(inventoryItem);
+  const valueMovement = target.amountDeltaCents !== undefined
+    ? applyValueMovement(
+        { quantity: inventoryItem.qty, valueCents: previousValueCents },
+        {
+          quantityDelta: -targetQuantity / 1000,
+          amountDeltaCents: -target.amountDeltaCents,
+          unitCostMilliYuan: target.unitCostMilliYuan
+        })
+    : applyValueMovement(
+        { quantity: inventoryItem.qty, valueCents: previousValueCents },
+        { quantityDelta: -targetQuantity / 1000 });
   const reversal = validatePurchaseReceiptReversalRecord({
     reversalNo: normalizedReversalNo,
     receiptNo: target.receiptNo,
@@ -532,14 +801,24 @@ export function createPurchaseReceiptReversal({
     stockMovementReference: normalizedReversalNo,
     originalStockMovementReference: target.stockMovementReference,
     previousBalance: movement.previousBalance,
-    nextBalance: movement.nextBalance
+    nextBalance: movement.nextBalance,
+    unitCostMilliYuan: valueMovement.unitCostMilliYuan,
+    amountDeltaCents: valueMovement.amountDeltaCents,
+    previousValueCents: valueMovement.previousValueCents,
+    nextValueCents: valueMovement.nextValueCents,
+    avgCostAfterMilliYuan: valueMovement.avgCostAfterMilliYuan
   });
   const stockMovement = Object.freeze({
     ...movement,
     sourceType: "purchase-receipt-reversal",
     sourceNo: target.receiptNo,
     purchaseNo,
-    reversesReference: target.stockMovementReference
+    reversesReference: target.stockMovementReference,
+    unitCostMilliYuan: valueMovement.unitCostMilliYuan,
+    amountDeltaCents: valueMovement.amountDeltaCents,
+    previousValueCents: valueMovement.previousValueCents,
+    nextValueCents: valueMovement.nextValueCents,
+    avgCostAfterMilliYuan: valueMovement.avgCostAfterMilliYuan
   });
   let purchaseStatus;
   if (remaining === 0) {

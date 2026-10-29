@@ -20,7 +20,9 @@
     const pendingOrders = DB.orders.filter(row => row.status === '待确认');
     const totalAmount = validOrders.reduce((sum,row) => sum + (Number(row.qty)||0)*(Number(row.price)||0),0);
     const inProduction = DB.workorders.filter(row => row.status === '进行中');
-    const stockValue = DB.inventory.reduce((sum,row) => sum + (Number(row.qty)||0)*(Number(row.price)||0),0);
+    const stockValue = DB.inventory.reduce((sum,row) => sum + (typeof inventoryValueCents === 'function'
+      ? inventoryValueCents(row)
+      : Math.round((Number(row.qty) || 0) * (Number(row.price) || 0) * 100)), 0) / 100;
     const lowStock = DB.inventory.filter(row => DB.settings.lowStockWarn && Number(row.safe)>0 && Number(row.qty)<Number(row.safe));
     const doneOrders = DB.orders.filter(row => row.status === '已完成').length;
     const completionRate = validOrders.length ? (doneOrders / validOrders.length * 100).toFixed(1) : '0.0';

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyStockMovement, normalizeStockBalance, calculateStockPosition, createPurchaseReceipt, validatePurchaseReceiptRecord, createPurchaseReceiptReversal, validatePurchaseReceiptReversalRecord } from "../src/domain/index.js";
+import { applyStockMovement, applyValueMovement, openingValueCents, normalizeStockBalance, calculateStockPosition, createPurchaseReceipt, validatePurchaseReceiptRecord, createPurchaseReceiptReversal, validatePurchaseReceiptReversalRecord } from "../src/domain/index.js";
 const movement={sku:"FABRIC-001",quantityDelta:-3,reference:"ISSUE-0001",occurredAt:"2026-02-01T08:00:00Z"};
 test("records a traceable stock ledger transition",()=>{
  const row=applyStockMovement(10,movement);
@@ -708,4 +708,162 @@ test("future-dated purchase receipt reversals cannot decrease current inventory"
  });
  assert.equal(today.stockMovement.nextBalance,10,
   "a reversal at the current reference time may be posted");
+});
+
+
+/* ---------- 金额账本（移动加权平均） ---------- */
+test("value ledger: two inbound lots at different costs produce a weighted average",()=>{
+ const first=applyValueMovement({quantity:0,valueCents:0},{quantityDelta:100,unitCost:10});
+ assert.equal(first.amountDeltaCents,100000);
+ assert.equal(first.nextValueCents,100000);
+ assert.equal(first.avgCostAfterMilliYuan,10000);
+ const second=applyValueMovement(
+  {quantity:100,valueCents:first.nextValueCents},
+  {quantityDelta:100,unitCost:12});
+ assert.equal(second.amountDeltaCents,120000);
+ assert.equal(second.nextValueCents,220000);
+ assert.equal(second.avgCostAfterMilliYuan,11000,
+  "100 @ ¥10 plus 100 @ ¥12 averages to ¥11.000");
+});
+test("value ledger: outbound settles at the moving average",()=>{
+ const out=applyValueMovement({quantity:200,valueCents:220000},{quantityDelta:-50});
+ assert.equal(out.unitCostMilliYuan,11000);
+ assert.equal(out.amountDeltaCents,-55000);
+ assert.equal(out.nextValueCents,165000,"200 件账面 ¥2,200 出库 50 件后应余 ¥1,650");
+ assert.equal(out.avgCostAfterMilliYuan,11000);
+});
+test("value ledger: emptying a balance sweeps rounding residue to exactly zero",()=>{
+ let balance={quantity:3,valueCents:100};
+ const step1=applyValueMovement(balance,{quantityDelta:-1});
+ assert.equal(step1.amountDeltaCents,-33);
+ const step2=applyValueMovement({quantity:2,valueCents:step1.nextValueCents},{quantityDelta:-1});
+ const step3=applyValueMovement({quantity:1,valueCents:step2.nextValueCents},{quantityDelta:-1});
+ assert.equal(step3.amountDeltaCents,-step2.nextValueCents);
+ assert.equal(step3.nextValueCents,0);
+ assert.equal(step3.avgCostAfterMilliYuan,0);
+});
+test("value ledger: exact amounts (reversal mode) must match direction and unit cost",()=>{
+ const exact=applyValueMovement(
+  {quantity:200,valueCents:220000},
+  {quantityDelta:-100,amountDeltaCents:-120000,unitCostMilliYuan:12000});
+ assert.equal(exact.nextValueCents,100000);
+ assert.throws(()=>applyValueMovement(
+  {quantity:200,valueCents:220000},
+  {quantityDelta:-100,amountDeltaCents:120000}),/sign does not match/);
+ assert.throws(()=>applyValueMovement(
+  {quantity:200,valueCents:220000},
+  {quantityDelta:-100,amountDeltaCents:-110000,unitCostMilliYuan:12000}),/does not match its unit cost/);
+ assert.throws(()=>applyValueMovement(
+  {quantity:200,valueCents:220000},
+  {quantityDelta:-100,amountDeltaCents:-230000}),/invalid inventory value/);
+});
+test("value ledger: inbound requires a unit cost and balances stay integer cents",()=>{
+ assert.throws(()=>applyValueMovement({quantity:0,valueCents:0},{quantityDelta:5}),
+  /unit cost is required/);
+ assert.throws(()=>applyValueMovement({quantity:0,valueCents:0},{quantityDelta:5,unitCost:-1}),
+  /must not be negative/);
+ assert.throws(()=>applyValueMovement({quantity:0,valueCents:1.5},{quantityDelta:-0}),
+  TypeError);
+ assert.throws(()=>applyValueMovement({quantity:0,valueCents:-100},{quantityDelta:5,unitCost:1}),
+  /must not be negative/);
+});
+test("opening value derives from quantity times the static reference price",()=>{
+ assert.equal(openingValueCents(100,10),100000);
+ assert.equal(openingValueCents(3,3.33),999);
+ assert.equal(openingValueCents(0,10),0);
+ assert.equal(openingValueCents(10,undefined),0);
+ assert.equal(openingValueCents(10,0),0);
+ assert.equal(openingValueCents("abc",10),0);
+});
+
+const valueOrder={...purchaseOrder,qty:200};
+const emptyItem={...inventoryItem,qty:0};
+test("receipts snapshot the unit cost and carry the value ledger end to end",()=>{
+ const first=createPurchaseReceipt({
+  ...receiptBase,purchaseOrder:valueOrder,inventoryItem:emptyItem,
+  quantity:100,unitCost:10
+ });
+ assert.equal(first.receipt.unitCostMilliYuan,10000);
+ assert.equal(first.receipt.amountDeltaCents,100000);
+ assert.equal(first.receipt.previousValueCents,0);
+ assert.equal(first.receipt.nextValueCents,100000);
+ assert.equal(first.receipt.avgCostAfterMilliYuan,10000);
+ assert.equal(first.stockMovement.amountDeltaCents,100000);
+ assert.equal(first.stockMovement.nextValueCents,100000);
+ assert.deepEqual(validatePurchaseReceiptRecord(first.receipt),first.receipt);
+
+ const second=createPurchaseReceipt({
+  ...receiptBase,purchaseOrder:{...valueOrder,status:"部分到货"},
+  inventoryItem:{...emptyItem,qty:100,valueCents:first.receipt.nextValueCents},
+  receiptNo:"GRN-TEST-002",quantity:100,unitCost:12,
+  existingReceipts:[first.receipt],
+  existingMovementReferences:["GRN-TEST-001"],
+  receivedAt:"2026-10-18T10:00:00+08:00"
+ });
+ assert.equal(second.receipt.previousValueCents,100000);
+ assert.equal(second.receipt.nextValueCents,220000);
+ assert.equal(second.receipt.avgCostAfterMilliYuan,11000);
+ assert.deepEqual(validatePurchaseReceiptRecord(second.receipt),second.receipt);
+
+ const reversal=createPurchaseReceiptReversal({
+  purchaseOrder:{...valueOrder,status:"部分到货"},
+  inventoryItem:{...emptyItem,qty:200,valueCents:second.receipt.nextValueCents},
+  receipt:second.receipt,
+  existingReceipts:[first.receipt,second.receipt],
+  existingMovementReferences:["GRN-TEST-001","GRN-TEST-002"],
+  reversalNo:"REV-TEST-002",reversedAt:"2026-10-19T09:00:00+08:00",
+  reversedBy:"warehouse-1",reason:"Wrong lot received"
+ });
+ assert.equal(reversal.reversal.amountDeltaCents,-120000,
+  "a reversal negates the original receipt amount exactly");
+ assert.equal(reversal.reversal.previousValueCents,220000);
+ assert.equal(reversal.reversal.nextValueCents,100000);
+ assert.equal(reversal.stockMovement.amountDeltaCents,-120000);
+ assert.deepEqual(validatePurchaseReceiptReversalRecord(reversal.reversal),reversal.reversal);
+});
+test("receipt unit cost defaults to the purchase order price, then to the current average",()=>{
+ const priced=createPurchaseReceipt({
+  ...receiptBase,purchaseOrder:{...valueOrder,price:9.5},inventoryItem:emptyItem,quantity:100
+ });
+ assert.equal(priced.receipt.unitCostMilliYuan,9500);
+ assert.equal(priced.receipt.amountDeltaCents,95000);
+ const averaged=createPurchaseReceipt({
+  ...receiptBase,purchaseOrder:valueOrder,
+  inventoryItem:{...emptyItem,qty:100,valueCents:110000},quantity:50
+ });
+ assert.equal(averaged.receipt.unitCostMilliYuan,11000);
+ assert.equal(averaged.receipt.nextValueCents,165000);
+});
+test("legacy receipts without a value snapshot stay valid and reverse at the moving average",()=>{
+ const posted=createPurchaseReceipt({...receiptBase,unitCost:10});
+ const legacyReceipt={...posted.receipt};
+ for(const field of ["unitCostMilliYuan","amountDeltaCents","previousValueCents","nextValueCents","avgCostAfterMilliYuan"]){
+  delete legacyReceipt[field];
+ }
+ const validated=validatePurchaseReceiptRecord(legacyReceipt);
+ assert.equal(validated.unitCostMilliYuan,undefined);
+ const reversal=createPurchaseReceiptReversal({
+  purchaseOrder,
+  inventoryItem:{...inventoryItem,qty:45,valueCents:45000},
+  receipt:legacyReceipt,
+  existingReceipts:[legacyReceipt],
+  existingMovementReferences:["GRN-TEST-001"],
+  reversalNo:"REV-LEGACY-001",reversedAt:"2026-10-19T09:00:00+08:00",
+  reversedBy:"warehouse-1",reason:"Legacy receipt posted at the wrong price"
+ });
+ assert.equal(reversal.reversal.amountDeltaCents,-35000,
+  "35 of 45 units at a ¥10.00 average settle ¥350.00");
+ assert.equal(reversal.reversal.nextValueCents,10000);
+});
+test("partial or tampered value snapshots are rejected",()=>{
+ const posted=createPurchaseReceipt({...receiptBase,unitCost:10});
+ assert.throws(()=>validatePurchaseReceiptRecord(
+  {...posted.receipt,unitCostMilliYuan:1000,amountDeltaCents:undefined}),
+  /complete set/);
+ assert.throws(()=>validatePurchaseReceiptRecord(
+  {...posted.receipt,amountDeltaCents:posted.receipt.amountDeltaCents+1}),
+  /inconsistent/);
+ assert.throws(()=>validatePurchaseReceiptRecord(
+  {...posted.receipt,avgCostAfterMilliYuan:1}),
+  /inconsistent/);
 });

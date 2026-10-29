@@ -73,6 +73,8 @@ function hasMatchingPendingFileSync(){
 
 function isValidDBShape(d){
   const isRecord = value => !!value && typeof value === 'object' && !Array.isArray(value);
+  // 金额账本字段（分/毫元整数）：全有或全无，老记录无字段合法。
+  const valueFieldKeys = ['unitCostMilliYuan','amountDeltaCents','previousValueCents','nextValueCents','avgCostAfterMilliYuan'];
   if(!isRecord(d) || !isRecord(d.settings) || !isRecord(d.dict)) return false;
   if(!Object.values(d.dict).every(items => Array.isArray(items) &&
       items.every(item => typeof item === 'string' || isRecord(item)))) return false;
@@ -91,11 +93,20 @@ function isValidDBShape(d){
     }
   }
 
+  for(const item of d.inventory){
+    if(item.valueCents !== undefined &&
+       (!Number.isSafeInteger(item.valueCents) || item.valueCents < 0)) return false;
+    if(item.valuationMethod !== undefined && item.valuationMethod !== 'moving-average') return false;
+  }
+
   if(d.stockMovements !== undefined){
     if(!Array.isArray(d.stockMovements)) return false;
     const references = new Set();
     const chains = new Map();
+    const valueChains = new Map();
+    const valueChainClosed = new Set();
     const inventoryBalances = new Map();
+    const inventoryValues = new Map();
     const toMilliunits = value => {
       if(!Number.isFinite(value) || Number(value.toFixed(3)) !== value) return null;
       const scaled = Math.round(value * 1000);
@@ -106,6 +117,9 @@ function isValidDBShape(d){
       const balance = toMilliunits(item.qty);
       if(balance === null || balance < 0) return false;
       inventoryBalances.set(item.code.trim(), balance);
+      if(Number.isSafeInteger(item.valueCents) && item.valueCents >= 0){
+        inventoryValues.set(item.code.trim(), item.valueCents);
+      }
     }
     for(const movement of d.stockMovements){
       if(!isRecord(movement) || typeof movement.sku !== 'string' || !movement.sku.trim() ||
@@ -148,12 +162,41 @@ function isValidDBShape(d){
         if(chain.expectedOlderBalance !== next) return false;
         chain.expectedOlderBalance = previous;
       }
+
+      // 金额链与数量链并行校验；旧流水没有金额字段时金额链在此截断，
+      // 只校验截断点之后（更新）的区段，末端与库存行 valueCents 对齐。
+      const presentValueKeys = valueFieldKeys.filter(key => movement[key] !== undefined);
+      if(!presentValueKeys.length){
+        valueChainClosed.add(sku);
+      }else if(!valueChainClosed.has(sku)){
+        if(presentValueKeys.length !== valueFieldKeys.length) return false;
+        if(valueFieldKeys.some(key => !Number.isSafeInteger(movement[key]))) return false;
+        if(movement.unitCostMilliYuan < 0 || movement.previousValueCents < 0 ||
+           movement.nextValueCents < 0) return false;
+        if(movement.previousValueCents + movement.amountDeltaCents !== movement.nextValueCents) return false;
+        if(delta > 0 && movement.amountDeltaCents < 0) return false;
+        if(delta < 0 && movement.amountDeltaCents > 0) return false;
+        const valueChain = valueChains.get(sku);
+        if(!valueChain){
+          valueChains.set(sku, { latestValue:movement.nextValueCents, expectedOlderValue:movement.previousValueCents });
+        }else{
+          if(valueChain.expectedOlderValue !== movement.nextValueCents) return false;
+          valueChain.expectedOlderValue = movement.previousValueCents;
+        }
+      }
     }
     for(const [sku, chain] of chains){
       if(inventoryBalances.has(sku)){
         if(inventoryBalances.get(sku) !== chain.latestBalance) return false;
       }else if(chain.latestBalance !== 0){
         // Zero-balance SKUs may be retired while retaining their audit trail.
+        return false;
+      }
+    }
+    for(const [sku, chain] of valueChains){
+      if(inventoryValues.has(sku)){
+        if(inventoryValues.get(sku) !== chain.latestValue) return false;
+      }else if(chain.latestValue !== 0){
         return false;
       }
     }
@@ -172,7 +215,7 @@ function isValidDBShape(d){
       'receiptNo','purchaseNo','sku','material','supplier','quantity','unit',
       'batch','location','receivedAt','receivedBy','inspectedBy',
       'inspectionResult','note','stockMovementReference','previousBalance','nextBalance',
-      'purchaseStatusBefore'
+      'purchaseStatusBefore', ...valueFieldKeys
     ]);
     const toMilliunits = value => {
       if(!Number.isFinite(value) || Number(value.toFixed(3)) !== value) return null;
@@ -252,6 +295,20 @@ function isValidDBShape(d){
       const next = toMilliunits(receipt.nextBalance);
       if(quantity === null || quantity <= 0 || previous === null || previous < 0 ||
          next === null || next !== previous + quantity || !Number.isSafeInteger(previous + quantity)) return false;
+      // 金额快照：收货与流水必须同有同无且逐字段一致，金额须能由单价复算。
+      const receiptHasValue = valueFieldKeys.some(key => receipt[key] !== undefined);
+      const receiptMovementHasValue = valueFieldKeys.some(key => movement[key] !== undefined);
+      if(receiptHasValue !== receiptMovementHasValue) return false;
+      if(receiptHasValue){
+        if(!valueFieldKeys.every(key => Number.isSafeInteger(receipt[key]))) return false;
+        if(receipt.unitCostMilliYuan < 0 || receipt.previousValueCents < 0 ||
+           receipt.nextValueCents < 0) return false;
+        if(receipt.previousValueCents + receipt.amountDeltaCents !== receipt.nextValueCents) return false;
+        if(receipt.amountDeltaCents !== Math.round(quantity * receipt.unitCostMilliYuan / 10000)) return false;
+        const expectedAvg = next > 0 ? Math.round(receipt.nextValueCents * 10000 / next) : 0;
+        if(receipt.avgCostAfterMilliYuan !== expectedAvg) return false;
+        if(!valueFieldKeys.every(key => movement[key] === receipt[key])) return false;
+      }
       const total = (receivedByOrder.get(receipt.purchaseNo) || 0) + quantity;
       if(!Number.isSafeInteger(total)) return false;
       receivedByOrder.set(receipt.purchaseNo, total);
@@ -267,7 +324,7 @@ function isValidDBShape(d){
     const reversalFields = new Set([
       'reversalNo','receiptNo','purchaseNo','sku','quantity','unit','reason',
       'reversedBy','reversedAt','stockMovementReference','originalStockMovementReference',
-      'previousBalance','nextBalance'
+      'previousBalance','nextBalance', ...valueFieldKeys
     ]);
     for(const reversal of reversalRows){
       if(!isRecord(reversal) ||
@@ -310,6 +367,22 @@ function isValidDBShape(d){
          movement.reversesReference !== original.stockMovementReference ||
          quantity === null || quantity <= 0 || previous === null ||
          previous < quantity || next === null || next !== previous - quantity) return false;
+      // 金额快照：冲销与流水同有同无且逐字段一致；原收货有快照时金额须精确取反。
+      const reversalHasValue = valueFieldKeys.some(key => reversal[key] !== undefined);
+      const reversalMovementHasValue = valueFieldKeys.some(key => movement[key] !== undefined);
+      if(reversalHasValue !== reversalMovementHasValue) return false;
+      if(reversalHasValue){
+        if(!valueFieldKeys.every(key => Number.isSafeInteger(reversal[key]))) return false;
+        if(reversal.unitCostMilliYuan < 0 || reversal.previousValueCents < 0 ||
+           reversal.nextValueCents < 0) return false;
+        if(reversal.previousValueCents + reversal.amountDeltaCents !== reversal.nextValueCents) return false;
+        if(reversal.amountDeltaCents > 0) return false;
+        if(original.amountDeltaCents !== undefined &&
+           reversal.amountDeltaCents !== -original.amountDeltaCents) return false;
+        const expectedAvg = next > 0 ? Math.round(reversal.nextValueCents * 10000 / next) : 0;
+        if(reversal.avgCostAfterMilliYuan !== expectedAvg) return false;
+        if(!valueFieldKeys.every(key => movement[key] === reversal[key])) return false;
+      }
       reversedReceiptIds.add(reversal.receiptNo);
       reversalReferences.add(reversal.reversalNo);
       const totalReversed = (reversedByOrder.get(reversal.purchaseNo) || 0) + quantity;
@@ -454,6 +527,36 @@ function migrateUnmodifiedDemoLedger(data, raw){
   }
 }
 let demoSeedMigrationNotice = '';
+
+/* ---------- 金额账本迁移（移动加权平均） ----------
+   账面价值以库存行的 valueCents（分，整数）为准，静态单价 price 仅作参考价。
+   旧数据没有 valueCents：首次加载时按「数量 × 参考单价」初始化并打迁移
+   标记，与领域层 openingValueCents 同一口径；只补缺失、不覆盖既有账本，
+   迁移只在内存生效，下一次正常保存时随账本一并落盘。 */
+const VALUATION_LEDGER_VERSION = 1;
+function inventoryValueCents(item){
+  if(item && Number.isSafeInteger(item.valueCents) && item.valueCents >= 0) return item.valueCents;
+  const qtyMilli = Math.round((Number(item && item.qty) || 0) * 1000);
+  const priceMilli = Math.round((Number(item && item.price) || 0) * 1000);
+  if(qtyMilli <= 0 || priceMilli <= 0 || !Number.isSafeInteger(qtyMilli * priceMilli)) return 0;
+  return Math.round(qtyMilli * priceMilli / 10000);
+}
+function ensureValuationLedger(data){
+  if(!data || !Array.isArray(data.inventory)) return data;
+  for(const item of data.inventory){
+    if(!item || typeof item !== 'object') continue;
+    if(!Number.isSafeInteger(item.valueCents) || item.valueCents < 0){
+      item.valueCents = inventoryValueCents(item);
+    }
+    if(item.valuationMethod !== 'moving-average') item.valuationMethod = 'moving-average';
+  }
+  if(data.settings && typeof data.settings === 'object' &&
+     data.settings.valuationLedgerVersion !== VALUATION_LEDGER_VERSION){
+    data.settings.valuationLedgerVersion = VALUATION_LEDGER_VERSION;
+  }
+  return data;
+}
+
 function loadDB(){
   let raw = null;
   try{
@@ -461,7 +564,7 @@ function loadDB(){
     lastKnownStorageValue = raw;
     if(raw){
       const d = JSON.parse(raw);
-      if(isValidDBShape(d)) return migrateUnmodifiedDemoLedger(d, raw);
+      if(isValidDBShape(d)) return ensureValuationLedger(migrateUnmodifiedDemoLedger(d, raw));
       storageRecoveryRequired = true;
       preserveInvalidDB(raw);
       console.warn('ERP 缓存结构不完整，已保留恢复副本；在恢复前禁止自动覆盖原缓存。');
@@ -496,7 +599,7 @@ function loadDemoLedger() {
     company:'示例企业账本（实际名称待配置）', companyShort:'示例账本',
     companyTaxNo:'', dataProvenance:'demo-seed',
     reportFooter:'演示账本 · 未核验前不得用于财务结算或对外报送' };
-  DB = demo;
+  DB = ensureValuationLedger(demo);
   if (!commitDBMutation(previous)) return;
   initNav();
   go('dashboard');
@@ -600,6 +703,7 @@ async function readFromFile(){
     if(!Array.isArray(candidate.purchaseReceipts)) candidate.purchaseReceipts = [];
     if(!Array.isArray(candidate.purchaseReceiptReversals)) candidate.purchaseReceiptReversals = [];
     if(!Array.isArray(candidate.stockMovements)) candidate.stockMovements = [];
+    ensureValuationLedger(candidate);
 
     // Commit the browser copy before changing in-memory state or releasing
     // the recovery lock. A failed cache write must leave the prior DB intact.
@@ -879,7 +983,7 @@ const SCHEMAS = {
       {k:'qty',   l:'库存量',   t:'number', req:true, align:'right', step:'0.001', w:'96px'},
       {k:'unit',  l:'单位',    t:'select', opts:'units', w:'70px'},
       {k:'safe',  l:'安全库存', t:'number', align:'right', w:'92px'},
-      {k:'price', l:'单价',    t:'number', align:'right', step:'0.01', w:'88px'},
+      {k:'price', l:'参考单价', t:'number', align:'right', step:'0.01', w:'88px'},
       {k:'supplier',l:'供应商', t:'ref',   ref:'suppliers', refLabel:'name', w:'150px'},
       {k:'inDate',l:'入库日期', t:'date',   w:'104px'},
     ],
@@ -898,7 +1002,7 @@ const SCHEMAS = {
         return '<span class="num strong">' + fmtStockQty(position.projectedQuantity) + ' ' + esc(r.unit||'') + '</span>' + warning;
       }}
     ],
-    calc:{l:'库存金额', fn:r => (Number(r.qty)||0)*(Number(r.price)||0), money:true}
+    calc:{l:'库存金额', fn:r => inventoryValueCents(r)/100, money:true}
   },
 
   purchase: {
@@ -1413,6 +1517,7 @@ function renderPurchaseReceiptSkuOptions(){
   const orderSelect = document.getElementById('receipt-purchase-order');
   const skuSelect = document.getElementById('receipt-sku');
   const quantity = document.getElementById('receipt-quantity');
+  const unitCost = document.getElementById('receipt-unit-cost');
   const batch = document.getElementById('receipt-batch');
   const location = document.getElementById('receipt-location');
   const remainingLabel = document.getElementById('receipt-remaining');
@@ -1437,6 +1542,14 @@ function renderPurchaseReceiptSkuOptions(){
     quantity.max = String(remaining);
     quantity.value = '';
     quantity.placeholder = remaining > 0 ? '本单剩余 ' + remaining.toFixed(3) + ' ' + esc(order.unit) : '本单已收齐';
+  }
+  if(unitCost){
+    // 切换采购单时带出该单单价；同一张单内改选 SKU 不覆盖经办人已改的单价。
+    const orderNo = order ? String(order.no) : '';
+    if(unitCost.dataset.orderNo !== orderNo){
+      unitCost.dataset.orderNo = orderNo;
+      unitCost.value = order && Number.isFinite(Number(order.price)) ? String(order.price) : '';
+    }
   }
   if(batch) batch.value = selected ? selected.batch : '';
   if(location) location.value = selected ? selected.loc : '';
@@ -1532,6 +1645,7 @@ function renderPurchaseReceiptWorkspace(){
       '<div class="receipt-match-message" id="receipt-match-message">' +
         (selectable ? '已匹配 ' + getPurchaseReceiptMatches(selectable).length +
           ' 个 SKU。批次与库位沿用库存主档。' : '请先选择一张可收货采购单。') + '</div>' +
+      '<label class="receipt-note-label">采购单价（元）<input id="receipt-unit-cost" class="form-control" type="number" min="0" step="0.001" value="' + (selectable && Number.isFinite(Number(selectable.price)) ? esc(String(selectable.price)) : '') + '" placeholder="默认带出采购订单单价，可修改；留空按采购单单价入账"><span class="field-note">收货过账的单价快照：写入收货记录与金额账本（移动加权平均），后续改价不回溯。</span></label>' +
       '<label class="receipt-note-label">检验说明 / 单据备注<textarea id="receipt-note" class="form-control" rows="2" maxlength="1000" placeholder="可填写供应商送货单号、检验报告号、包装/外观检查说明等；不要录入未经核实的结论。"></textarea></label>' +
       '<div class="receipt-submit-row"><span>每张收货单生成独立库存流水；重复单号、超订单数量及不匹配 SKU 会被拒绝。</span>' +
       '<button id="receipt-submit" type="button" class="btn btn-primary"' + (!initialMatch || storageRecoveryRequired ? ' disabled' : '') + ' onclick="postPurchaseReceipt()">确认检验合格并入库</button></div>' +
@@ -1570,8 +1684,10 @@ async function postPurchaseReceipt(){
     const receivedDate = new Date(receivedLocal);
     if(!Number.isFinite(receivedDate.getTime())) throw new Error('收货时间无效');
     const receivedAt = receivedDate.toISOString();
+    const unitCostInput = document.getElementById('receipt-unit-cost');
+    const unitCost = unitCostInput && unitCostInput.value !== '' ? Number(unitCostInput.value) : undefined;
     const baseNo = 'GRN-' + today().replace(/-/g,'') + '-' + Date.now();
-    const domain = await import('../../src/domain/index.js?v=20261019-erp-receipt-v2');
+    const domain = await import('../../src/domain/index.js?v=20261029-erp-valuation-v3');
     const result = domain.createPurchaseReceipt({
       purchaseOrder: order,
       inventoryItem: item,
@@ -1586,7 +1702,8 @@ async function postPurchaseReceipt(){
       receivedBy: document.getElementById('receipt-receiver').value,
       inspectedBy: document.getElementById('receipt-inspector').value,
       inspectionResult: document.getElementById('receipt-inspection').value,
-      note: document.getElementById('receipt-note').value
+      note: document.getElementById('receipt-note').value,
+      unitCost
     });
     const previousDB = snapshotDB();
     const inventoryIndex = DB.inventory.findIndex(row => String(row.code) === String(sku));
@@ -1596,6 +1713,10 @@ async function postPurchaseReceipt(){
       throw new Error('库存或采购单已被其他操作修改；本次收货未过账，请刷新后核对');
     }
     DB.inventory[inventoryIndex].qty = result.stockMovement.nextBalance;
+    if(Number.isSafeInteger(result.receipt.nextValueCents)){
+      DB.inventory[inventoryIndex].valueCents = result.receipt.nextValueCents;
+    }
+    DB.inventory[inventoryIndex].valuationMethod = 'moving-average';
     DB.inventory[inventoryIndex].inDate = receivedLocal.slice(0,10);
     DB.purchase[purchaseIndex].status = result.purchaseStatus;
     DB.purchaseReceipts.unshift(result.receipt);
@@ -1643,7 +1764,7 @@ async function reversePurchaseReceipt(receiptNo){
   if(!window.confirm('确认冲销收货单 '+receipt.receiptNo+'？\n\n库存将减少 '+Number(receipt.quantity).toFixed(3)+' '+receipt.unit+'。原收货记录不会删除，冲销将追加反向库存流水。')) return;
   purchaseReceiptReversalPending=true;
   try{
-    const domain=await import('../../src/domain/index.js?v=20261019-erp-receipt-v2');
+    const domain=await import('../../src/domain/index.js?v=20261029-erp-valuation-v3');
     const reversalNo='REV-'+String(receipt.receiptNo).slice(0,54)+'-'+Date.now();
     const result=domain.createPurchaseReceiptReversal({
       purchaseOrder:order,
@@ -1665,6 +1786,9 @@ async function reversePurchaseReceipt(receiptNo){
       throw new Error('库存或采购单已被其他操作修改；冲销未过账，请刷新后核对');
     }
     DB.inventory[inventoryIndex].qty=result.stockMovement.nextBalance;
+    if(Number.isSafeInteger(result.reversal.nextValueCents)){
+      DB.inventory[inventoryIndex].valueCents=result.reversal.nextValueCents;
+    }
     DB.purchase[purchaseIndex].status=result.purchaseStatus;
     DB.purchaseReceiptReversals=Array.isArray(DB.purchaseReceiptReversals)?DB.purchaseReceiptReversals:[];
     DB.purchaseReceiptReversals.unshift(result.reversal);
@@ -1968,7 +2092,7 @@ async function saveForm(){
     const quantityChanged = !previous || nextQty !== previousQty;
     inventorySavePending = true;
     try{
-      const domain = await import('../../src/domain/index.js?v=20261019-erp-receipt-v2');
+      const domain = await import('../../src/domain/index.js?v=20261029-erp-valuation-v3');
       if(quantityChanged){
         const normalizedPrevious = domain.normalizeStockBalance(previousQty);
         const normalizedNext = domain.normalizeStockBalance(nextQty);
@@ -1986,6 +2110,26 @@ async function saveForm(){
             reference,
             occurredAt: new Date().toISOString()
           });
+          // 金额账本与数量流水并行（移动加权平均）：增量按表单参考单价入账
+          // （未填单价时按当前均价），减量按当前均价结转；参考单价本身
+          // 不再决定账面价值，账面价值只读库存行的 valueCents。
+          const previousValueCents = previous ? inventoryValueCents(previous) : 0;
+          const previousMilli = Math.round(normalizedPrevious * 1000);
+          const formPriceMilli = Number(obj.price) > 0 ? Math.round(Number(obj.price) * 1000) : 0;
+          const valueMovement = domain.applyValueMovement(
+            { quantity: normalizedPrevious, valueCents: previousValueCents },
+            delta > 0
+              ? { quantityDelta: delta, unitCostMilliYuan: formPriceMilli ||
+                  (previousMilli > 0 ? Math.round(previousValueCents * 10000 / previousMilli) : 0) }
+              : { quantityDelta: delta }
+          );
+          stockMovement = { ...stockMovement,
+            unitCostMilliYuan: valueMovement.unitCostMilliYuan,
+            amountDeltaCents: valueMovement.amountDeltaCents,
+            previousValueCents: valueMovement.previousValueCents,
+            nextValueCents: valueMovement.nextValueCents,
+            avgCostAfterMilliYuan: valueMovement.avgCostAfterMilliYuan };
+          obj.valueCents = valueMovement.nextValueCents;
         }
       }else{
         obj.qty = previousQty;
@@ -1996,6 +2140,12 @@ async function saveForm(){
       toast('库存变更未保存：' + (e && e.message ? e.message : '领域校验失败'));
       return;
     }
+    // 数量未变的编辑也把金额账本物化到库存行（旧行首次编辑时补齐），
+    // 并统一标记计价方法；只改参考单价不改变账面价值。
+    if(obj.valueCents === undefined){
+      obj.valueCents = previous ? inventoryValueCents(previous) : 0;
+    }
+    obj.valuationMethod = 'moving-average';
   }
 
   if(key === 'purchase' && editingId){
@@ -2316,7 +2466,7 @@ function renderDashboard(){
   const validOrders = DB.orders.filter(o => o.status !== '已取消');
   const totalAmount = validOrders.reduce((s,o) => s + (Number(o.qty)||0)*(Number(o.price)||0), 0);
   const inProd = DB.workorders.filter(w => w.status === '进行中').length;
-  const stockValue = DB.inventory.reduce((s,i) => s + (Number(i.qty)||0)*(Number(i.price)||0), 0);
+  const stockValue = DB.inventory.reduce((s,i) => s + inventoryValueCents(i), 0) / 100;
   const doneOrders = DB.orders.filter(o => o.status === '已完成').length;
   const completionRate = validOrders.length ? (doneOrders / validOrders.length * 100).toFixed(1) : '0.0';
   const qcTotal = DB.quality.length;
@@ -2629,7 +2779,7 @@ function renderReport(){
 
   const catMap = {};
   DB.inventory.forEach(i => {
-    const v = (Number(i.qty)||0)*(Number(i.price)||0);
+    const v = inventoryValueCents(i) / 100;
     catMap[i.cat] = (catMap[i.cat] || 0) + v;
   });
   const catRank = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
@@ -3204,6 +3354,7 @@ function importAll(input){
       if(!Array.isArray(DB.purchaseReceipts)) DB.purchaseReceipts = [];
       if(!Array.isArray(DB.purchaseReceiptReversals)) DB.purchaseReceiptReversals = [];
       if(!Array.isArray(DB.stockMovements)) DB.stockMovements = [];
+      ensureValuationLedger(DB);
       storageRecoveryRequired = false;
       if(!commitDBMutation(previousDB)){
         // A failed restore write must not unlock a cache that was already
@@ -3226,7 +3377,7 @@ function resetAll(){
   if(!confirm('确定恢复默认演示数据吗？当前所有修改将丢失。')) return;
   const previousDB = snapshotDB();
   const previousRecoveryRequired = storageRecoveryRequired;
-  DB = defaultDB();
+  DB = ensureValuationLedger(defaultDB());
   storageRecoveryRequired = false;
   if(!commitDBMutation(previousDB)){
     // Explicit reset is not complete until the new default state is durable.
@@ -3346,7 +3497,7 @@ function renderAbout(){
    12. 路由 & 渲染
    ================================================================== */
 let stockDomain = null;
-import('../../src/domain/index.js?v=20261019-erp-receipt-v2').then(domain => {
+import('../../src/domain/index.js?v=20261029-erp-valuation-v3').then(domain => {
   stockDomain = domain;
   if (typeof currentPage !== 'undefined' && currentPage === 'inventory') render();
 }).catch(error => console.warn('库存预计位置计算模块不可用，仍可查看原始库存量。', error));
