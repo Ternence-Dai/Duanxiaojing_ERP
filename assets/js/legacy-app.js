@@ -9,6 +9,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
 const fmtN  = n => Number(n || 0).toLocaleString('zh-CN');
 const CUR   = () => (DB.settings.currency || '¥');
 const fmtM0 = n => CUR() + Number(n || 0).toLocaleString('zh-CN', {maximumFractionDigits:0});
+const fmtM2 = n => CUR() + Number(n || 0).toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
 const AUTHOR = {
@@ -1265,7 +1266,7 @@ function renderTableBody(key){
           <div class="prog"><div class="prog-bar ${cls}" style="width:${pct}%"></div></div>
           <div class="prog-txt">${pct}%</div></td>`;
       } else if(S.calc.money){
-        calcTd = `<td class="num strong">${fmtM0(S.calc.fn(r))}</td>`;
+        calcTd = `<td class="num strong">${fmtM2(S.calc.fn(r))}</td>`;
       } else {
         calcTd = `<td class="num">${fmtN(S.calc.fn(r))}</td>`;
       }
@@ -2242,7 +2243,8 @@ function globalSearch(kw){
           ${x.sub ? `<div class="gs-sub">${esc(x.sub)}</div>` : ''}
         </div>
         <span style="font-size:11px;color:#9aa8bd;font-family:monospace;flex-shrink:0">${esc(x.id)}</span>
-      </div>`).join('');
+      </div>`).join('') + (results.length > list.length
+        ? `<div class="gs-more">共 ${results.length} 条，仅显示前 ${list.length} 条，请细化关键词</div>` : '');
   }
   panel.classList.add('show');
 }

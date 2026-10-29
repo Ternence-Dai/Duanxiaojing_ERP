@@ -312,8 +312,13 @@
     if (history.querySelector(".w5-receipt-history-tools")) return;
     const data = db();
     const receipts = data && Array.isArray(data.purchaseReceipts) ? data.purchaseReceipts : [];
-    Array.from(table.querySelectorAll("tbody tr")).forEach((row, index) => {
-      row.dataset.receivedAt = receipts[index] ? receipts[index].receivedAt : "";
+    const receivedAtByNo = new Map(receipts.map(receipt => [String(receipt.receiptNo), receipt.receivedAt]));
+    Array.from(table.querySelectorAll("tbody tr")).forEach(row => {
+      const reverseButton = row.querySelector("[data-reverse-receipt]");
+      const receiptNo = reverseButton
+        ? reverseButton.getAttribute("data-reverse-receipt")
+        : (row.cells && row.cells[0] ? row.cells[0].textContent.trim() : "");
+      row.dataset.receivedAt = receivedAtByNo.get(String(receiptNo)) || "";
     });
 
     const tools = node("div", "w5-receipt-history-tools");

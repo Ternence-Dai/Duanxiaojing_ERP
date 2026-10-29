@@ -40,17 +40,17 @@
 
     const attention = [];
     overdue.slice(0,4).forEach(row => attention.push({level:'danger',kind:'交期逾期',title:'工单 '+row.workOrder.no+' 已逾期 '+row.due.daysLate+' 天',
-      detail:'计划交期 '+row.workOrder.due+' · '+row.workOrder.product+' · 完成 '+fmtN(row.workOrder.done)+' / '+fmtN(row.workOrder.plan)+' '+row.workOrder.unit,page:'workorders'}));
+      detail:'计划交期 '+row.workOrder.due+' · '+row.workOrder.product+' · 完成 '+fmtN(row.workOrder.done)+' / '+fmtN(row.workOrder.plan)+' '+row.workOrder.unit,page:'workorders',id:row.workOrder.no}));
     invalidDue.slice(0,3).forEach(row => attention.push({level:'warning',kind:'数据待核验',title:'工单 '+row.workOrder.no+' 交期日期异常',
-      detail:'当前值：'+String(row.workOrder.due||'未填写')+' · 请在生产工单中核对',page:'workorders'}));
+      detail:'当前值：'+String(row.workOrder.due||'未填写')+' · 请在生产工单中核对',page:'workorders',id:row.workOrder.no}));
     dueSoon.slice(0,3).forEach(row => attention.push({level:'warning',kind:'交期临近',title:'工单 '+row.workOrder.no+(row.due.daysUntil===0?' 今天到期':' '+row.due.daysUntil+' 天后到期'),
-      detail:'计划交期 '+row.workOrder.due+' · '+row.workOrder.product,page:'workorders'}));
+      detail:'计划交期 '+row.workOrder.due+' · '+row.workOrder.product,page:'workorders',id:row.workOrder.no}));
     pendingOrders.slice(0,3).forEach(row => attention.push({level:'info',kind:'待订单确认',title:'订单 '+row.no+' 待确认',
-      detail:(row.cust||'未关联客户')+' · '+row.product+' · '+fmtN(row.qty)+' '+row.unit,page:'orders'}));
+      detail:(row.cust||'未关联客户')+' · '+row.product+' · '+fmtN(row.qty)+' '+row.unit,page:'orders',id:row.no}));
     lowStock.slice(0,4).forEach(row => attention.push({level:'danger',kind:'安全库存',title:(row.name||row.code)+' 低于安全库存',
-      detail:'现存 '+fmtN(row.qty)+' '+row.unit+' · 安全线 '+fmtN(row.safe)+' '+row.unit+' · '+(row.loc||'库位未填'),page:'inventory'}));
+      detail:'现存 '+fmtN(row.qty)+' '+row.unit+' · 安全线 '+fmtN(row.safe)+' '+row.unit+' · '+(row.loc||'库位未填'),page:'inventory',id:row.code}));
     const attentionHtml = attention.length ? attention.slice(0,10).map(item =>
-      '<button type="button" class="erp-op-queue-item is-'+item.level+'" onclick="go(&#39;'+item.page+'&#39;)">' +
+      '<button type="button" class="erp-op-queue-item is-'+item.level+'" onclick="'+(item.id ? 'jumpTo('+jsArg(item.page)+','+jsArg(item.id)+')' : 'go('+jsArg(item.page)+')')+'">' +
       '<span class="erp-op-queue-level">'+item.kind+'</span><strong>'+text(item.title)+'</strong><small>'+text(item.detail)+'</small><i>进入处理 ↗</i></button>'
     ).join('') : '<div class="erp-op-empty"><strong>当前没有识别到待办异常</strong><span>这不等于现场状态已核实；请持续维护交期、库存与质检记录。</span></div>';
 
@@ -98,9 +98,9 @@
       '<div class="erp-op-process">'+processHtml+'</div></section></div>' +
 
       '<section class="erp-op-metrics kpi-grid" aria-label="经营指标">' +
-      metric('订单金额汇总',fmtM0(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
+      metric('订单金额汇总',fmtM2(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
       metric('在产工单',inProduction.length,'逾期 '+overdue.length+' · 临期 '+dueSoon.length,'violet') +
-      metric('库存账面价值',fmtM0(stockValue),'低于安全库存 '+lowStock.length+' 项','amber') +
+      metric('库存账面价值',fmtM2(stockValue),'低于安全库存 '+lowStock.length+' 项','amber') +
       metric('优等品率',firstRate+'%','检验 '+qcTotal+' 条 · 订单完成率 '+completionRate+'%','green') +
       '</section>' +
 
