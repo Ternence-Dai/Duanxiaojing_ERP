@@ -7,8 +7,11 @@
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]);
     });
   }
-  function metric(label,value,note,tone) {
-    return '<article class="kpi erp-op-metric erp-op-metric--' + tone + '">' +
+  function metric(label,value,note,tone,page) {
+    const navAttrs = page ?
+      ' role="button" tabindex="0" onclick="go(' + jsArg(page) + ')" ' +
+      'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();go(' + jsArg(page) + ');}"' : '';
+    return '<article class="kpi erp-op-metric erp-op-metric--' + tone + (page ? ' is-clickable' : '') + '"' + navAttrs + '>' +
       '<div class="kpi-label">' + label + '</div><div class="kpi-value">' + value +
       '</div><div class="kpi-foot">' + note + '</div></article>';
   }
@@ -64,7 +67,8 @@
 
     const activeHtml = inProduction.slice(0,6).map(row => {
       const percent = Math.max(0,Math.min(100,Math.round((Number(row.done)||0)/Math.max(Number(row.plan)||1,1)*100)));
-      return '<article class="erp-op-workorder"><div><strong>'+text(row.no)+' · '+text(row.product)+'</strong><small>'+text(row.process||'工序未分配')+' · 交期 '+text(row.due||'未设置')+'</small></div>' +
+      return '<article class="erp-op-workorder is-clickable" role="button" tabindex="0" onclick="jumpTo('+jsArg('workorders')+','+jsArg(row.no)+')" ' +
+        'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();jumpTo('+jsArg('workorders')+','+jsArg(row.no)+');}"><div><strong>'+text(row.no)+' · '+text(row.product)+'</strong><small>'+text(row.process||'工序未分配')+' · 交期 '+text(row.due||'未设置')+'</small></div>' +
         '<div class="erp-op-progress"><i style="width:'+percent+'%"></i></div><b>'+percent+'%</b></article>';
     }).join('') || '<div class="erp-op-empty">当前没有标记为进行中的工单。请在生产工单台账维护执行状态。</div>';
 
@@ -98,10 +102,10 @@
       '<div class="erp-op-process">'+processHtml+'</div></section></div>' +
 
       '<section class="erp-op-metrics kpi-grid" aria-label="经营指标">' +
-      metric('订单金额汇总',fmtM2(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue') +
-      metric('在产工单',inProduction.length,'逾期 '+overdue.length+' · 临期 '+dueSoon.length,'violet') +
-      metric('库存账面价值',fmtM2(stockValue),'低于安全库存 '+lowStock.length+' 项','amber') +
-      metric('优等品率',firstRate+'%','检验 '+qcTotal+' 条 · 订单完成率 '+completionRate+'%','green') +
+      metric('订单金额汇总',fmtM2(totalAmount),'有效订单 · '+validOrders.length+' 张 · '+(isDemo?'示例数据':'本机数据'),'blue','orders') +
+      metric('在产工单',inProduction.length,'逾期 '+overdue.length+' · 临期 '+dueSoon.length,'violet','workorders') +
+      metric('库存账面价值',fmtM2(stockValue),'低于安全库存 '+lowStock.length+' 项','amber','inventory') +
+      metric('优等品率',firstRate+'%','检验 '+qcTotal+' 条 · 订单完成率 '+completionRate+'%','green','quality') +
       '</section>' +
 
       '<div class="erp-op-analytics"><section class="erp-op-panel"><div class="erp-op-panel-head"><div><span class="eyebrow">SALES ORDER VALUE</span>' +

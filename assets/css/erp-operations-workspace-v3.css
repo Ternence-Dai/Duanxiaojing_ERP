@@ -168,6 +168,12 @@ body[data-workspace="erp"] .erp-op-metric--green { border-top:2px solid #53b396!
 body[data-workspace="erp"] .erp-op-metric .kpi-label { color:#90aabb!important;font-size:7px!important; }
 body[data-workspace="erp"] .erp-op-metric .kpi-value { margin:7px 0 4px;color:#e1f0f7!important;font-size:20px!important; }
 body[data-workspace="erp"] .erp-op-metric .kpi-foot { color:#7894a7!important;font-size:7px!important; }
+body[data-workspace="erp"] .erp-op-workorder.is-clickable,
+body[data-workspace="erp"] .erp-op-metric.is-clickable { cursor:pointer; }
+body[data-workspace="erp"] .erp-op-workorder.is-clickable:hover,
+body[data-workspace="erp"] .erp-op-metric.is-clickable:hover { border-color:#3d6076!important; }
+body[data-workspace="erp"] .erp-op-workorder.is-clickable:focus-visible,
+body[data-workspace="erp"] .erp-op-metric.is-clickable:focus-visible { outline:2px solid #56c8b5;outline-offset:1px; }
 body[data-workspace="erp"] .erp-op-analytics {
   display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(250px,.85fr)!important;gap:10px!important;
 }
