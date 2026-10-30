@@ -1,0 +1,40 @@
+# Builds the ERP 管理系统 Windows portable app (Electron) on a GitHub Windows
+# runner whenever the app or the desktop shell changes on main, and publishes
+# ERP-Windows-x64.zip on the "desktop-v1.0.0" GitHub Release so it can be
+# downloaded straight from the Releases page.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'assets/**'
+      - 'src/**'
+      - 'package.json'
+      - 'desktop/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build portable Windows app
+        run: node desktop/build-windows.cjs
+
+      - name: Publish zip on the desktop release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v1.0.0
+          name: ERP 管理系统 桌面版 v1.0.0
+          files: ERP-Windows-x64.zip
+          fail_on_unmatched_files: true
